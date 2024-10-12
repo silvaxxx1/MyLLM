@@ -3,10 +3,6 @@
 
 This directory contains scripts for loading and generating text with GPT model
 
-<div align="center">
-  <img src="./Capturex.png" alt="Logo" width="500" />
-</div>
-
 ## Scripts
 
 ### `load_model.py`
