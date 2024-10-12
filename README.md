@@ -27,6 +27,8 @@ Here’s what we’ve accomplished so far:
   <img src="./Capturex.png" alt="Logo1" width="500" />
 </div>
 
+![Chainlit UI example](https://sebastianraschka.com/images/LLMs-from-scratch-images/bonus/chainlit/chainlit-orig.webp)
+
 
 ### Upcoming Plans 🛠️
 
