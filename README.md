@@ -6,12 +6,6 @@ Welcome to **MyLLM**, where we’re on a thrilling adventure to build a comprehe
 
 In the wild and wonderful realm of NLP, crafting a large language model requires a blend of art and science. With **MyLLM**, we aim to provide a roadmap to creating an LLM that not only generates text but can also handle a plethora of tasks. Join us as we turn ideas into code!
 
-### Key Features
-
-- **End-to-End Training Pipeline**: We’ll guide you through every step—from data gathering to model deployment—so you can unleash the power of your LLM.
-- **Advanced Training Techniques**: Experience the magic of training with cutting-edge strategies like learning rate warm-up, cosine decay, and gradient clipping to supercharge your model's performance.
-- **Versatile Applications**: This isn’t just text generation; MyLLM is designed for a wide array of NLP tasks, making it a go-to tool for all your AI needs.
-
 ### Current Status ✅
 
 Here’s what we’ve accomplished so far:
@@ -24,8 +18,9 @@ Here’s what we’ve accomplished so far:
 - **Develop a User Interface**: Make it user-friendly with an engaging UI.
 
 <div align="center">
-  <img src="./Capturex.PNG" alt="Logo1" width="500" />
+  <img src="./Capturex.PNG" alt="Logo1" width="800" />
 </div>
+
 
 
 ### Upcoming Plans 🛠️
