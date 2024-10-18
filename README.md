@@ -24,7 +24,7 @@ Here’s what we’ve accomplished so far:
 - **Develop a User Interface**: Make it user-friendly with an engaging UI.
 
 <div align="center">
-  <img src="./Capturex.png" alt="Logo1" width="500" />
+  <img src="./Capturex.PNG" alt="Logo1" width="500" />
 </div>
 
 
