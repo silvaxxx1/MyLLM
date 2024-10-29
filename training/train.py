@@ -227,6 +227,7 @@ def trainV2(model, train_loader, val_loader, optimizer, device,
     return train_losses, val_losses, track_tokens_seen, track_lrs
 
 
+
 def eval_model(model, train_loader, val_loader, device, eval_iter):
     """
     Evaluate the model on the training and validation datasets.
