@@ -23,7 +23,7 @@ Here’s what we’ve accomplished so far:
 - **Develop a User Interface**: Make it user-friendly with an engaging UI.
 
 <div align="center">
-  <img src="./Capturex.PNG" alt="Logo1" width="800" />
+  <img src="./Capturex.PNG" alt="Logo2" width="800" />
 </div>
 
 For a detailed, step-by-step guide to each part of the process, please refer to the notebook in `MyLLM/notebook`. This document covers everything from data preparation and model training to evaluation, with clear explanations to help you follow along!
