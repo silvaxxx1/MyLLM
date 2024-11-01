@@ -1,0 +1,662 @@
+[
+    {
+        "instruction": "Rewrite this statement as an imperative sentence.",
+        "input": "You should finish your assignment.",
+        "output": "Finish your assignment.",
+        "model_response": "You should finish your assignment."
+    },
+    {
+        "instruction": "Identify the adjective in the sentence.",
+        "input": "The quick fox jumped over the lazy dog.",
+        "output": "The adjectives in the sentence are 'quick' and 'lazy'.",
+        "model_response": "The adjective in the sentence is 'jumps over the lazy dog.'"
+    },
+    {
+        "instruction": "Convert 12 meters to centimeters.",
+        "input": "",
+        "output": "12 meters is 1200 centimeters.",
+        "model_response": "12 meters is equal to 1 centimeters."
+    },
+    {
+        "instruction": "Classify the following into vegetables, animals, and metals.",
+        "input": "Broccoli, Iron, Elephant",
+        "output": "Vegetables: Broccoli\nMetals: Iron\nAnimals: Elephant",
+        "model_response": "The vegetables are the best."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'ambitious'.",
+        "input": "",
+        "output": "She is ambitious and strives for success in all her endeavors.",
+        "model_response": "He is very ambitious and sets high goals for himself for himself."
+    },
+    {
+        "instruction": "Generate a five-word phrase using the words 'star,' 'night,' and 'bright.'",
+        "input": "",
+        "output": "'The bright star illuminated night.'",
+        "model_response": "A five-word phrase using the words 'star' is 'night.'"
+    },
+    {
+        "instruction": "Define the term 'democracy'.",
+        "input": "",
+        "output": "Democracy is a system of government where the citizens exercise power by voting. It typically features fair and free elections, protection of human rights, and the rule of law.",
+        "model_response": "A democracy is a form of government that includes the Executive, the Legislative, the Judicial branches."
+    },
+    {
+        "instruction": "Identify the interjection in the sentence.",
+        "input": "Ouch, that hurt!",
+        "output": "The interjection in the sentence is 'Ouch.'",
+        "model_response": "The interjection in the sentence is the past continuous tense."
+    },
+    {
+        "instruction": "Name an antonym for 'happiness.'",
+        "input": "",
+        "output": "An antonym for 'happiness' is 'sadness.'",
+        "model_response": "An antonym for 'happiness' is 'sorrow.'"
+    },
+    {
+        "instruction": "Classify each sentence as either declarative, interrogative, imperative, or exclamatory.",
+        "input": "Please open the door.",
+        "output": "The classification of the sentence 'Please open the door.' is imperative.",
+        "model_response": "Exclamation."
+    },
+    {
+        "instruction": "What is the speed of sound?",
+        "input": "",
+        "output": "The speed of sound is approximately 343 meters per second at sea level and at 20\u00b0C.",
+        "model_response": "The speed of sound is approximately 343 meters per second."
+    },
+    {
+        "instruction": "Rewrite the sentence using a simile.",
+        "input": "The room was very hot.",
+        "output": "The room was as hot as an oven.",
+        "model_response": "The room was a hot room."
+    },
+    {
+        "instruction": "What is the freezing point of water in Celsius?",
+        "input": "",
+        "output": "The freezing point of water is 0 degrees Celsius.",
+        "model_response": "The freezing point of water is -114 degrees Celsius."
+    },
+    {
+        "instruction": "Pick the best synonym for the given word.",
+        "input": "Gather",
+        "output": "Collect.",
+        "model_response": "Gather."
+    },
+    {
+        "instruction": "Reword the following sentence to the future tense.",
+        "input": "He is reading a novel inspired by his grandmother.",
+        "output": "He will be reading a novel inspired by his grandmother.",
+        "model_response": "He is reading a novel inspired by his grandmother."
+    },
+    {
+        "instruction": "Change the sentence 'You should have called me.' into a question.",
+        "input": "",
+        "output": "Should you have called me?",
+        "model_response": "### Input:\nYou should have called me.\n\n\nShould you have called me?"
+    },
+    {
+        "instruction": "Provide a synonym for 'beautiful'.",
+        "input": "",
+        "output": "A synonym for 'beautiful' is 'lovely'.",
+        "model_response": "A synonym for 'beautiful' is 'beautiful'."
+    },
+    {
+        "instruction": "Define the term 'biodiversity'.",
+        "input": "",
+        "output": "Biodiversity refers to the variety of life in the world or in a particular habitat or ecosystem.",
+        "model_response": "Biodiversity is a community of living and breathing. It includes the nose, trachea, bronchi, bronchi, bronchi, bronchi, bronchi, bronchi, bronchi."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'compassionate'.",
+        "input": "",
+        "output": "She is compassionate and always helps others in need.",
+        "model_response": "She is very compassionate and always helps those in need."
+    },
+    {
+        "instruction": "What is the boiling point of neon in Celsius?",
+        "input": "",
+        "output": "The boiling point of neon is -246 degrees Celsius.",
+        "model_response": "The boiling point of neon is -195 degrees Celsius."
+    },
+    {
+        "instruction": "Generate an antonym for the word 'optimistic'.",
+        "input": "",
+        "output": "An antonym for the word 'optimistic' could be 'pessimistic'.",
+        "model_response": "An antonym for the word 'optimistic' could be 'hopeful'."
+    },
+    {
+        "instruction": "Rewrite the given sentence to describe the same thing in a positive way.",
+        "input": "The meal was not delicious.",
+        "output": "The meal could use some improvement.",
+        "model_response": "The meal was not a delicious meal."
+    },
+    {
+        "instruction": "What is an antonym of 'external'?",
+        "input": "",
+        "output": "An antonym of 'external' is 'internal'.",
+        "model_response": "An antonym of 'external' is 'sad'."
+    },
+    {
+        "instruction": "Convert 8 kilometers to meters.",
+        "input": "",
+        "output": "8 kilometers is 8000 meters.",
+        "model_response": "8 kilometers is 9000 meters."
+    },
+    {
+        "instruction": "Change this sentence grammatically.",
+        "input": "He have seen the movie.",
+        "output": "He has seen the movie.",
+        "model_response": "He has seen the movie."
+    },
+    {
+        "instruction": "Translate 'Goodbye' into Spanish.",
+        "input": "",
+        "output": "The Spanish translation of 'Goodbye' is 'Adi\u00f3s'.",
+        "model_response": "\u00bfPuedes ayudarme?"
+    },
+    {
+        "instruction": "Given a sentence, convert it into indirect speech.",
+        "input": "She said, \"I am tired.\"",
+        "output": "She said that she was tired.",
+        "model_response": "She said, \"I am tired.\""
+    },
+    {
+        "instruction": "Correct the grammatical errors in this sentence.",
+        "input": "He don't know nothing about it.",
+        "output": "He doesn't know anything about it.",
+        "model_response": "He doesn't know everything about it."
+    },
+    {
+        "instruction": "What is the capital of the United Kingdom?",
+        "input": "",
+        "output": "The capital of the United Kingdom is London.",
+        "model_response": "The capital of the United Kingdom is London."
+    },
+    {
+        "instruction": "Generate a question with the keyword 'virus'",
+        "input": "",
+        "output": "How does a virus infect a cell?",
+        "model_response": "A question with the keyword 'virus' is ' Virus'."
+    },
+    {
+        "instruction": "Translate 'thank you' into German.",
+        "input": "",
+        "output": "The German translation of 'thank you' is 'danke'.",
+        "model_response": "The German translation of 'Thank you' is 'Wo ist die Toilette?'"
+    },
+    {
+        "instruction": "What is the capital of Spain?",
+        "input": "",
+        "output": "The capital of Spain is Madrid.",
+        "model_response": "The capital of Spanish is Spanish."
+    },
+    {
+        "instruction": "Convert the sentence into a question by adding a question tag.",
+        "input": "You will help me",
+        "output": "You will help me, won't you?",
+        "model_response": ".\n\n\nYou will not help me."
+    },
+    {
+        "instruction": "Rewrite the following sentence to include a hyperbole: 'I'm very tired.'",
+        "input": "I'm very tired.",
+        "output": "I'm so tired I could sleep for a year.",
+        "model_response": "I'm tired."
+    },
+    {
+        "instruction": "Classify the following substances as acid, base, or salt.",
+        "input": "Vinegar, Baking soda, Table salt",
+        "output": "Acid: Vinegar\nBase: Baking soda\nSalt: Table salt",
+        "model_response": "Acid: Lemon juice\nBake soda: Lemon juice\n\n\nAcid: Lemon juice\nThe substances are typically classified as acid, base, or salt."
+    },
+    {
+        "instruction": "What type of animal is a 'koala'?",
+        "input": "",
+        "output": "A koala is a marsupial.",
+        "model_response": "A 'koala' is a 'paala'."
+    },
+    {
+        "instruction": "What is an antonym for 'difficult'?",
+        "input": "",
+        "output": "An antonym for 'difficult' is 'easy'.",
+        "model_response": "An antonym for 'difficult' is 'challenging'."
+    },
+    {
+        "instruction": "Provide the past tense form of the verb 'swim.'",
+        "input": "",
+        "output": "The past tense of the verb 'swim' is 'swam.'",
+        "model_response": "The past tense form of the verb 'swim' is 'run.'"
+    },
+    {
+        "instruction": "What is an antonym of 'brave'?",
+        "input": "",
+        "output": "An antonym of 'brave' is 'cowardly'.",
+        "model_response": "An antonym of 'brave' is 'sad'."
+    },
+    {
+        "instruction": "What is a synonym of 'astonishing'?",
+        "input": "",
+        "output": "A synonym for 'astonishing' is 'amazing'.",
+        "model_response": "A synonym for 'ancient' is 'incredible'."
+    },
+    {
+        "instruction": "Name the process by which carbon dioxide is converted into organic compounds by plants.",
+        "input": "",
+        "output": "The process by which carbon dioxide is converted into organic compounds by plants is called photosynthesis.",
+        "model_response": "The process by which carbon dioxide is transformed intoorganic compounds by plants is called respiration."
+    },
+    {
+        "instruction": "What is the chemical symbol for magnesium?",
+        "input": "",
+        "output": "The chemical symbol for magnesium is Mg.",
+        "model_response": "The chemical symbol for magnesium is MgSO4."
+    },
+    {
+        "instruction": "What is the formula for calculating work done?",
+        "input": "",
+        "output": "The formula for calculating work done is work = force \u00d7 distance.",
+        "model_response": "The formula for calculating work done is work done by the workers."
+    },
+    {
+        "instruction": "What is a synonym for 'enormous'?",
+        "input": "",
+        "output": "A synonym for 'enormous' is 'gigantic'.",
+        "model_response": "A synonym for 'enormous' is 'plentiful'."
+    },
+    {
+        "instruction": "Rewrite the following sentence to use a metaphor: 'Life is like a journey.'",
+        "input": "",
+        "output": "Life is a journey.",
+        "model_response": "### Input:\nLife is a journey.\n\n\nLife is a journey."
+    },
+    {
+        "instruction": "Provide the past tense form of the verb \"run.\"",
+        "input": "",
+        "output": "The past tense of the verb \"run\" is \"ran.\"",
+        "model_response": "The past tense form of the verb \"run\" is \"run.\""
+    },
+    {
+        "instruction": "Rearrange the following list into descending order.",
+        "input": "5, -3, 20, 10",
+        "output": "20, 10, 5, -3",
+        "model_response": "25, -3, 10, -3, -3."
+    },
+    {
+        "instruction": "Identify the main subject in the sentence.",
+        "input": "The excited students ran to the playground.",
+        "output": "The main subject in the sentence is 'The excited students.'",
+        "model_response": "The main subject in the sentence is 'excuse'."
+    },
+    {
+        "instruction": "What type of bond does sodium chloride (table salt) have?",
+        "input": "",
+        "output": "Sodium chloride (table salt) has an ionic bond.",
+        "model_response": "The NaCl is a NaCl."
+    },
+    {
+        "instruction": "What is the past tense of 'sing'?",
+        "input": "",
+        "output": "The past tense of 'sing' is 'sang.'",
+        "model_response": "The past tense of 'sing' is 'sing.'"
+    },
+    {
+        "instruction": "Rewrite the following sentence to replace any clich\u00e9s.",
+        "input": "He was as cool as a cucumber.",
+        "output": "He remained very calm.",
+        "model_response": "He was as cool as a cucumber."
+    },
+    {
+        "instruction": "What is the chemical symbol for aluminum?",
+        "input": "",
+        "output": "Al.",
+        "model_response": "The chemical symbol for aluminum is Au."
+    },
+    {
+        "instruction": "Fill in the blank to complete the sentence.",
+        "input": "The most popular fruit in the world is the ___",
+        "output": "The most popular fruit in the world is the banana.",
+        "model_response": "The most popular fruit in the world is the ___."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'determined'.",
+        "input": "",
+        "output": "She is determined to achieve her dreams despite the obstacles.",
+        "model_response": "She is determined to succeed despite the obstacles."
+    },
+    {
+        "instruction": "What is the capital of South Korea?",
+        "input": "",
+        "output": "The capital of South Korea is Seoul.",
+        "model_response": "The capital of South Korea is Seoul."
+    },
+    {
+        "instruction": "Provide a synonym for 'quick'.",
+        "input": "",
+        "output": "A synonym for 'quick' is 'rapid'.",
+        "model_response": "A synonym for 'quick' is 'quick'."
+    },
+    {
+        "instruction": "Find the temperature of freezing water under normal atmospheric pressure.",
+        "input": "",
+        "output": "Under normal atmospheric pressure, the temperature of freezing water is 0 degrees Celsius (32 degrees Fahrenheit).",
+        "model_response": "The temperature of freezing water is -114 degrees Celsius."
+    },
+    {
+        "instruction": "What is the boiling point of ethanol in Celsius?",
+        "input": "",
+        "output": "The boiling point of ethanol is 78 degrees Celsius.",
+        "model_response": "The boiling point of ethanol is -195 degrees Celsius."
+    },
+    {
+        "instruction": "Reverse the order of the given phrase.",
+        "input": "Moon and stars",
+        "output": "Stars and moon",
+        "model_response": "moon and stars"
+    },
+    {
+        "instruction": "Edit the given text to ensure all plural nouns are spelled correctly.",
+        "input": "The boxes was stacked neatly.",
+        "output": "The boxes were stacked neatly.",
+        "model_response": "The given text was a breeze."
+    },
+    {
+        "instruction": "Convert the following verb to its past participle form: 'go'",
+        "input": "go",
+        "output": "The past participle form of 'go' is 'gone'.",
+        "model_response": "The past participle form of 'go' is 'ge.'"
+    },
+    {
+        "instruction": "What is the opposite of 'early'?",
+        "input": "",
+        "output": "The opposite of 'early' is 'late'.",
+        "model_response": "The opposite of 'early' is 'late'."
+    },
+    {
+        "instruction": "Categorize the given list of animals.",
+        "input": "Dog, Eagle, Trout",
+        "output": "Mammals: Dog\nBirds: Eagle\nFish: Trout",
+        "model_response": "Fish: Eagle\nMammals: Eagle\nMammals: Eagle\nFrog: Eagle"
+    },
+    {
+        "instruction": "Rewrite the sentence using a simile.",
+        "input": "He is very strong.",
+        "output": "He is as strong as an ox.",
+        "model_response": "He is as strong as lightning."
+    },
+    {
+        "instruction": "Name three types of clouds.",
+        "input": "",
+        "output": "Three types of clouds are cumulus, stratus, and cirrus.",
+        "model_response": "Three types of clouds are rain, thunder, and thunder."
+    },
+    {
+        "instruction": "Convert the number 5 from decimal to binary.",
+        "input": "",
+        "output": "The binary equivalent of the decimal number 5 is 101.",
+        "model_response": "The number 5 is the binary equivalent of the number 5."
+    },
+    {
+        "instruction": "What is the chemical formula for potassium nitrate?",
+        "input": "",
+        "output": "The chemical formula for potassium nitrate is KNO3.",
+        "model_response": "The chemical formula for potassium nitrate is KNO3."
+    },
+    {
+        "instruction": "Convert this declarative sentence into a command: 'You should check the report.'",
+        "input": "",
+        "output": "Check the report.",
+        "model_response": "### Input:\nYou should check the report.\n\n\nCheck the report."
+    },
+    {
+        "instruction": "Translate 'How are you?' into French.",
+        "input": "",
+        "output": "The French translation of 'How are you?' is 'Comment \u00e7a va?'.",
+        "model_response": "The French word for 'How are you?' is 'paix'."
+    },
+    {
+        "instruction": "Translate 'I love books' into Spanish.",
+        "input": "",
+        "output": "Me encantan los libros.",
+        "model_response": "\u00bfPuedes ayudarme?"
+    },
+    {
+        "instruction": "Split the following sentence into two declarative sentences: 'The movie was long but interesting.'",
+        "input": "",
+        "output": "The movie was long. It was interesting.",
+        "model_response": "### Input:\nThe movie was a movie.\n\n\nThe movie was a movie."
+    },
+    {
+        "instruction": "Convert the following sentence to use a relative clause: The man is a teacher. He lives next door.",
+        "input": "",
+        "output": "The man who lives next door is a teacher.",
+        "model_response": "### Input:\nHe is a teacher. He lives next door.\n\n\nHe is a teacher."
+    },
+    {
+        "instruction": "Create a simile with the word 'as cold as'.",
+        "input": "",
+        "output": "Her hands were as cold as ice.",
+        "model_response": "The chilly as cold is - 78 degrees Celsius."
+    },
+    {
+        "instruction": "What is the molecular formula for carbon dioxide?",
+        "input": "",
+        "output": "The molecular formula for carbon dioxide is CO2.",
+        "model_response": "The molecular formula for sodium dioxide is Na2CO3."
+    },
+    {
+        "instruction": "Provide a synonym for 'excited'.",
+        "input": "",
+        "output": "A synonym for 'excited' is 'thrilled'.",
+        "model_response": "A synonym for 'excited' is 'thrilling'."
+    },
+    {
+        "instruction": "What is the capital of Germany?",
+        "input": "",
+        "output": "The capital of Germany is Berlin.",
+        "model_response": "The capital of Germany is Berlin."
+    },
+    {
+        "instruction": "What is the pH of soap?",
+        "input": "",
+        "output": "The pH of soap is typically between 9 and 10.",
+        "model_response": "The pH of a soap solution is approximately 9.0."
+    },
+    {
+        "instruction": "What is the capital of Russia?",
+        "input": "",
+        "output": "The capital of Russia is Moscow.",
+        "model_response": "The capital of Russia is Moscow."
+    },
+    {
+        "instruction": "Rewrite the following sentence to use a metaphor: The sun set behind the hills.",
+        "input": "",
+        "output": "The sun dipped behind the hills like a shy child hiding.",
+        "model_response": "### Input:\nThe sun turned a brilliant orange.\n\n\nThe sky turned a brilliant orange."
+    },
+    {
+        "instruction": "Simplify the expression: 2(x + 3) + 4(x - 1).",
+        "input": "",
+        "output": "6x + 2.",
+        "model_response": "The expression is 2(x + 3) + 4(x - 1)."
+    },
+    {
+        "instruction": "Provide a synonym for 'strong'.",
+        "input": "",
+        "output": "A synonym for 'strong' is 'powerful'.",
+        "model_response": "A synonym for 'strong' is 'strong'."
+    },
+    {
+        "instruction": "What is the plural form of 'child'?",
+        "input": "",
+        "output": "The plural form of 'child' is 'children'.",
+        "model_response": "The plural form of 'child' is 'child.'"
+    },
+    {
+        "instruction": "Rewrite this sentence to start with 'In spite of': Although it was raining, they went for a walk.",
+        "input": "",
+        "output": "In spite of the rain, they went for a walk.",
+        "model_response": "### Input:\nThey went for a walk.\n\n\nThey went for a walk."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'innovative'.",
+        "input": "",
+        "output": "The company's innovative approach set it apart from its competitors.",
+        "model_response": "The company aims to innovate by developing new and sustainable technologies."
+    },
+    {
+        "instruction": "What is the symbol for copper on the periodic table?",
+        "input": "",
+        "output": "The symbol for copper on the periodic table is Cu.",
+        "model_response": "The symbol for copper on the periodic table is Au."
+    },
+    {
+        "instruction": "Explain what a black hole is.",
+        "input": "",
+        "output": "A black hole is a region of space where gravity is so strong that nothing, not even light, can escape from it.",
+        "model_response": "A black hole is a spiral galaxy."
+    },
+    {
+        "instruction": "What is the boiling point of water in Fahrenheit?",
+        "input": "",
+        "output": "The boiling point of water is 212 degrees Fahrenheit.",
+        "model_response": "The boiling point of water is -195 degrees Celsius."
+    },
+    {
+        "instruction": "Calculate the perimeter of a hexagon with side lengths of 4 cm.",
+        "input": "",
+        "output": "The perimeter of the hexagon is 24 cm.",
+        "model_response": "The perimeter of the hexagon is 24 cm."
+    },
+    {
+        "instruction": "What is the capital of Sweden?",
+        "input": "",
+        "output": "The capital of Sweden is Stockholm.",
+        "model_response": "The capital of Sweden is Stockholm."
+    },
+    {
+        "instruction": "Rewrite the sentence so that it does not contain any passive voice.",
+        "input": "The artwork was displayed in the gallery.",
+        "output": "The gallery displayed the artwork.",
+        "model_response": "The artist was displayed in the gallery."
+    },
+    {
+        "instruction": "Classify the following into animals, plants, and metals.",
+        "input": "Rose, gold, cat",
+        "output": "Animals: Cat\nPlants: Rose\nMetals: Gold",
+        "model_response": "The animals are the Rose, gold, cat."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'harmony'.",
+        "input": "",
+        "output": "The choir's voices blended in perfect harmony.",
+        "model_response": "The old mansion had a melancholy tune that intrigued everyone."
+    },
+    {
+        "instruction": "Arrange the given numbers in ascending order.",
+        "input": "8, 3, 15, 1, 7",
+        "output": "1, 3, 7, 8, 15.",
+        "model_response": "15, 8, 7, 9, 7."
+    },
+    {
+        "instruction": "What is a synonym for 'assist'?",
+        "input": "",
+        "output": "A synonym for 'assist' is 'help'.",
+        "model_response": "A synonym for 'start' is 'start.'"
+    },
+    {
+        "instruction": "Classify each sentence as either declarative, interrogative, imperative, or exclamatory.",
+        "input": "Can you help me?",
+        "output": "The classification of the sentence \"Can you help me?\" is interrogative.",
+        "model_response": "Exclamation."
+    },
+    {
+        "instruction": "Identify the tone used in the poem 'The Road Not Taken' by Robert Frost.",
+        "input": "",
+        "output": "The tone of 'The Road Not Taken' is reflective and contemplative, as the speaker considers the choices made in life and their long-term impacts.",
+        "model_response": "The tone used in 'The Road Not Taken' is the past continuous tense."
+    },
+    {
+        "instruction": "Name the longest river in the world.",
+        "input": "",
+        "output": "The longest river in the world is the Nile River.",
+        "model_response": "The longest river in the world is the Pacific Ocean."
+    },
+    {
+        "instruction": "Alter the content of the sentence to use the past tense.",
+        "input": "The ship sails at dawn.",
+        "output": "The ship sailed at dawn.",
+        "model_response": "The past tense of the sentence is 'sparrow'."
+    },
+    {
+        "instruction": "Translate the term 'sustainable development' into German.",
+        "input": "",
+        "output": "The German translation of 'sustainable development' is 'nachhaltige Entwicklung'.",
+        "model_response": "The German translation of 'sustainable development' is 'sustainable development'."
+    },
+    {
+        "instruction": "Correct the verb tense error in the sentence.",
+        "input": "She go to school every day.",
+        "output": "The corrected sentence should be: 'She goes to school every day.'",
+        "model_response": "She goes to school every day."
+    },
+    {
+        "instruction": "Convert 25 meters to centimeters.",
+        "input": "",
+        "output": "25 meters is 2500 centimeters.",
+        "model_response": "25 meters is approximately 32.07 centimeters."
+    },
+    {
+        "instruction": "Generate a sentence using the word 'perseverant'.",
+        "input": "",
+        "output": "He is perseverant and never gives up on his goals.",
+        "model_response": "The old mansion had a mysterious aura that intrigued everyone."
+    },
+    {
+        "instruction": "What is the opposite of 'tall'?",
+        "input": "",
+        "output": "The opposite of 'tall' is 'short'.",
+        "model_response": "The opposite of 'tall' is 'tall'."
+    },
+    {
+        "instruction": "What is the capital of Denmark?",
+        "input": "",
+        "output": "The capital of Denmark is Copenhagen.",
+        "model_response": "The capital of Denmark is Copenhagen."
+    },
+    {
+        "instruction": "Convert 2 liters to milliliters.",
+        "input": "",
+        "output": "2 liters is 2000 milliliters.",
+        "model_response": "2 liters is 2000 milliliters."
+    },
+    {
+        "instruction": "Convert 6 kilometers to meters.",
+        "input": "",
+        "output": "6 kilometers is 6000 meters.",
+        "model_response": "6 kilometers is 9000 meters."
+    },
+    {
+        "instruction": "Name an antonym for 'big.'",
+        "input": "",
+        "output": "An antonym for 'big' is 'small.'",
+        "model_response": "An antonym for 'big' is 'little.'"
+    },
+    {
+        "instruction": "Transform the following sentence into a command.",
+        "input": "You should clean your room.",
+        "output": "Clean your room.",
+        "model_response": "You should clean your room."
+    },
+    {
+        "instruction": "Rewrite the sentence using a metaphor.",
+        "input": "He is very intelligent.",
+        "output": "He is a genius.",
+        "model_response": "He is a fountain of wisdom."
+    },
+    {
+        "instruction": "What is the opposite of 'light'?",
+        "input": "",
+        "output": "The opposite of 'light' is 'heavy'.",
+        "model_response": "The opposite of 'light' is 'dark'."
+    }
+]
