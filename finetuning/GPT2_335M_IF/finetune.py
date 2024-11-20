@@ -5,7 +5,7 @@ import torch
 from data import *
 from torch.utils.data import DataLoader
 import torch._dynamo
-from data import InstructionDataset, load_data, split_data, download_data
+from data import InstructionDataset, load_data, split_data, download_data, custom_collate_fn
 from utils import download_and_load_gpt2, load_weights_into_gpt
 from model import GPTModel
 import tiktoken
