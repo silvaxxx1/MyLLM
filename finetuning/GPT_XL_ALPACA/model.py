@@ -153,19 +153,6 @@ class GPTModel(nn.Module):
         return logits
 
 
-### 🔨 **What We've Accomplished So Far:**
-
-# 1. Tokenization (Notebook 1):
-#   - We created and discussed  tokenization, ensuring that input text is converted into token IDs that can be processed by the model.
-#   - Tokenization prepares the input data for the transformer model, breaking the text into smaller, manageable pieces.
-#   - save the data after splitting into sepret files waiting fot training
-
-# 2. **Multi-Head Attention (Notebook 2)**:
-#   - We developed the **multi-head attention** mechanism, which allows the model to attend to different parts of the input sequence simultaneously.
-#   - This class implements **queries**, **keys**, and **values** transformations, masked attention, and the calculation of attention scores, key components for capturing relationships in text sequences.
-#   - The code also demonstrates the importance of **causal masking** to ensure that future tokens are not considered when generating sequences, preserving the autoregressive nature of GPT models.
-
-
 # GPT2 conifig dictionary as follow : 
 
 GPT_CONFIG_124 = {
