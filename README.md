@@ -1,3 +1,8 @@
+Here's a modified version of your README.md that includes the Llama integration, fine-tuning, and future plans related to LLM optimization:
+
+---
+
+```markdown
 # MyLLM: LLM from Zero to Hero 🚀
 
 Welcome to **MyLLM**, where we’re on a thrilling adventure to build a comprehensive Large Language Model (LLM) that takes you from data to deployment! This project isn’t just about text generation; it’s a full-fledged exploration into the world of natural language processing. Let’s dive in!
@@ -20,8 +25,14 @@ Here’s what we’ve accomplished so far:
 - **Training Loop Implementation**: Developed a robust training loop that handles the learning process.
 - **Distributed Training Strategy**: Successfully implemented distributed training to scale up model training for efficiency.
 - **Weight Loading**: Integrated the ability to load pre-trained weights into the model for improved performance.
-- **Develop a User Interface**: Make it user-friendly with an engaging UI.
-
+- **User Interface**: Made it user-friendly with an engaging UI.
+  
+**Recent Additions:**
+- **Llama Integration**: We’ve successfully integrated the Llama architecture.
+ - **Fine-Tuning**: fine-tunined the model for various tasks, including:
+  **classification** 
+  **instruction fine-tuning** expanding our model's capabilities.
+  
 <div align="center">
   <img src="./Capturex.PNG" alt="Logo2" width="800" />
 </div>
@@ -32,9 +43,10 @@ For a detailed, step-by-step guide to each part of the process, please refer to 
 
 We’re just getting started! Here’s what’s on the horizon:
 
-- [ ] **Build a Custom Tokenizer from Scratch**: Create a tokenizer that fits our unique needs.
-- [ ] **Fine-Tune for Various Applications**: Optimize the model for specific tasks and industries.
-- [ ] **Implement LLaMA and BERT**: Expand the model arsenal with powerful architectures.
+- [ ] **LLM Optimization for Inference**: Focus on optimizing LLM performance during inference, reducing latency, and improving efficiency.
+- [ ] **Model Compression & Structure Optimization**: Apply model compression techniques to reduce memory usage and increase performance without sacrificing accuracy.
+- [ ] **Reinforcement Learning Fine-Tuning (RLFT)**: Fine-tune the model using reinforcement learning to improve its performance on specific tasks.
+- [ ] **Fine-Tune for More Tasks**: Expand the model's capabilities to handle additional tasks like question answering, summarization, and more.
 - [ ] **Wrap Functionality in an API**: Create an easy-to-use API for seamless integration.
 
 ### Quick Start
@@ -53,3 +65,4 @@ We’re all about collaboration! If you’d like to contribute to the MyLLM proj
 ### License
 
 This project is licensed under the MIT License. Check out the [LICENSE](LICENSE) file for more details.
+```
