@@ -1,8 +1,3 @@
-Here's a modified version of your README.md that includes the Llama integration, fine-tuning, and future plans related to LLM optimization:
-
----
-
-```markdown
 # MyLLM: LLM from Zero to Hero 🚀
 
 Welcome to **MyLLM**, where we’re on a thrilling adventure to build a comprehensive Large Language Model (LLM) that takes you from data to deployment! This project isn’t just about text generation; it’s a full-fledged exploration into the world of natural language processing. Let’s dive in!
