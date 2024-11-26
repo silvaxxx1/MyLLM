@@ -7,7 +7,7 @@ Welcome to **MyLLM**, where we’re on a thrilling adventure to build a comprehe
 In the wild and wonderful realm of NLP, crafting a large language model requires a blend of art and science. With **MyLLM**, we aim to provide a roadmap to creating an LLM that not only generates text but can also handle a plethora of tasks. Join us as we turn ideas into code!
 
 <div align="center">
-  <img src="./LOGO.PNG" alt="Logo1" width="800" />
+  <img src="LOGO.PNG" alt="Logo1" width="800" />
 </div>
 
 ### Current Status ✅
