@@ -25,7 +25,19 @@ MyLLM/
     │   ├── data.py                # Custom dataset class for loading and preprocessing
     │   ├── utils.py               # Utility functions for model configuration
     │   └── finetune.utils.py      # Additional utility functions for training
-    │
+    |
+    ├── GPT_XL_ALPACA/
+    │     ├── model.py             # Defines the base GPT-2 XL architecture
+    |     ├── data.py              # Prepares the Alpaca dataset for instruction-following
+    |     ├── qlora_model.py       # Integrates QLoRA into the model
+    |     ├── utils.py             # Utility functions for model management
+    |     ├── qlora.py             # Training loop for QLoRA-based fine-tuning
+    |     ├── eval.py              # Evaluates the model using OLAMA framework
+    |                
+    ├──GPT2_RLHF_PPO//
+    │   ├── data.py                # Data loading, preprocessing, and tokenization
+    │   ├── PPO.py                 # Fine-tunes the model with Proximal Policy Optimization (PPO) 
+    │   ├── generate.py            # Interactive conversation loop using the fine-tuned model
     └── README.md                  # Overview of fine-tuning projects
 ```
 
@@ -100,18 +112,6 @@ The **GPT2_335M_IF** project extends the GPT-2 model (335M parameters) for instr
 
 The **GPT_XL_ALPACA** project focuses on fine-tuning the GPT-2 XL model with the **Alpaca** dataset, which is designed for instruction-following tasks. This dataset includes over 50,000 examples and leverages techniques such as **LoRA** (Low-Rank Adaptation) and **QLoRA** (Quantized LoRA) for more efficient fine-tuning of large models.everything coded from scratch using just Python and PyTorch.  
 
-#### Directory Structure
-
-```
-GPT_XL_ALPACA/
-├── model.py             # Defines the base GPT-2 XL architecture
-├── data.py              # Prepares the Alpaca dataset for instruction-following
-├── qlora_model.py       # Integrates QLoRA into the model
-├── utils.py             # Utility functions for model management
-├── qlora.py             # Training loop for QLoRA-based fine-tuning
-├── eval.py              # Evaluates the model using OLAMA framework
-└── README.md            # Project instructions and overview
-```
 
 #### Project Components
 
@@ -147,6 +147,48 @@ The workflow involves preparing the dataset, running the fine-tuning process, an
 - **LoRA** (Low-Rank Adaptation) introduces low-rank matrix factorization for more efficient fine-tuning of large models.
 - **QLoRA** extends LoRA with quantization, reducing memory usage and speeding up the training process, enabling fine-tuning in resource-constrained environments.
 
+
+
+### **4.GPT2_RLHF_PPO**
+
+### 4. Fine-Tuning GPT-2 with RLHF and PPO  
+
+The **GPT2_RLHF_PPO** project explores fine-tuning GPT-2 using **Reinforcement Learning with Human Feedback (RLHF)** and **Proximal Policy Optimization (PPO)** to align the model's responses with specific user-defined preferences. In this example, the model generates positive movie reviews.  
+
+#### Scripts Overview  
+
+1. **`data.py`**: Handles data loading, preprocessing, and tokenization for training with RLHF.  
+2. **`PPO.py`**: Implements the training loop for PPO-based fine-tuning of GPT-2.  
+3. **`generate.py`**: Provides an interactive conversation loop to test the fine-tuned model.  
+
+#### Usage  
+
+**Step 1**: Prepare and Tokenize the Dataset  
+Run the following command to preprocess and tokenize the dataset:  
+```bash  
+python data.py --dataset_name stanfordnlp/imdb --tokenizer_name gpt2 --min_review_length 200 --save_dir processed_data --save_file tokenized_data.json  
+```  
+
+**Step 2**: Fine-Tune the Model with PPO  
+Fine-tune the GPT-2 model using the tokenized dataset and PPO optimization:  
+```bash  
+python PPO.py --tokenized_data_dir processed_data --model_name lvwerra/gpt2-imdb --learning_rate 1.41e-5 --log_dir logs  
+```  
+
+**Step 3**: Generate Responses  
+Test the fine-tuned model with an interactive conversation loop:  
+```bash  
+python generate.py  
+```  
+
+#### Key Features  
+
+- **Customizable Dataset**: Adjust parameters like minimum review length and token limits in `data.py`.  
+- **Positive Review Bias**: The model is trained to favor generating positive movie reviews.  
+- **Proximal Policy Optimization (PPO)**: Ensures stability and performance during reinforcement learning.  
+
+Reinforcement Learning with Human Feedback (RLHF) bridges the gap between unsupervised fine-tuning and alignment with human values. By incorporating reward models and PPO, RLHF allows for more precise control over generated outputs, making it ideal for applications requiring specific alignment or bias.  
+
 ## Conclusion
 
-The **MyLLM** fine-tuning projects provide comprehensive frameworks for adapting GPT-2 models to specific tasks like spam detection and instruction following. By incorporating techniques like QLoRA and LoRA, these projects enable efficient fine-tuning, even for large models, while improving performance on domain-specific datasets.
+The MyLLM fine-tuning projects offer diverse frameworks for adapting GPT-2 models to specific tasks, from spam detection and instruction-following to reward-based optimization. By leveraging techniques like RLHF, PPO, LoRA, and QLoRA, the projects enable efficient fine-tuning while improving model alignment and performance in resource-constrained settings.
