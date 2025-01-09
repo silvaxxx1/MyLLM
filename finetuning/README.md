@@ -147,10 +147,6 @@ The workflow involves preparing the dataset, running the fine-tuning process, an
 - **LoRA** (Low-Rank Adaptation) introduces low-rank matrix factorization for more efficient fine-tuning of large models.
 - **QLoRA** extends LoRA with quantization, reducing memory usage and speeding up the training process, enabling fine-tuning in resource-constrained environments.
 
-
-
-### **4.GPT2_RLHF_PPO**
-
 ### 4. Fine-Tuning GPT-2 with RLHF and PPO  
 
 The **GPT2_RLHF_PPO** project explores fine-tuning GPT-2 using **Reinforcement Learning with Human Feedback (RLHF)** and **Proximal Policy Optimization (PPO)** to align the model's responses with specific user-defined preferences. In this example, the model generates positive movie reviews.  
