@@ -1,0 +1,14 @@
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py:193: FutureWarning: `PPOTrainer` is deprecated and will be removed in trl v0.12. Please use `PPOv2Trainer` instead.
+  warnings.warn(
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 79, in <module>
+    ppo_trainer = PPOTrainer(config, model, ref_model, tokenizer, dataset=dataset, data_collator=collator)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 271, in __init__
+    raise ValueError("dataset must be a torch.utils.data.Dataset or datasets.Dataset")
+ValueError: dataset must be a torch.utils.data.Dataset or datasets.Dataset
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 79, in <module>
+    ppo_trainer = PPOTrainer(config, model, ref_model, tokenizer, dataset=dataset, data_collator=collator)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 271, in __init__
+    raise ValueError("dataset must be a torch.utils.data.Dataset or datasets.Dataset")
+ValueError: dataset must be a torch.utils.data.Dataset or datasets.Dataset

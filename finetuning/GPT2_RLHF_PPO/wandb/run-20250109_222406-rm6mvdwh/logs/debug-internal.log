@@ -1,0 +1,16 @@
+{"time":"2025-01-09T22:24:10.158596+03:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-09T22:24:10.158596+03:00","level":"INFO","msg":"created symlink","path":"C:\\Users\\WinDows\\SILVA\\MyLLM_101_from_scratch\\finetuning\\GPT2_RLHF_PPO\\wandb\\run-20250109_222406-rm6mvdwh\\logs\\debug-core.log"}
+{"time":"2025-01-09T22:24:10.3896711+03:00","level":"INFO","msg":"created new stream","id":"rm6mvdwh"}
+{"time":"2025-01-09T22:24:10.3896711+03:00","level":"INFO","msg":"stream: started","id":"rm6mvdwh"}
+{"time":"2025-01-09T22:24:10.3897847+03:00","level":"INFO","msg":"writer: Do: started","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:24:10.3897847+03:00","level":"INFO","msg":"sender: started","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:24:10.3897847+03:00","level":"INFO","msg":"handler: started","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:24:11.0960341+03:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-09T22:26:06.606107+03:00","level":"INFO","msg":"stream: closing","id":"rm6mvdwh"}
+{"time":"2025-01-09T22:26:06.6171217+03:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-09T22:26:06.6679909+03:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-09T22:26:07.7410232+03:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-09T22:26:08.0919351+03:00","level":"INFO","msg":"handler: closed","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:26:08.0919351+03:00","level":"INFO","msg":"writer: Close: closed","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:26:08.0919351+03:00","level":"INFO","msg":"sender: closed","stream_id":"rm6mvdwh"}
+{"time":"2025-01-09T22:26:08.0929729+03:00","level":"INFO","msg":"stream: closed","id":"rm6mvdwh"}

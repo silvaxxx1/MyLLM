@@ -1,0 +1,177 @@
+_wandb:
+    value:
+        cli_version: 0.19.1
+        m: []
+        python_version: 3.10.16
+        t:
+            "1":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 51
+                - 55
+                - 71
+                - 84
+            "2":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 51
+                - 55
+                - 71
+                - 84
+            "3":
+                - 16
+                - 23
+                - 24
+                - 55
+            "4": 3.10.16
+            "5": 0.19.1
+            "6": 4.47.1
+            "8":
+                - 3
+                - 5
+            "12": 0.19.1
+            "13": windows-amd64
+adap_kl_ctrl:
+    value: true
+backward_batch_size:
+    value: 128
+batch_size:
+    value: 128
+cliprange:
+    value: 0.2
+cliprange_value:
+    value: 0.2
+compare_steps:
+    value: 1
+dataset_num_proc:
+    value: null
+early_stopping:
+    value: false
+exp_name:
+    value: PPO
+forward_batch_size:
+    value: null
+gamma:
+    value: 1
+global_backward_batch_size:
+    value: null
+global_batch_size:
+    value: null
+gradient_accumulation_steps:
+    value: 1
+gradient_checkpointing:
+    value: false
+horizon:
+    value: 10000
+init_kl_coef:
+    value: 0.2
+is_encoder_decoder:
+    value: null
+is_peft_model:
+    value: null
+kl_penalty:
+    value: kl
+lam:
+    value: 0.95
+learning_rate:
+    value: 1.41e-05
+log_with:
+    value: wandb
+max_grad_norm:
+    value: null
+mini_batch_size:
+    value: 128
+model_name:
+    value: lvwerra/gpt2-imdb
+optimize_cuda_cache:
+    value: null
+optimize_device_cache:
+    value: false
+ppo_epochs:
+    value: 4
+query_dataset:
+    value: stanfordnlp/imdb
+ratio_threshold:
+    value: 10
+remove_unused_columns:
+    value: true
+reward_model:
+    value: sentiment-analysis:lvwerra/distilbert-imdb
+score_clip:
+    value: null
+seed:
+    value: 0
+steps:
+    value: 20000
+target:
+    value: 6
+target_kl:
+    value: 1
+task_name:
+    value: null
+total_ppo_epochs:
+    value: 157
+tracker_project_name:
+    value: trl
+trl_ppo_trainer_config:
+    value:
+        adap_kl_ctrl: true
+        backward_batch_size: 128
+        batch_size: 128
+        cliprange: 0.2
+        cliprange_value: 0.2
+        compare_steps: 1
+        dataset_num_proc: null
+        early_stopping: false
+        exp_name: PPO
+        forward_batch_size: null
+        gamma: 1
+        global_backward_batch_size: 128
+        global_batch_size: 128
+        gradient_accumulation_steps: 1
+        gradient_checkpointing: false
+        horizon: 10000
+        init_kl_coef: 0.2
+        is_encoder_decoder: false
+        is_peft_model: false
+        kl_penalty: kl
+        lam: 0.95
+        learning_rate: 1.41e-05
+        log_with: wandb
+        max_grad_norm: null
+        mini_batch_size: 128
+        model_name: lvwerra/gpt2-imdb
+        optimize_cuda_cache: null
+        optimize_device_cache: false
+        ppo_epochs: 4
+        query_dataset: stanfordnlp/imdb
+        ratio_threshold: 10
+        remove_unused_columns: true
+        reward_model: sentiment-analysis:lvwerra/distilbert-imdb
+        score_clip: null
+        seed: 0
+        steps: 20000
+        target: 6
+        target_kl: 1
+        task_name: null
+        total_ppo_epochs: 157
+        tracker_project_name: trl
+        use_score_norm: false
+        use_score_scaling: false
+        vf_coef: 0.1
+        whiten_rewards: false
+        world_size: 1
+use_score_norm:
+    value: false
+use_score_scaling:
+    value: false
+vf_coef:
+    value: 0.1
+whiten_rewards:
+    value: false
+world_size:
+    value: null

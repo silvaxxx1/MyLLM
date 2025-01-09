@@ -1,0 +1,59 @@
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py:193: FutureWarning: `PPOTrainer` is deprecated and will be removed in trl v0.12. Please use `PPOv2Trainer` instead.
+  warnings.warn(
+config.json: 100%|████████████████████████████████████████████████████████████████████| 735/735 [00:00<00:00, 47.2kB/s]
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\huggingface_hub\file_download.py:140: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\WinDows\.cache\huggingface\hub\models--lvwerra--distilbert-imdb. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+pytorch_model.bin: 100%|████████████████████████████████████████████████████████████| 268M/268M [00:45<00:00, 5.86MB/s]
+tokenizer_config.json: 100%|██████████████████████████████████████████████████████████| 333/333 [00:00<00:00, 46.0kB/s]
+vocab.txt: 100%|█████████████████████████████████████████████████████████████████████| 232k/232k [00:00<00:00, 712kB/s]
+tokenizer.json: 100%|███████████████████████████████████████████████████████████████| 466k/466k [00:00<00:00, 2.63MB/s]
+special_tokens_map.json: 100%|████████████████████████████████████████████████████████████████| 112/112 [00:00<?, ?B/s]
+Device set to use cpu
+2025-01-09 21:08:29,693 [INFO] Example sentiment analysis:
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\pipelines\text_classification.py:106: UserWarning: `return_all_scores` is now deprecated,  if want a similar functionality use `top_k=None` instead of `return_all_scores=True` or `top_k=1` instead of `return_all_scores=False`.
+  warnings.warn(
+[[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+[[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+0it [00:00, ?it/s]The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+0it [05:12, ?it/s]
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 121, in <module>
+    stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 832, in step
+    train_stats = self.train_minibatch(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 1102, in train_minibatch
+    self.accelerator.backward(loss)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\accelerate\accelerator.py", line 2248, in backward
+    loss.backward(**kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 121, in <module>
+    stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 832, in step
+    train_stats = self.train_minibatch(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 1102, in train_minibatch
+    self.accelerator.backward(loss)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\accelerate\accelerator.py", line 2248, in backward
+    loss.backward(**kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+KeyboardInterrupt

@@ -1,0 +1,76 @@
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py:193: FutureWarning: `PPOTrainer` is deprecated and will be removed in trl v0.12. Please use `PPOv2Trainer` instead.
+  warnings.warn(
+Device set to use cpu
+2025-01-09 22:24:21,958 [INFO] Example sentiment analysis:
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\pipelines\text_classification.py:106: UserWarning: `return_all_scores` is now deprecated,  if want a similar functionality use `top_k=None` instead of `return_all_scores=True` or `top_k=1` instead of `return_all_scores=False`.
+  warnings.warn(
+2025-01-09 22:24:24,602 [INFO] Sentiment for 'bad' movie text: [[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+2025-01-09 22:24:24,603 [INFO] Printing a sample of the reward computation:
+2025-01-09 22:24:24,638 [INFO] Sentiment for 'good' movie text: [[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 22:24:24,640 [INFO] Starting PPO alignment...
+0it [00:00, ?it/s]The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+Exception ignored in: <generator object tqdm.__iter__ at 0x0000020010A80580>
+Traceback (most recent call last):
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\std.py", line 1196, in __iter__
+    self.close()
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\std.py", line 1302, in close
+    self.display(pos=0)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\std.py", line 1495, in display
+    self.sp(self.__str__() if msg is None else msg)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\std.py", line 458, in print_status
+    len_s = disp_len(s)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\utils.py", line 383, in disp_len
+    return _text_width(RE_ANSI.sub('', data))
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\utils.py", line 375, in _text_width
+    return sum(2 if east_asian_width(ch) in 'FW' else 1 for ch in str(s))
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\tqdm\utils.py", line 375, in <genexpr>
+    return sum(2 if east_asian_width(ch) in 'FW' else 1 for ch in str(s))
+KeyboardInterrupt:
+Error in sys.excepthook:
+Traceback (most recent call last):
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\wandb\sdk\lib\exit_hooks.py", line 52, in exc_handler
+    traceback.print_exception(exc_type, exc, tb)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\traceback.py", line 119, in print_exception
+    te = TracebackException(type(value), value, tb, limit=limit, compact=True)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\exceptiongroup\_formatting.py", line 93, in __init__
+    _seen = set()
+KeyboardInterrupt
+
+Original exception was:
+Traceback (most recent call last):
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\core.py", line 257, in empty_device_cache
+    yield  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 1041, in batched_forward_pass
+    start = len(query_batch[j]) - 1  # logprobs starts from the second query token
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\_tensor.py", line 1086, in __len__
+    if self.dim() == 0:
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 748, in step
+    all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 78, in inner
+    with self._recreate_cm():
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 133, in <module>
+    stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 747, in step
+    with torch.no_grad():
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\grad_mode.py", line 85, in __exit__
+    torch.set_grad_enabled(self.prev)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\autograd\grad_mode.py", line 185, in __init__
+    self.prev = torch.is_grad_enabled()
+KeyboardInterrupt

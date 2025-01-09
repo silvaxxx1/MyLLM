@@ -1,0 +1,16 @@
+{"time":"2025-01-09T20:52:09.441672+03:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-09T20:52:09.441672+03:00","level":"INFO","msg":"created symlink","path":"C:\\Users\\WinDows\\SILVA\\MyLLM_101_from_scratch\\finetuning\\GPT2_RLHF_PPO\\wandb\\run-20250109_205205-9wpawa94\\logs\\debug-core.log"}
+{"time":"2025-01-09T20:52:10.3541281+03:00","level":"INFO","msg":"created new stream","id":"9wpawa94"}
+{"time":"2025-01-09T20:52:10.3547468+03:00","level":"INFO","msg":"stream: started","id":"9wpawa94"}
+{"time":"2025-01-09T20:52:10.3549642+03:00","level":"INFO","msg":"writer: Do: started","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:10.3549642+03:00","level":"INFO","msg":"sender: started","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:10.3550855+03:00","level":"INFO","msg":"handler: started","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:10.7679965+03:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-09T20:52:18.5030898+03:00","level":"INFO","msg":"stream: closing","id":"9wpawa94"}
+{"time":"2025-01-09T20:52:18.5035986+03:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-09T20:52:18.5057597+03:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-09T20:52:19.4031314+03:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-09T20:52:19.7097633+03:00","level":"INFO","msg":"handler: closed","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:19.7097633+03:00","level":"INFO","msg":"writer: Close: closed","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:19.7097633+03:00","level":"INFO","msg":"sender: closed","stream_id":"9wpawa94"}
+{"time":"2025-01-09T20:52:19.7102713+03:00","level":"INFO","msg":"stream: closed","id":"9wpawa94"}

@@ -1,0 +1,35 @@
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Current SDK version is 0.19.1
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Configure stats pid to 66632
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from C:\Users\WinDows\.config\wandb\settings
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\settings
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from environment variables
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:_log_setup():528] Logging user logs to C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\run-20250109_205703-4pvc2v7v\logs\debug.log
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:_log_setup():529] Logging internal logs to C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\run-20250109_205703-4pvc2v7v\logs\debug-internal.log
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:init():644] calling init triggers
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:init():650] wandb.init called with sweep_config: {}
+config: {'exp_name': 'PPO', 'seed': 0, 'log_with': 'wandb', 'task_name': None, 'model_name': 'lvwerra/gpt2-imdb', 'query_dataset': 'stanfordnlp/imdb', 'reward_model': 'sentiment-analysis:lvwerra/distilbert-imdb', 'remove_unused_columns': True, 'tracker_kwargs': {}, 'accelerator_kwargs': {}, 'project_kwargs': {}, 'tracker_project_name': 'trl', 'push_to_hub_if_best_kwargs': {}, 'steps': 20000, 'learning_rate': 1.41e-05, 'adap_kl_ctrl': True, 'init_kl_coef': 0.2, 'kl_penalty': 'kl', 'target': 6.0, 'horizon': 10000.0, 'gamma': 1.0, 'lam': 0.95, 'cliprange': 0.2, 'cliprange_value': 0.2, 'vf_coef': 0.1, 'batch_size': 128, 'forward_batch_size': None, 'mini_batch_size': 128, 'gradient_accumulation_steps': 1, 'world_size': None, 'ppo_epochs': 4, 'max_grad_norm': None, 'optimize_cuda_cache': None, 'optimize_device_cache': False, 'early_stopping': False, 'target_kl': 1.0, 'compare_steps': 1, 'ratio_threshold': 10.0, 'use_score_scaling': False, 'use_score_norm': False, 'score_clip': None, 'whiten_rewards': False, 'gradient_checkpointing': False, 'is_encoder_decoder': None, 'is_peft_model': None, 'backward_batch_size': 128, 'global_backward_batch_size': None, 'global_batch_size': None, 'dataset_num_proc': None, 'total_ppo_epochs': 157}
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:init():680] starting backend
+2025-01-09 20:57:03,756 INFO    MainThread:66632 [wandb_init.py:init():684] sending inform_init request
+2025-01-09 20:57:03,851 INFO    MainThread:66632 [backend.py:_multiprocessing_setup():104] multiprocessing start_methods=spawn, using: spawn
+2025-01-09 20:57:03,867 INFO    MainThread:66632 [wandb_init.py:init():697] backend started and connected
+2025-01-09 20:57:03,869 INFO    MainThread:66632 [wandb_init.py:init():790] updated telemetry
+2025-01-09 20:57:07,514 INFO    MainThread:66632 [wandb_init.py:init():822] communicating run to backend with 90.0 second timeout
+2025-01-09 20:57:07,944 INFO    MainThread:66632 [wandb_init.py:init():874] starting run threads in backend
+2025-01-09 20:57:08,248 INFO    MainThread:66632 [wandb_run.py:_console_start():2374] atexit reg
+2025-01-09 20:57:08,248 INFO    MainThread:66632 [wandb_run.py:_redirect():2224] redirect: wrap_raw
+2025-01-09 20:57:08,248 INFO    MainThread:66632 [wandb_run.py:_redirect():2289] Wrapping output streams.
+2025-01-09 20:57:08,248 INFO    MainThread:66632 [wandb_run.py:_redirect():2314] Redirects installed.
+2025-01-09 20:57:08,251 INFO    MainThread:66632 [wandb_init.py:init():916] run started, returning control to user process
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Current SDK version is 0.19.1
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Configure stats pid to 66632
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from C:\Users\WinDows\.config\wandb\settings
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\settings
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_setup.py:_flush():68] Loading settings from environment variables
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_init.py:_log_setup():528] Logging user logs to C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\run-20250109_205715-njpx5zyl\logs\debug.log
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_init.py:_log_setup():529] Logging internal logs to C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\wandb\run-20250109_205715-njpx5zyl\logs\debug-internal.log
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_init.py:init():644] calling init triggers
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_init.py:init():650] wandb.init called with sweep_config: {}
+config: {}
+2025-01-09 20:57:15,666 INFO    MainThread:66632 [wandb_init.py:init():675] wandb.init() called when a run is still active
+2025-01-09 20:57:15,675 INFO    MainThread:66632 [wandb_run.py:_config_callback():1279] config_cb None None {'trl_ppo_trainer_config': {'exp_name': 'PPO', 'seed': 0, 'log_with': 'wandb', 'task_name': None, 'model_name': 'lvwerra/gpt2-imdb', 'query_dataset': 'stanfordnlp/imdb', 'reward_model': 'sentiment-analysis:lvwerra/distilbert-imdb', 'remove_unused_columns': True, 'tracker_project_name': 'trl', 'steps': 20000, 'learning_rate': 1.41e-05, 'adap_kl_ctrl': True, 'init_kl_coef': 0.2, 'kl_penalty': 'kl', 'target': 6.0, 'horizon': 10000.0, 'gamma': 1.0, 'lam': 0.95, 'cliprange': 0.2, 'cliprange_value': 0.2, 'vf_coef': 0.1, 'batch_size': 128, 'forward_batch_size': None, 'mini_batch_size': 128, 'gradient_accumulation_steps': 1, 'world_size': 1, 'ppo_epochs': 4, 'max_grad_norm': None, 'optimize_cuda_cache': None, 'optimize_device_cache': False, 'early_stopping': False, 'target_kl': 1.0, 'compare_steps': 1, 'ratio_threshold': 10.0, 'use_score_scaling': False, 'use_score_norm': False, 'score_clip': None, 'whiten_rewards': False, 'gradient_checkpointing': False, 'is_encoder_decoder': False, 'is_peft_model': False, 'backward_batch_size': 128, 'global_backward_batch_size': 128, 'global_batch_size': 128, 'dataset_num_proc': None, 'total_ppo_epochs': 157}}
+2025-01-09 20:57:15,694 WARNING MsgRouterThr:66632 [router.py:message_loop():75] message_loop has been closed

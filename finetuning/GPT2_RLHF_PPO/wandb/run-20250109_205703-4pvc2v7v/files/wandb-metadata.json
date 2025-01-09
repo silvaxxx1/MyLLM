@@ -1,0 +1,31 @@
+{
+  "os": "Windows-10-10.0.22631-SP0",
+  "python": "CPython 3.10.16",
+  "startedAt": "2025-01-09T17:57:03.868200Z",
+  "program": "C:\\Users\\WinDows\\SILVA\\MyLLM_101_from_scratch\\finetuning\\GPT2_RLHF_PPO\\PPO.py",
+  "codePath": "finetuning\\GPT2_RLHF_PPO\\PPO.py",
+  "git": {
+    "remote": "https://github.com/silvaxxx1/MyLLM_101_from_scratch.git",
+    "commit": "8e6cd7b4634e54b13e8fc344b0ab14acde799c00"
+  },
+  "email": "silvapi1994@gmail.com",
+  "root": "C:\\Users\\WinDows\\SILVA\\MyLLM_101_from_scratch\\finetuning\\GPT2_RLHF_PPO",
+  "host": "GADO",
+  "executable": "C:\\Users\\WinDows\\anaconda3\\envs\\LLM\\python.exe",
+  "codePathLocal": "PPO.py",
+  "cpu_count": 6,
+  "cpu_count_logical": 8,
+  "disk": {
+    "/": {
+      "total": "244393701376",
+      "used": "115779321856"
+    }
+  },
+  "memory": {
+    "total": "8279633920"
+  },
+  "cpu": {
+    "count": 6,
+    "countLogical": 8
+  }
+}

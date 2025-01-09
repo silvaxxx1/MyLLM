@@ -1,0 +1,99 @@
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py:193: FutureWarning: `PPOTrainer` is deprecated and will be removed in trl v0.12. Please use `PPOv2Trainer` instead.
+  warnings.warn(
+Device set to use cpu
+2025-01-09 21:17:09,108 [INFO] Example sentiment analysis:
+C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\pipelines\text_classification.py:106: UserWarning: `return_all_scores` is now deprecated,  if want a similar functionality use `top_k=None` instead of `return_all_scores=True` or `top_k=1` instead of `return_all_scores=False`.
+  warnings.warn(
+[[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+[[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 21:17:13,278 [INFO] Starting PPO alignment...
+0it [00:00, ?it/s]The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+0it [00:24, ?it/s]
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 115, in <module>
+    response = ppo_trainer.generate(query, **response_generation_kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 523, in generate
+    response = unwrapped_model.generate(input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\models\modeling_value_head.py", line 207, in generate
+    return self.pretrained_model.generate(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\utils\_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\generation\utils.py", line 2252, in generate
+    result = self._sample(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\generation\utils.py", line 3254, in _sample
+    outputs = model_forward(**model_inputs, return_dict=True)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 1272, in forward
+    transformer_outputs = self.transformer(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 1133, in forward
+    outputs = block(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 615, in forward
+    attn_outputs = self.attn(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 518, in forward
+    query, key, value = self.c_attn(hidden_states).split(self.split_size, dim=2)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\pytorch_utils.py", line 121, in forward
+    x = torch.addmm(self.bias, x.view(-1, x.size(-1)), self.weight)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "C:\Users\WinDows\SILVA\MyLLM_101_from_scratch\finetuning\GPT2_RLHF_PPO\PPO.py", line 115, in <module>
+    response = ppo_trainer.generate(query, **response_generation_kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\trainer\ppo_trainer.py", line 523, in generate
+    response = unwrapped_model.generate(input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\trl\models\modeling_value_head.py", line 207, in generate
+    return self.pretrained_model.generate(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\utils\_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\generation\utils.py", line 2252, in generate
+    result = self._sample(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\generation\utils.py", line 3254, in _sample
+    outputs = model_forward(**model_inputs, return_dict=True)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 1272, in forward
+    transformer_outputs = self.transformer(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 1133, in forward
+    outputs = block(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 615, in forward
+    attn_outputs = self.attn(
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\models\gpt2\modeling_gpt2.py", line 518, in forward
+    query, key, value = self.c_attn(hidden_states).split(self.split_size, dim=2)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\WinDows\anaconda3\envs\LLM\lib\site-packages\transformers\pytorch_utils.py", line 121, in forward
+    x = torch.addmm(self.bias, x.view(-1, x.size(-1)), self.weight)
+KeyboardInterrupt

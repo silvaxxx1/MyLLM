@@ -1,0 +1,33 @@
+2025-01-09 19:43:34,150 [INFO] Logging initialized.
+2025-01-09 19:43:34,150 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 19:43:42,015 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 19:43:42,031 [INFO] Loading tokenizer: gpt2
+2025-01-09 19:43:42,596 [INFO] Initializing tokenization...
+2025-01-09 19:44:47,615 [INFO] Tokenization complete.
+2025-01-09 19:44:47,630 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 19:49:39,853 [INFO] Logging initialized.
+2025-01-09 19:49:39,853 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 19:49:46,795 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 19:49:46,811 [INFO] Loading tokenizer: gpt2
+2025-01-09 19:49:47,345 [INFO] Initializing tokenization...
+2025-01-09 19:50:43,308 [INFO] Tokenization complete.
+2025-01-09 19:50:43,308 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 19:55:30,079 [INFO] Logging initialized.
+2025-01-09 19:55:30,079 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 19:55:37,659 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 19:55:37,675 [INFO] Loading tokenizer: gpt2
+2025-01-09 19:55:38,100 [INFO] Initializing tokenization...
+2025-01-09 19:56:37,410 [INFO] Tokenization complete.
+2025-01-09 19:56:37,410 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 19:56:37,410 [INFO] Dataset building complete.
+2025-01-09 19:56:37,428 [INFO] Example tokenized sample: {'input_ids': tensor([   40, 26399,   314]), 'query': 'I rented I'}
+2025-01-09 20:06:22,351 [INFO] Logging initialized.
+2025-01-09 20:06:22,351 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 20:06:31,310 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 20:06:31,326 [INFO] Loading tokenizer: gpt2
+2025-01-09 20:06:31,997 [INFO] Initializing tokenization...
+2025-01-09 20:07:13,347 [INFO] Tokenization complete.
+2025-01-09 20:07:13,347 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 20:07:13,347 [INFO] Dataset building complete.
+2025-01-09 20:07:14,068 [INFO] Processed dataset saved to processed_data\tokenized_data.json
+2025-01-09 20:07:14,100 [INFO] Example tokenized sample: {'input_ids': tensor([   40, 26399,   314,  3001,   327, 47269]), 'query': 'I rented I AM CURI'}

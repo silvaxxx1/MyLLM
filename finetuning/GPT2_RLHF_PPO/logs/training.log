@@ -1,0 +1,111 @@
+2025-01-09 20:27:42,815 [INFO] Logging initialized.
+2025-01-09 20:27:42,816 [INFO] Loading tokenized dataset from processed_data
+2025-01-09 20:31:21,511 [INFO] Logging initialized.
+2025-01-09 20:31:21,511 [INFO] Loading tokenized dataset from processed_data
+2025-01-09 20:52:01,030 [INFO] Logging initialized.
+2025-01-09 20:52:01,030 [INFO] Loading tokenized dataset from processed_data
+2025-01-09 20:54:01,607 [INFO] Logging initialized.
+2025-01-09 20:54:01,607 [INFO] Loading tokenized dataset from processed_data
+2025-01-09 20:56:59,984 [INFO] Logging initialized.
+2025-01-09 20:56:59,984 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:00:37,914 [INFO] Logging initialized.
+2025-01-09 21:00:37,914 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:02:30,573 [INFO] Logging initialized.
+2025-01-09 21:02:30,573 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:06:58,272 [INFO] Logging initialized.
+2025-01-09 21:06:58,272 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:06:58,272 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 21:07:04,512 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 21:07:04,512 [INFO] Loading tokenizer: gpt2
+2025-01-09 21:07:04,927 [INFO] Initializing tokenization...
+2025-01-09 21:07:26,126 [INFO] Tokenization complete.
+2025-01-09 21:07:26,126 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 21:07:26,126 [INFO] Dataset building complete.
+2025-01-09 21:08:29,693 [INFO] Example sentiment analysis:
+2025-01-09 21:16:22,883 [INFO] Logging initialized.
+2025-01-09 21:16:22,883 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:16:22,883 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 21:16:28,709 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 21:16:28,719 [INFO] Loading tokenizer: gpt2
+2025-01-09 21:16:29,312 [INFO] Initializing tokenization...
+2025-01-09 21:16:50,275 [INFO] Tokenization complete.
+2025-01-09 21:16:50,275 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 21:16:50,275 [INFO] Dataset building complete.
+2025-01-09 21:17:09,108 [INFO] Example sentiment analysis:
+2025-01-09 21:17:13,278 [INFO] Starting PPO alignment...
+2025-01-09 21:19:23,247 [INFO] Logging initialized.
+2025-01-09 21:19:23,247 [INFO] Loading tokenized dataset from C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:19:23,247 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 21:19:28,764 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 21:19:28,764 [INFO] Loading tokenizer: gpt2
+2025-01-09 21:19:29,125 [INFO] Initializing tokenization...
+2025-01-09 21:19:50,238 [INFO] Tokenization complete.
+2025-01-09 21:19:50,238 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 21:19:50,238 [INFO] Dataset building complete.
+2025-01-09 21:20:05,082 [INFO] Example sentiment analysis:
+2025-01-09 21:20:05,417 [INFO] Printing a sample of the reward computation:
+2025-01-09 21:20:05,443 [INFO] Starting PPO alignment...
+2025-01-09 21:22:26,397 [INFO] Logging initialized.
+2025-01-09 21:22:26,397 [INFO] Loading tokenized dataset...
+2025-01-09 21:22:26,397 [INFO] Dataset directory: C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 21:22:26,397 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 21:22:32,996 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 21:22:33,011 [INFO] Loading tokenizer: gpt2
+2025-01-09 21:22:33,671 [INFO] Initializing tokenization...
+2025-01-09 21:22:55,510 [INFO] Tokenization complete.
+2025-01-09 21:22:55,510 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 21:22:55,510 [INFO] Dataset building complete.
+2025-01-09 21:22:55,794 [INFO] Tokenized dataset loaded. Sample dataset: <data.CustomDataset object at 0x000002159B3F45E0>
+2025-01-09 21:23:07,753 [INFO] Example sentiment analysis:
+2025-01-09 21:23:08,218 [INFO] Sentiment for 'bad' movie text: [[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+2025-01-09 21:23:08,224 [INFO] Printing a sample of the reward computation:
+2025-01-09 21:23:08,251 [INFO] Sentiment for 'good' movie text: [[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 21:23:08,251 [INFO] Starting PPO alignment...
+2025-01-09 22:20:47,727 [INFO] Logging initialized.
+2025-01-09 22:20:47,727 [INFO] Loading tokenized dataset...
+2025-01-09 22:20:47,727 [INFO] Dataset directory: C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 22:20:47,727 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 22:20:53,398 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 22:20:53,398 [INFO] Loading tokenizer: gpt2
+2025-01-09 22:20:53,745 [INFO] Initializing tokenization...
+2025-01-09 22:21:14,716 [INFO] Tokenization complete.
+2025-01-09 22:21:14,716 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 22:21:14,716 [INFO] Dataset building complete.
+2025-01-09 22:21:15,078 [INFO] Tokenized dataset loaded. Sample dataset: <data.CustomDataset object at 0x000001CDBD8645E0>
+2025-01-09 22:21:35,129 [INFO] Example sentiment analysis:
+2025-01-09 22:21:35,663 [INFO] Sentiment for 'bad' movie text: [[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+2025-01-09 22:21:35,663 [INFO] Printing a sample of the reward computation:
+2025-01-09 22:21:35,694 [INFO] Sentiment for 'good' movie text: [[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 22:21:35,698 [INFO] Starting PPO alignment...
+2025-01-09 22:23:31,843 [INFO] Logging initialized.
+2025-01-09 22:23:31,844 [INFO] Loading tokenized dataset...
+2025-01-09 22:23:31,844 [INFO] Dataset directory: C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 22:23:31,844 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 22:23:38,291 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 22:23:38,298 [INFO] Loading tokenizer: gpt2
+2025-01-09 22:23:38,782 [INFO] Initializing tokenization...
+2025-01-09 22:24:03,172 [INFO] Tokenization complete.
+2025-01-09 22:24:03,173 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 22:24:03,173 [INFO] Dataset building complete.
+2025-01-09 22:24:03,485 [INFO] Tokenized dataset loaded. Sample dataset: <data.CustomDataset object at 0x00000200037C8220>
+2025-01-09 22:24:21,958 [INFO] Example sentiment analysis:
+2025-01-09 22:24:24,602 [INFO] Sentiment for 'bad' movie text: [[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+2025-01-09 22:24:24,603 [INFO] Printing a sample of the reward computation:
+2025-01-09 22:24:24,638 [INFO] Sentiment for 'good' movie text: [[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 22:24:24,640 [INFO] Starting PPO alignment...
+2025-01-09 22:27:04,435 [INFO] Logging initialized.
+2025-01-09 22:27:04,435 [INFO] Loading tokenized dataset...
+2025-01-09 22:27:04,435 [INFO] Dataset directory: C:/Users/WinDows/SILVA/MyLLM_101_from_scratch/finetuning/GPT2_RLHF_PPO/processed_data
+2025-01-09 22:27:04,435 [INFO] Loading dataset: stanfordnlp/imdb
+2025-01-09 22:27:10,531 [INFO] Dataset loaded and filtered. 24895 samples remaining.
+2025-01-09 22:27:10,538 [INFO] Loading tokenizer: gpt2
+2025-01-09 22:27:11,030 [INFO] Initializing tokenization...
+2025-01-09 22:27:35,374 [INFO] Tokenization complete.
+2025-01-09 22:27:35,374 [INFO] Converting DataFrame to PyTorch Dataset.
+2025-01-09 22:27:35,376 [INFO] Dataset building complete.
+2025-01-09 22:27:35,688 [INFO] Tokenized dataset loaded. Sample dataset: <data.CustomDataset object at 0x000001CE06FF45E0>
+2025-01-09 22:27:56,709 [INFO] Example sentiment analysis:
+2025-01-09 22:27:59,340 [INFO] Sentiment for 'bad' movie text: [[{'label': 'NEGATIVE', 'score': 2.335048198699951}, {'label': 'POSITIVE', 'score': -2.7265758514404297}]]
+2025-01-09 22:27:59,342 [INFO] Printing a sample of the reward computation:
+2025-01-09 22:27:59,372 [INFO] Sentiment for 'good' movie text: [[{'label': 'NEGATIVE', 'score': -2.294790267944336}, {'label': 'POSITIVE', 'score': 2.557039976119995}]]
+2025-01-09 22:27:59,373 [INFO] Starting PPO alignment...

@@ -1,0 +1,16 @@
+{"time":"2025-01-09T21:07:32.9273715+03:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-09T21:07:32.9273715+03:00","level":"INFO","msg":"created symlink","path":"C:\\Users\\WinDows\\SILVA\\MyLLM_101_from_scratch\\finetuning\\GPT2_RLHF_PPO\\wandb\\run-20250109_210729-v9qnymfr\\logs\\debug-core.log"}
+{"time":"2025-01-09T21:07:33.1837844+03:00","level":"INFO","msg":"created new stream","id":"v9qnymfr"}
+{"time":"2025-01-09T21:07:33.1839179+03:00","level":"INFO","msg":"stream: started","id":"v9qnymfr"}
+{"time":"2025-01-09T21:07:33.1839179+03:00","level":"INFO","msg":"writer: Do: started","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:07:33.1839179+03:00","level":"INFO","msg":"handler: started","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:07:33.1839179+03:00","level":"INFO","msg":"sender: started","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:07:33.7809556+03:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-09T21:13:42.268535+03:00","level":"INFO","msg":"stream: closing","id":"v9qnymfr"}
+{"time":"2025-01-09T21:13:42.2695734+03:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-09T21:13:42.2789121+03:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-09T21:13:43.0297797+03:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-09T21:13:43.3283931+03:00","level":"INFO","msg":"sender: closed","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:13:43.3288405+03:00","level":"INFO","msg":"handler: closed","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:13:43.3290763+03:00","level":"INFO","msg":"writer: Close: closed","stream_id":"v9qnymfr"}
+{"time":"2025-01-09T21:13:43.33432+03:00","level":"INFO","msg":"stream: closed","id":"v9qnymfr"}
