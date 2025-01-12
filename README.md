@@ -5,7 +5,7 @@ Welcome to **MyLLM101**, your step-by-step guide to building a **Meta_Bot**—an
 
 This project takes you on a transformative journey, starting with simple notebook implementations, advancing to a modular framework, evolving into a scalable pipeline, and culminating in the creation of **Meta_Bot**—a chatbot that acts as both the ultimate product and your AI-powered mentor.
 
-![Logo2](./META_BOT.JPG)
+![Logo2](./META_BOT.jpg)
 
 
 
