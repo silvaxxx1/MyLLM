@@ -31,7 +31,7 @@ This project takes you on a transformative journey, starting with simple noteboo
 - **Low-Level Frameworks**: We focus on building the project using **low-level libraries like PyTorch**, allowing full control and flexibility, without relying on high-level frameworks. This approach gives you deeper insight into the mechanics behind LLMs and empowers you to fine-tune every aspect of your models.
 
 <div align="center">
-  <img src="./LOGO.jpg" alt="Logo2" width="500" />
+  <img src="./LOGO.png" alt="Logo2" width="500" />
 </div>
 
 
