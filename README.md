@@ -4,6 +4,10 @@ Welcome to **MyLLM101**, the ultimate step-by-step guide to building **Meta\_Bot
 
 This project starts from simple notebook implementations, gradually advances to a modular framework, scales up into a professional pipeline, and culminates in the creation of **Meta\_Bot**—a chatbot that serves as both your AI-powered mentor and the ultimate product.
 
+<div align="center">
+  <img src="./META_BOT.jpg" alt="Logo2" width="800" />
+</div>
+
 ## Project Overview 🌟
 
 **MyLLM101** is not just about building LLMs; it’s about crafting a learning ecosystem from the ground up. You’ll work through the essential components of LLM development and see the process unfold at every step:
@@ -15,7 +19,6 @@ This project starts from simple notebook implementations, gradually advances to 
 
 **Meta\_Bot** is not just a chatbot—it's the culmination of your work, and it becomes an AI that understands its own architecture and can teach others. This is the ultimate **meta moment** in AI development!
 
----
 
 ## Why MyLLM101? 🤔
 
@@ -25,7 +28,9 @@ This project starts from simple notebook implementations, gradually advances to 
 - **End-to-End Focus**: The project covers every aspect of LLM creation, from data preprocessing to deploying your interactive AI tutor.
 - **Low-Level Frameworks**: We use **low-level libraries like PyTorch**, ensuring you gain a deeper understanding of the inner workings of LLMs while retaining full control over model tuning and customization.
 
----
+<div align="center">
+  <img src="./LOGO.png" alt="Logo2" width="800" />
+</div>
 
 ## Features 💡
 
@@ -54,8 +59,6 @@ This project starts from simple notebook implementations, gradually advances to 
    - **Interactive Tutoring**: Ask Meta\_Bot questions about deep learning, NLP, and its own creation process.
    - **Practical Showcase**: Demonstrates how an LLM is built while teaching you how to replicate the process.
 
----
-
 ## Project Checklist 📋
 
 Here’s a structured breakdown of tasks and progress:
@@ -71,7 +74,6 @@ Here’s a structured breakdown of tasks and progress:
 | Robust Model Evaluation           | 🛠️ Upcoming   | Comprehensive testing metrics.       |
 | Enhanced Inference Optimization   | 🛠️ Upcoming   | Reducing latency, improving speed.   |
 
----
 
 ## Current Status ✅
 
@@ -80,8 +82,6 @@ Here’s a structured breakdown of tasks and progress:
 - **Pipeline Development**: Building out multi-GPU training and reinforcement learning techniques.
 - **Meta\_Bot Prototype**: An early-stage prototype is live, focusing on its tutoring capabilities.
 
----
-
 ## In Progress 🛠️
 
 - **Adding BERT**: Expanding model architectures to include BERT for more advanced NLP capabilities.
@@ -89,17 +89,6 @@ Here’s a structured breakdown of tasks and progress:
 - **Model Evaluation**: Implementing robust methods for model evaluation, including metrics for testing the accuracy, fluency, and relevance of generated content.
 - **Inference Optimization**: Refining deployment processes to reduce latency and memory usage for quicker, more efficient model predictions.
 
----
-
-## Upcoming Plans 🚀
-
-- **Complete Scalable Pipeline**: Transition into a professional LLM-building library with the ability to scale easily across various models.
-- **Meta\_Bot Expansion**: Integrate all components into Meta\_Bot, evolving it into a fully interactive AI tutor.
-- **Interactive Meta\_Bot Tutoring**: Enhance Meta\_Bot's ability to teach AI and machine learning concepts in an engaging, interactive way.
-- **Documentation & Tutorials**: Expand on rich, easy-to-follow guides to make learning accessible and fun for all levels.
-- **Community Contributions**: Encourage collaboration to refine, enhance, and extend the project, making it a resource for developers worldwide.
-
----
 
 ## Quick Start 🚀
 
