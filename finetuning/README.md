@@ -181,7 +181,66 @@ python generate.py
 
 - **Customizable Dataset**: Adjust parameters like minimum review length and token limits in `data.py`.  
 - **Positive Review Bias**: The model is trained to favor generating positive movie reviews.  
-- **Proximal Policy Optimization (PPO)**: Ensures stability and performance during reinforcement learning.  
+- **Proximal Policy Optimization (PPO)**: Ensures stability and performance during reinforcement learning. 
+
+Certainly! Here’s how you can integrate the new folder `GPT2_RL_DPO` into the existing README, following the same structure and format:
+
+---
+
+### 5. Fine-Tuning GPT-2 with DPO (Direct Proxy Objective)
+
+The **GPT2_RL_DPO** project focuses on fine-tuning GPT-2 using **Differentiable Proxy Objective (DPO)** for improved performance. This approach uses a differentiable loss function to enable more efficient training on specific tasks, leveraging reinforcement learning strategies in a more stable and tractable way.
+
+#### Directory Structure
+
+```
+MyLLM/
+└── fine-tuning/
+    ├── GPT2_RL_DPO/
+    │   ├── data.py                # Data loading and preprocessing for DPO-based fine-tuning
+    │   ├── dpo_loss.py            # Contains the loss function implementation in PyTorch
+    │   ├── dpo_train.py           # Automatic training pipeline with command-line interface (CLI)
+    │   ├── eval.py                # Loads metrics from a JSON file, visualizes, and generates new model output
+    │    
+```
+
+#### Scripts Overview
+
+- **`data.py`**: Handles data loading and preprocessing specific to the DPO approach.
+- **`dpo_loss.py`**: Implements the direct proxy objective loss function in PyTorch, designed to optimize model performance effectively.
+- **`dpo_train.py`**: A fully automated training pipeline that facilitates model training with various configurable parameters using the command-line interface.
+- **`eval.py`**: After training, this script loads the metrics from a JSON file, visualizes them, and generates output using the fine-tuned model.
+
+#### Usage:
+
+1. **Training the Model**:  
+   You can fine-tune GPT-2 with the DPO approach by running the following command:
+   ```bash
+   python dpo_train.py --batch_size ---- --num_epochs --- --learning_rate --- --beta --- --eval_freq -- --eval_iter --- --model "---" --allowed_max_len ---
+   ```
+   This command fine-tunes the GPT-2 model with a batch size , epochs,  learning rate . The model (gpt2 variants) is set to evaluate every  iterations.
+
+2. **Evaluating the Model**:  
+   After fine-tuning, you can evaluate the model's performance using:
+   ```bash
+   python eval.py 
+   ```
+   This command loads the model and associated metrics, visualizes them, and generates output predictions.
+
+#### Key Features
+
+- **Customizable Hyperparameters**: All critical hyperparameters, including batch size, number of epochs, and learning rate, can be adjusted via the command line to fit your specific needs.
+- **Differentiable Proxy Objective**: The DPO loss function provides a robust, differentiable approach for fine-tuning, improving the optimization process in specific tasks.
+- **Automated Training Pipeline**: With `dpo_train.py`, the fine-tuning process is streamlined, reducing the complexity of training and making it more accessible for new tasks.
+
+#### Fine-Tuning Workflow
+
+1. **Prepare the Dataset**: Ensure your dataset is in the correct format (e.g., CSV, JSON). Modify `data.py` if necessary for data preprocessing.
+2. **Fine-Tune the Model**: Use `dpo_train.py` to fine-tune the GPT-2 model with the configured hyperparameters.
+3. **Evaluate the Model**: After training, use `eval.py` to evaluate the model's performance.
+4. **Interactive Generation**: Once evaluated, generate outputs from the fine-tuned model for your specific task.
+
+---
 
 Reinforcement Learning with Human Feedback (RLHF) bridges the gap between unsupervised fine-tuning and alignment with human values. By incorporating reward models and PPO, RLHF allows for more precise control over generated outputs, making it ideal for applications requiring specific alignment or bias.  
 

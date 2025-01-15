@@ -81,7 +81,7 @@ class PrefrenceDataset(Dataset):
 def custom_collate_fn(
     batch,
     pad_token_id=50256,
-    allowed_max_length=None,
+    allowed_max_length=None,  # Make sure this argument is accepted
     mask_prompt_tokens=True,
     device="cpu"
 ):
@@ -139,6 +139,7 @@ def custom_collate_fn(
 
     # Step 5: Return the processed batch data
     return batch_data
+
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

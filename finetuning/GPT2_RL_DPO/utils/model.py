@@ -7,7 +7,6 @@ class MultiHeadAttention(nn.Module):
         assert d_out % num_heads == 0, "d_out must be divisible by n_heads"
 
         self.d_out = d_out
-        self.num_heads = num_heads
         self.head_dim = d_out // num_heads  # Reduce the projection dim to match desired output dim
 
         self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
