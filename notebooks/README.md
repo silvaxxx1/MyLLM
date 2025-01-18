@@ -62,8 +62,8 @@ MyLLM/
 ### Upcoming Additions
 
 Future work will expand on:
-- **6.3: Advanced Fine-Tuning Techniques**: Leveraging datasets like Alpaca for instruction-tuned LLMs.
-- **Appendices for Advanced Inference**: Further resources for deploying and visualizing models.
+- **6.3: Exploring LLM Evaulation**
+- **Optimization and  Inference**
 
 ## Conclusion
 
