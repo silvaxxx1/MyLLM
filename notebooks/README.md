@@ -1,10 +1,10 @@
 # MyLLM: Notebooks
 
-The `MyLLM/notebooks` directory provides a structured, step-by-step roadmap for building this repository from data collection and preprocessing to fine-tuning. Each notebook guides you through the process of developing large language models (LLMs) from scratch, utilizing first principles to ensure a deep understanding of the underlying methods.
+The `MyLLM/notebooks` directory provides a structured, hierarchical roadmap for building large language models (LLMs) block by block. Each notebook focuses on a specific component, progressing step by step toward a complete pipeline, from data collection to advanced fine-tuning. The structure allows for clarity and modular learning, with dedicated notebooks for building models, training, and evaluation.
 
 ## Purpose
 
-This collection of Jupyter notebooks serves as both a tutorial and a practical guide for users interested in the complete lifecycle of LLM development. It covers essential topics, including data preparation, model architecture, training, and evaluation, enabling users to adapt pre-trained models to their specific tasks.
+This collection of Jupyter notebooks serves as a detailed guide for users interested in understanding and implementing LLMs. The focus is on first principles, building each component separately, and culminating in a complete system that incorporates state-of-the-art NLP techniques.
 
 <p align="center">
     <img src="images/notepic.jpeg" alt="My Image" />
@@ -12,48 +12,60 @@ This collection of Jupyter notebooks serves as both a tutorial and a practical g
 
 ### Current Progress
 
-As of now, we are at **Notebook 6.2: Fine-Tuning for Instruction Following**. This notebook focuses on adapting a pre-trained model to better understand and respond to user instructions, enhancing its interactive capabilities.
+We are currently working on **Notebook 1.2: Tokenizer**, **Notebook 2.2: More Attention**, and **Notebook 3.3: BERT**. These notebooks explore tokenization, advanced attention mechanisms, and bidirectional transformers, and will be completed soon.
 
 ### Directory Structure
 
 ```
 MyLLM/
 └── notebooks/
-    ├── 1.DATA.ipynb                      # Data collection and preprocessing techniques
-    ├── 2.ATTENTION.ipynb                  # Understanding attention mechanisms in LLMs
-    ├── 3.GPT.ipynb                        # Overview of the GPT architecture
-    ├── 4.INFERENCE.ipynb                  # Techniques for model inference and evaluation
-    ├── 5.1.TRAIN.ipynb                    # Training methodologies for language models
-    ├── 5.2.TRAIN_Pro.ipynb                # Advanced training techniques and strategies
-    ├── 6.1.FINE_TUNE_Text_Classification.ipynb  # Fine-tuning for text classification tasks
-    ├── 6.2.FINETUNE_Instruction_Following.ipynb  # Fine-tuning for instruction following tasks
+    ├── 1.1_DATA.ipynb                      # Data collection and preprocessing techniques
+    ├── 1.2_TOKENIZER.ipynb                 # Tokenizer implementation (in progress)
+    ├── 2.1_ATTENTION.ipynb                 # Understanding attention mechanisms in LLMs
+    ├── 2.2_MORE_ATTENTION.ipynb            # Advanced attention mechanisms (in progress)
+    ├── 3.1_GPT.ipynb                       # Building the GPT architecture
+    ├── 3.2_LLAMA.ipynb                     # Building the LLaMA architecture
+    ├── 3.3_BERT.ipynb                      # Building BERT and bidirectional transformer models (in progress)
+    ├── 4.1_TRAIN.ipynb                     # Training GPT-like models
+    ├── 4.2_TRAIN_PRO.ipynb                 # Advanced training techniques and strategies
+    ├── 5.1_SFT_Text_Classification.ipynb   # Fine-tuning for text classification tasks
+    ├── 5.2_SFT_Instruction_Following.ipynb # Fine-tuning for instruction following tasks
+    ├── 5.3_SFT_PEFT.ipynb                  # Fine-tuning with Parameter-Efficient Fine-Tuning (PEFT)
+    ├── 6.1_LHG_PPO.ipynb                   # Learning from Human Guidance using PPO
+    ├── 6.2_DPO.ipynb                       # Direct Preference Optimization
+    ├── Appendix_A_GPT2_to_Llama2.ipynb     # Transitioning models from GPT-2 to Llama 2
+    ├── Appendix_B_Generate_with_Gradio_UI.ipynb # Using Gradio to build model inference UIs
     └── README.md                           # This file
 ```
 
 ### Notebook Descriptions
 
-- **1. DATA.ipynb**: This notebook focuses on data collection and preprocessing techniques. It covers various methods for gathering and cleaning datasets, ensuring that the data is well-prepared for training the models.
+| Name                                  | Description                                                                                   | State            |
+|---------------------------------------|-----------------------------------------------------------------------------------------------|------------------|
+| **1.1_DATA.ipynb**                    | Covers data collection and preprocessing techniques, including cleaning and organizing data.  | ✅               |
+| **1.2_TOKENIZER.ipynb**               | Explores how tokenizers work and demonstrates their implementation.                           | 🔄               |
+| **2.1_ATTENTION.ipynb**               | Introduces attention mechanisms with visualizations and examples.                             | ✅               |
+| **2.2_MORE_ATTENTION.ipynb**          | Builds on the previous notebook to cover advanced attention strategies.                       | 🔄               |
+| **3.1_GPT.ipynb**                     | Guides through building the GPT architecture step by step.                                    | ✅               |
+| **3.2_LLAMA.ipynb**                   | Focuses on constructing the LLaMA architecture.                                               | ✅               |
+| **3.3_BERT.ipynb**                    | Explores building BERT and its bidirectional approach to understanding text.                  | 🔄               |
+| **4.1_TRAIN.ipynb**                   | Covers foundational training methodologies for LLMs, with practical code snippets.            | ✅               |
+| **4.2_TRAIN_PRO.ipynb**               | Focuses on advanced training strategies, including hyperparameter optimization.               | ✅               |
+| **5.1_SFT_Text_Classification.ipynb** | Explores fine-tuning for text classification tasks, with practical guidance and examples.     | ✅               |
+| **5.2_SFT_Instruction_Following.ipynb**| Focuses on adapting models for instruction-following tasks, enhancing interaction capabilities.| ✅               |
+| **5.3_SFT_PEFT.ipynb**                | Demonstrates Parameter-Efficient Fine-Tuning (PEFT) for resource-efficient fine-tuning.       | ✅               |
+| **6.1_LHG_PPO.ipynb**                 | Explores using Proximal Policy Optimization (PPO) for learning from human guidance.           | ✅               |
+| **6.2_DPO.ipynb**                     | Details Direct Preference Optimization for aligning models with user preferences.             | ✅               |
+| **Appendix_A_GPT2_to_Llama2.ipynb**   | Guides transitioning models from GPT-2 to Llama 2.                                            | ✅               |
+| **Appendix_B_Generate_with_Gradio_UI.ipynb** | Explains how to create a user-friendly interface for model inference using Gradio.        | ✅               |
 
-- **2. ATTENTION.ipynb**: Here, you will learn about the attention mechanisms that power modern LLMs. The notebook explains how attention works and its significance in enhancing model performance, providing visualizations to aid comprehension.
+### Upcoming Additions
 
-- **3. GPT.ipynb**: This notebook provides an overview of the GPT architecture, detailing its design principles, training strategies, and the innovations that have contributed to its success in natural language processing tasks.
-
-- **4. INFERENCE.ipynb**: Techniques for model inference and evaluation are covered in this notebook. It discusses how to deploy models for practical use and evaluate their performance effectively, including metrics and benchmarks.
-
-- **5.1 TRAIN.ipynb**: In this section, you will find methodologies for training language models. The notebook discusses different training paradigms and their applications, providing code snippets to illustrate implementation.
-
-- **5.2 TRAIN_Pro.ipynb**: Building upon the previous notebook, this one delves into advanced training techniques and strategies that optimize the training process, focusing on aspects such as hyperparameter tuning and model architecture adjustments.
-
-- **6.1 FINE_TUNE_Text_Classification.ipynb**: This notebook explores fine-tuning strategies specifically for text classification tasks. It provides practical examples and guides readers through the necessary steps to adapt pre-trained models to this specific use case.
-
-- **6.2 FINETUNE_Instruction_Following.ipynb**: Currently in progress, this notebook focuses on fine-tuning for instruction-following tasks, aiming to enhance model interaction by training it to better understand and respond to user inputs.
-
-### Upcoming Notebooks
-
-Future notebooks will continue to build on this foundation, covering:
-
-- **Notebook 6.3: Fine-Tuning GPT-2 XL with the Alpaca Dataset Utilizing LoRA and QLoRA Techniques**: A deep dive into advanced techniques for efficient fine-tuning of large models, utilizing the largest variant of GPT-2 and the Alpaca dataset (over 50,000 examples) for comprehensive instruction following.
+Future work will expand on:
+- **6.3: Advanced Fine-Tuning Techniques**: Leveraging datasets like Alpaca for instruction-tuned LLMs.
+- **Appendices for Advanced Inference**: Further resources for deploying and visualizing models.
 
 ## Conclusion
 
-This notebook section is designed to provide a comprehensive foundation for anyone interested in LLMs, ensuring you have the knowledge and tools necessary to adapt and innovate. As we progress, additional notebooks will explore advanced techniques and applications, further enhancing our understanding of modern NLP practices.
+This repository provides a comprehensive, modular foundation for building and fine-tuning LLMs. The hierarchical structure ensures that each notebook builds on the previous one, enabling a clear understanding of modern NLP practices while supporting practical applications of state-of-the-art techniques. Stay tuned for future updates!
+
