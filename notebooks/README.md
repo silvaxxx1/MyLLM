@@ -62,8 +62,8 @@ MyLLM/
 ### Upcoming Additions
 
 Future work will expand on:
-- **Exploring LLM Evaulation**
-- **Optimization and  Inference**
+- **Exploring LLM Evaluation**
+- **Optimization and Inference**
 
 ## Conclusion
 
