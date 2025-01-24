@@ -1,8 +1,3 @@
-Here’s an enhanced version of your README with improved structure, clarity, and visual appeal:
-
----
-
-```markdown
 # **MyLLM101: Build Your Meta\_Bot!** 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
