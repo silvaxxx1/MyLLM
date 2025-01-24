@@ -8,7 +8,13 @@
   <img src="./META_BOT.jpg" alt="Meta_Bot" width="600"/>
 </div>
 
-**MyLLM101** is a hands-on guide to building **Meta\_Bot**—an AI tutor that teaches LLM development while explaining its own architecture. Start with notebooks, scale to pipelines, and deploy your self-aware chatbot!
+---
+
+🚧 **Important Development Notice** 🚧  
+**This repository is under active construction!**  
+*"I'm building in public to stay accountable - some features below exist as goals rather than working code... yet!"*  
+**Current Stable Components:** Core training pipeline, Basic GPT implementation  
+**Experimental Features:** DPO, Multi-GPU training (partial support)  
 
 ---
 
@@ -53,21 +59,32 @@
 
 ## **📌 Project Roadmap**
 
-### **Completed**
-- ✅ **Notebooks**: Tokenization, transformer blocks, SFT training
-- ✅ **Core Framework**: Model architecture (GPT-2 style), dataset loaders
-- ✅ **RL Pipeline**: PPO/DPO implementations
-- ✅ **Multi-GPU Training**: DistributedDataParallel support
+### **Completed** ✅
+- Basic GPT Implementation
+- Single-GPU Training Pipeline
+- Notebook Prototypes (Tokenization, SFT)
 
-### **In Progress**
-- 🚧 **Meta\_Bot UI**: Gradio/Streamlit interface for interactive tutoring
-- 🚧 **Custom Tokenizer**: Byte-level BPE implementation
-- 🚧 **Model Evaluation**: Perplexity, accuracy, and human eval metrics
+### **In Progress** 🚧
+```python
+current_focus = [
+    "Meta_Bot Gradio Interface (50% complete)",
+    "Custom Tokenizer (30% implemented)", 
+    "DPO Optimization (experimental)"
+]
+```
 
-### **Upcoming**
-- 📅 **Quantization**: 4-bit inference with bitsandbytes
-- 📅 **BERT Integration**: Contrastive learning for improved embeddings
-- 📅 **Documentation**: Full API docs and video tutorials
+### **Upcoming** 📅
+```bash
+# Planned Features
+Q3 2024:
+- Quantization Support
+- BERT-style Pretraining
+- Comprehensive Evaluation Suite
+
+Q4 2024: 
+- ONNX/TensorRT Export
+- Distributed Inference
+```
 
 ---
 
@@ -85,13 +102,15 @@ cd MyLLM101
 pip install -r requirements.txt
 ```
 
-### **Train a Mini-LLM**
+### **Basic Training**
 ```bash
-# Single-GPU SFT training
-python train.py --config configs/sft_mini.yml
+# Start small-scale training (CPU/GPU)
+python train.py --config configs/starter.yml
+```
 
-# Launch Meta_Bot (Dev Mode)
-python -m metabot.chat
+### **Launch Dev Chat**
+```bash
+python -m metabot.chat --mode basic
 ```
 
 ---
@@ -100,49 +119,62 @@ python -m metabot.chat
 
 ### **Multi-GPU Training**
 ```bash
+# Experimental - May require code adjustments
 torchrun --nproc_per_node=4 train.py --config configs/distributed.yml
 ```
 
-### **Custom Tokenizer**
+### **Custom Components**
 ```python
-from modules.tokenizer import ByteLevelBPETokenizer
-tokenizer = ByteLevelBPETokenizer(vocab_size=50_000)
-tokenizer.train("./data/corpus.txt")
-```
+from modules import FlexibleTrainer
 
-### **RLHF with DPO**
-```yaml
-# configs/dpo.yml
-strategy: dpo
-beta: 0.1
-loss: sigmoid
-reward_model: ./checkpoints/rm_model.pth
+trainer = FlexibleTrainer(
+    model=your_model,
+    strategy="mixed_precision",  # Options: [basic, mixed_precision, ddp]
+    auto_scale=True  # Automatic batch size adjustment
+)
 ```
 
 ---
 
 ## **🤝 Contributing**
 
-We welcome contributions! Here’s how to help:
-1. **Fork** the repo and create a branch (`git checkout -b feature/amazing-idea`)
-2. **Test** your changes thoroughly
-3. Submit a **Pull Request** with a clear description
+**We welcome brave contributors!**  
+Given the project's early stage, please:  
+1. Check open issues for known limitations  
+2. Discuss major changes via GitHub Discussions first  
+3. Focus on completing existing modules before adding new features  
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+Contribution Guide:  
+```mermaid
+graph LR
+    A[Fork] --> B[Branch]
+    B --> C[Code]
+    C --> D[Test]
+    D --> E[Pull Request]
+```
 
 ---
 
 ## **🙏 Inspiration**
 
-This project stands on the shoulders of giants:
-- [**Umar Jamil**](https://www.youtube.com/@umarjamilai) for practical LLM tutorials
-- [**Andrej Karpathy**](https://karpathy.ai/) for foundational deep learning insights
-- [**Sebastian Raschka**](https://sebastianraschka.com/)’s *"Build a Large Language Model (From Scratch)"* book
+This project draws inspiration from:  
+- [Umar Jamil's LLM Tutorials](https://www.youtube.com/@umarjamilai)  
+- [Andrej Karpathy's nanogpt](https://github.com/karpathy/nanoGPT)  
+- [Sebastian Raschka's LLM Book](https://sebastianraschka.com/books/llm-foundations/)  
 
 ---
 
 ## **📜 License**
 
-MIT License - see [LICENSE](LICENSE) for details.
-```
+MIT License - See [LICENSE](LICENSE) for details.  
+*"Build freely, learn deeply!"* 🛠️🧠
 
+---
+
+<div align="center">
+  <h3>Join the Journey!</h3>
+  <img src="https://media.giphy.com/media/LpiVeIRgrqVsZJpM5H/giphy.gif" width="200">
+  <br>
+  <em>Watch this space transform from concept to cutting-edge toolkit!</em>
+</div>
+```
