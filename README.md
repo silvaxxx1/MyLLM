@@ -76,15 +76,10 @@ current_focus = [
 ### **Upcoming** 📅
 ```bash
 # Planned Features
-Q3 2024:
+Q1 2025:
 - Quantization Support
 - BERT-style Pretraining
 - Comprehensive Evaluation Suite
-
-Q4 2024: 
-- ONNX/TensorRT Export
-- Distributed Inference
-```
 
 ---
 
