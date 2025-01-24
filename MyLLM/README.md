@@ -1,7 +1,3 @@
-Here's an enhanced, professional version of your README with improved structure and clarity:
-
----
-
 # **MyLLM_Recipes** 🧠⚙️  
 ### *A Scalable Framework for Building & Fine-Tuning Production-Grade LLMs*
 
