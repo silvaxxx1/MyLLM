@@ -81,7 +81,10 @@ Q1 2025:
 - BERT-style Pretraining
 - Comprehensive Evaluation Suite
 
+<<<<<<< HEAD
 ---
+=======
+>>>>>>> 66aaebd965d19763a51f796ca786c45397a70e16
 
 ## **⚡ Quick Start**
 
