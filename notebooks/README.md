@@ -24,20 +24,20 @@
 ### **Phase 1: Data Foundations** 🔍
 | Notebook | Status | Focus | Prerequisites |
 |----------|--------|-------|---------------|
-| [1.1_DATA](notebooks/1.1_DATA.ipynb) | ✅ Stable | Text cleaning & splitting | Python basics |
-| [1.2_TOKENIZER](notebooks/1.2_TOKENIZER.ipynb) | 🚧 Active | Byte-level BPE | Regex experience |
+| [1.1.DATA](notebooks/1.1_DATA.ipynb) | ✅ Stable | Text cleaning & splitting | Python basics |
+| [1.2.TOKENIZER](notebooks/1.2_TOKENIZER.ipynb) | 🚧 Active | Byte-level BPE | Regex experience |
 
 ### **Phase 2: Attention Mechanisms** 🤖
 | Notebook | Hardware | Key Innovation |
 |----------|----------|----------------|
-| [2.1_ATTENTION](notebooks/2.1_ATTENTION.ipynb) | CPU | Scaled dot-product basics |
-| [2.2_MORE_ATTENTION](notebooks/2.2_MORE_ATTENTION.ipynb) | GPU | FlashAttention v2 |
+| [2.1.ATTENTION](notebooks/2.1_ATTENTION.ipynb) | CPU | Scaled dot-product basics |
+| [2.2.MORE_ATTENTION](notebooks/2.2_MORE_ATTENTION.ipynb) | GPU | FlashAttention v2 |
 
 ### **Phase 3: Model Architectures** 🏗️
 ```bash
-3.1_GPT.ipynb       - Autoregressive Transformer (12.6M params)
-3.2_LLAMA.ipynb     - Memory-efficient RoPE implementation
-3.3_BERT.ipynb      - Masked LM pretraining [Beta]
+3.1.GPT.ipynb       - Autoregressive Transformer (12.6M params)
+3.2.LLAMA.ipynb     - Memory-efficient RoPE implementation
+3.3.BERT.ipynb      - Masked LM pretraining [Beta]
 ```
 
 ### **Phase 4-6: Training & Alignment** ⚙️
@@ -45,9 +45,9 @@
   
 | Stage | Notebook | Key Technique | Performance |
 |-------|----------|---------------|-------------|
-| SFT | [5.1_SFT_Text_Classification](notebooks/5.1_SFT_Text_Classification.ipynb) | LoRA | 89% Acc |
-| RLHF | [6.1_LHG_PPO](notebooks/6.1_LHG_PPO.ipynb) | Proximal Policy Optimization | 72% Win Rate |
-| DPO | [6.2_DPO](notebooks/6.2_DPO.ipynb) | Direct Preference Optimization | 81% Preference |
+| SFT | [5.1.SFT_Text_Classification](notebooks/5.1_SFT_Text_Classification.ipynb) | LoRA | 89% Acc |
+| RLHF | [6.1.LHG_PPO](notebooks/6.1_LHG_PPO.ipynb) | Proximal Policy Optimization | 72% Win Rate |
+| DPO | [6.2.DPO](notebooks/6.2_DPO.ipynb) | Direct Preference Optimization | 81% Preference |
 
 </div>
 
@@ -127,13 +127,13 @@ graph LR
 
 ```python
 class NotebookRoadmap:
-    Q3 = [
+    Q1 = [
         "📈 AutoML for Hyperparameter Tuning",
         "🌐 Multilingual Tokenizer Expansion",
         "🔍 Interpretability Suite"
     ]
     
-    Q4 = [
+    Q2 = [
         "🤖 Autonomous RLHF Pipeline",
         "🔄 Notebook→Colab One-Click Export"
     ]
