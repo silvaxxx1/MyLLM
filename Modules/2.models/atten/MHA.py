@@ -110,14 +110,3 @@ class MHACombinedQKV(nn.Module):
 
         return context_vec
 
-mha_combined_qkv = MHACombinedQKV(
-    d_in=embed_dim,
-    d_out=embed_dim,
-    context_length=context_len,
-    dropout=0.0,
-    num_heads=12,
-    qkv_bias=False
-).to(device)
-
-out = mha_combined_qkv(embeddings)
-print(out.shape)
