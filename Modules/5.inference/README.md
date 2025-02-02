@@ -3,8 +3,9 @@
 
 Welcome to the **GPT Model Inference Directory**! This repository provides efficient scripts for loading and generating text using GPT models, allowing seamless interaction through both **command-line interfaces** and a **web-based Gradio app**.
 
+
 <p align="center">
-    <img src="capturex.png" alt="GPT Inference Demo" />
+    <img src="app.png" alt="Gradio Application" />
 </p>
 
 ## 🚀 Overview  
