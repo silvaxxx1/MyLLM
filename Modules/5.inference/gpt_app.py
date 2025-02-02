@@ -1,86 +1,99 @@
-import torch
-import tiktoken
 import gradio as gr
-
-import sys
+import torch
 import os
+import sys
+import logging
+
+# Add project root to sys.path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-# Load the generate_text function from your code
-from training.train_utils import generate_text
-from configs.gpt_config import GPT_CONFIG_124M, GPT_CONFIG_355M, model_names
+from UTILS.generate import TextGenerator  # Import TextGenerator class
 
-# Function to load the model
-def load_model(model_path, device):
-    model = torch.load(model_path, map_location=device)
-    model.to(device)
-    model.eval()
-    return model
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Encode the input prompt
-def encode_prompt(prompt, tokenizer):
-    return tokenizer.encode(prompt)
-
-# Decode generated tokens
-def decode_tokens(token_ids, tokenizer):
-    return tokenizer.decode(token_ids)
-
-# Load tokenizer
-tokenizer = tiktoken.get_encoding("gpt2")
-
-# Map model names to configuration and model paths
-model_config_map = {
-    "gpt2-small (124M)": (GPT_CONFIG_124M, r"C:\Users\user\Documents\SILVA AI ROADMAP\MyLLM\inference\gpt_infrence\checkpoints\models\gpt2-small (124M)_model.pt"),
-    "gpt2-medium (355M)": (GPT_CONFIG_355M, r"C:\Users\user\Documents\SILVA AI ROADMAP\MyLLM\inference\gpt_infrence\checkpoints\models\gpt2-medium (355M)_model.pt"),
-}
-
-# Load the model
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Define a function for the Gradio UI that uses your generate_text function
-def generate_text_ui(prompt, model_name, max_length, temperature, top_k):
-    config, model_save_path = model_config_map[model_name]
-    model = load_model(model_save_path, device)
-
-    input_ids = torch.tensor(encode_prompt(prompt, tokenizer)).unsqueeze(0).to(device)
-
-    # Generate text using your existing function
-    output_ids = generate_text(
-        model=model,
-        idx=input_ids,
-        max_new_tokens=max_length,
-        context_size=config['context_length'],
-        temperature=temperature,
-        top_k=top_k,
-        eos_id=50256
-    )
-
-    # Decode the generated tokens
-    generated_text = decode_tokens(output_ids.squeeze().tolist(), tokenizer)
+def generate_text_gradio(prompt, length, beams, sampling, temperature):
+    """Generates text using the TextGenerator class."""
+    logging.info(f"Generating text with prompt: '{prompt[:50]}...' (truncated)")
     
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    generator = TextGenerator(model_name="gpt2", device=device)
+    
+    generated_text = generator.generate(
+        prompt=prompt,
+        length=length,
+        beams=beams if sampling == "greedy" else 1,  # Beams apply only to greedy search
+        sampling=sampling,
+        temperature=temperature
+    )
+    
+    logging.info("Text generation completed.")
     return generated_text
 
-# Create Gradio Interface
-# Create Gradio Interface
-def interface():
-    gr.Interface(
-        fn=generate_text_ui, 
-        inputs=[
-            gr.Textbox(lines=2, label="Enter your prompt"),
-            gr.Dropdown(list(model_config_map.keys()), label="Select Model"),
-            gr.Slider(10, 200, step=1, value=100, label="Max New Tokens"),  # Changed default to value
-            gr.Slider(0.0, 1.5, step=0.1, value=0.7, label="Temperature"),  # Changed default to value
-            gr.Slider(1, 100, step=1, value=50, label="Top K")  # Changed default to value
-        ], 
-        outputs=gr.Textbox(label="Generated Text"),
-        title="SILVA GPT App",
-        description="Generate text using different models and parameters",
-        theme="default"
-    ).launch(share=True)
+# Gradio interface components
+prompt_input = gr.Textbox(
+    label="Enter your Prompt", 
+    placeholder="Type your prompt here...", 
+    lines=3,  
+    max_length=500,  
+    info="Provide a short text prompt to guide the text generation."
+)
 
+length_input = gr.Slider(
+    minimum=10, 
+    maximum=500,  
+    step=1, 
+    label="Length of Generated Text", 
+    value=100,  
+    info="Control how long the generated text should be (in terms of tokens/words)."
+)
 
+beams_input = gr.Slider(
+    minimum=1, 
+    maximum=10,  
+    step=1, 
+    label="Number of Beams (Beam Search)", 
+    value=3, 
+    info="Set the number of beams for beam search, affecting the quality of the output."
+)
 
-# Run the interface
+sampling_input = gr.Radio(
+    ["greedy", "top_k", "nucleus"],  
+    label="Sampling Method", 
+    value="greedy",  
+    info="Choose the sampling method. 'Greedy' selects the most probable token, 'Top-k' limits the possible next tokens, 'Nucleus' samples from the top 'p' probability."
+)
+
+temperature_input = gr.Slider(
+    minimum=0.0, 
+    maximum=1.0, 
+    step=0.1, 
+    label="Temperature (Randomness Control)", 
+    value=0.7,  
+    info="Adjust the temperature: higher values make the output more random, lower values make it more deterministic."
+)
+
+output_text = gr.Textbox(
+    label="Generated Text", 
+    placeholder="Generated content will appear here...", 
+    lines=10,  
+    interactive=False,  
+    info="This is where the generated text will be displayed based on your inputs."
+)
+
+# Create the Gradio interface
+app = gr.Interface(
+    fn=generate_text_gradio,  
+    inputs=[prompt_input, length_input, beams_input, sampling_input, temperature_input],  
+    outputs=output_text,  
+    live=True,  
+    title="Meta_Bot Demo",  
+    description="This tool allows you to generate creative and customizable text based on your prompt. "
+                "Adjust parameters like text length, sampling strategy, and randomness (temperature) to control the output. "
+                "Perfect for exploring different types of text generation based on various configurations.",
+    theme="default"  # Changed from "compact" to "default"
+)
+
 if __name__ == "__main__":
-    interface()
-
+    logging.info("Launching Meta_Bot Demo...")
+    app.launch(share=False)  # Enables a public link

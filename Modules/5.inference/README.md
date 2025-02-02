@@ -1,52 +1,76 @@
-# GPT Model Inference Directory
 
-Welcome to the **GPT Model Inference Directory**! This repository provides scripts for loading and generating text with GPT models, allowing users to easily interact with various GPT architectures.
+# MyLLM Model Inference Directory  
+
+Welcome to the **GPT Model Inference Directory**! This repository provides efficient scripts for loading and generating text using GPT models, allowing seamless interaction through both **command-line interfaces** and a **web-based Gradio app**.
 
 <p align="center">
-    <img src="capturex.png" alt="My Image" />
+    <img src="capturex.png" alt="GPT Inference Demo" />
 </p>
 
-## Overview
+## 🚀 Overview  
 
-This directory contains essential scripts that facilitate the loading of GPT models and the generation of text based on user prompts. Whether you're running inference from the command line or through a web interface, we've got you covered.
+This directory contains core scripts that enable:  
+✔️ **Loading and fine-tuning GPT models** for inference.  
+✔️ **Generating text with customizable parameters** (e.g., temperature, top-k, beam search).  
+✔️ **Interactive web-based text generation** using Gradio.  
 
-## Scripts
+Whether you prefer running inference via the **command line** or using a **web UI**, this repository has you covered!  
 
-### `load_model.py`
-A utility script for loading GPT models from checkpoint files. This script includes the `load_model` function, which loads the specified model and sets it to evaluation mode for inference.
+---
 
-### `gpt_inference.py`
-This command-line interface (CLI) allows you to generate text from prompts using a specified GPT model. 
+## 📜 Scripts  
 
-**Usage:**
+### 🔹 `load_model.py`  
+A utility script for **loading pre-trained GPT models** from checkpoint files.  
+
+✅ Loads GPT models and prepares them for inference.  
+✅ Ensures models are set to **evaluation mode** for efficiency.  
+
+---
+
+### 🔹 `gpt_inference.py`  
+A **command-line interface (CLI)** for generating text using a specified GPT model.  
+
+#### **Usage:**  
 ```bash
-python gpt_inference.py --prompt "Your prompt here" --max_length 100 --temperature 0.7 --top_k 50 --model_name "gpt2-small (124M)"
+python gpt_inference.py --prompt "Your prompt here" --max_length 100 --temperature 0.7 --top_k 50 --model_name "gpt2"
 ```
-You can customize the prompt, maximum length, temperature, top-k sampling, and model name to suit your needs.
+✅ **Customizable parameters:** Modify max length, temperature, and top-k sampling.  
+✅ Supports various **GPT architectures**.  
 
-### `gpt_app.py`
-A Gradio web application that provides an interactive interface for text generation using GPT models.
+---
 
-**Run the App:**
+### 🔹 `gpt_app.py`  
+A **Gradio-powered web application** for real-time text generation.  
+
+#### **Run the App:**  
 ```bash
 python gpt_app.py
 ```
-Once the app is running, access it via the URL displayed in your terminal to start generating text interactively.
+Once running, access the interactive UI via the **local or public link** displayed in the terminal.  
 
-## Requirements
-To run these scripts, you will need the following Python packages:
+✅ **User-friendly web interface** for experimenting with different text generation strategies.  
+✅ Supports **Greedy, Top-k, and Nucleus (Top-p) sampling**.  
+✅ Adjustable **temperature and beam search** for fine-tuned control.  
 
-- `torch`
-- `tiktoken`
-- `gradio`
+---
 
-### Installation
-You can install the required dependencies using pip:
+## 🛠 Requirements  
+
+To use these scripts, install the necessary Python packages:  
 
 ```bash
-pip install torch tiktoken gradio
+pip install torch gradio
 ```
 
-## Conclusion
+---
 
-With these scripts, you can easily load GPT models and generate text in both command-line and web environments. Feel free to explore and modify the scripts to enhance your text generation projects!
+## 🎯 Conclusion  
+
+With these scripts, you can easily:  
+✔️ **Load and deploy GPT models** for inference.  
+✔️ **Generate text using different strategies** (Greedy, Top-k, Nucleus).  
+✔️ **Interact with GPT models via CLI or web UI**.  
+
+Feel free to modify and extend the functionality to suit your needs! 🚀  
+```

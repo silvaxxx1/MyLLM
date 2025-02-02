@@ -11,9 +11,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 import argparse
 import numpy as np
 import torch
-import transformers
 from transformers import GPT2Model
-from models.GPT.GPT import GPTModel
+from UTILS.model import GPTModel
 from configs.gpt_config import BASE_CONFIG, model_configs, model_names  # Import the configurations
 
 # Set up command-line argument parsing
