@@ -10,8 +10,8 @@ import argparse
 import logging
 from train import eval_model
 import tiktoken
-from data.dataloader import GPTDataLoader  
-from models.GPT.GPT import GPTModel 
+from dataloader import GPTDataLoader  
+from model import GPTModel 
 from configs.gpt_config import GPT_CONFIG_124M  # Import your configuration
 from train_utils import plot_losses, save_model, load_model
 
