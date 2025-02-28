@@ -64,7 +64,8 @@
 |----------|-------|
 | [6.1.INFERENCE_Text_Generation](notebooks/6.1.INFERENCE_Text_Generation.ipynb) | Text generation |
 | [6.2.KV_Cache](notebooks/6.2.KV_Cache.ipynb) | KV cache optimization |
-| [6.3.Quantization](notebooks/6.3.Quantization.ipynb) | 8-bit & 4-bit quantization |
+| [6.3.Quantization_8bit](notebooks/6.3.Quantization_8bit.ipynb) | 8-bit quantization (from scratch) |
+| [6.4.Quantization_Guide](notebooks/6.4.Quantization_Guide.ipynb) | Practical guide to quantization techniques and frameworks |
 
 ### **Appendices** 📚
 | Notebook | Focus |
@@ -114,3 +115,11 @@ class NotebookRoadmap:
         "🔄 Notebook→Colab One-Click Export"
     ]
 ```
+
+---
+
+### Updates:
+In **Phase 6** (Inference & Optimization), the quantization section has been expanded:
+
+- **6.3.Quantization_8bit**: This notebook guides you through **8-bit quantization** from scratch using **native PyTorch**, enabling efficient model optimization with minimal code complexity.
+- **6.4.Quantization_Guide**: The second notebook in this section is a **practical guide** to **quantization techniques** and frameworks like **bitsandbytes**, **GPTQ**, **GGML & llama.cpp**, and **ExLlamaV2**, helping you understand **dynamic** vs **static** quantization and implementing them for real-world models.
