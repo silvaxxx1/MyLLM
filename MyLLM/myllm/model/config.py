@@ -1,3 +1,41 @@
+"""
+Configuration Management for Transformer-based Models
+
+This module defines a `Config` class to manage the configuration settings of various transformer-based models, including models like GPT-2 and LLaMA. It provides functionality for:
+
+1. Defining core parameters for the model architecture, such as:
+    - `block_size`: Sequence length for input data.
+    - `vocab_size`: The number of tokens in the vocabulary.
+    - `n_layer`: Number of transformer layers.
+    - `n_head`: Number of attention heads.
+    - `n_embd`: Embedding dimensionality.
+    - And other model-specific parameters.
+
+2. Architecture variations for flexibility, such as different normalization layers and activation functions.
+
+3. Model-specific parameters (e.g., for LLaMA models, including rotary embeddings and parallel residual connections).
+
+4. Hyperparameters such as dropout rate, learning rate, and Adam optimizer settings.
+
+5. The ability to save and load configurations from JSON files, facilitating easy configuration management.
+
+6. Configuration validation checks (e.g., ensuring that `n_embd` is divisible by `n_head`).
+
+7. The ability to update specific configuration parameters dynamically.
+
+8. Retrieval of only the trainable parameters from the configuration.
+
+9. The ability to manage multiple configurations (e.g., for different model architectures like GPT-2 and LLaMA) with an easy-to-use registry.
+
+The module is designed to be used for managing large-scale transformer models with customizable settings, allowing easy integration with training pipelines.
+
+Example usage:
+- Create a `Config` instance for a specific model using `Config.from_name()`.
+- Validate the configuration using `.validate()`.
+- Save and load configurations from disk using `.save()` and `.load()`.
+"""
+
+# Import statements
 from dataclasses import dataclass, field
 from typing import Optional, Any, Dict
 import json
@@ -5,45 +43,48 @@ import json
 @dataclass
 class Config:
     # Core parameters
-    name: str = ""
-    block_size: int = 1024
-    vocab_size: int = 50257
-    padded_vocab_size: Optional[int] = None
-    n_layer: int = 12
-    n_head: int = 12
-    n_embd: int = 768
-    eps: float = 1e-5
+    name: str = ""  # Name of the model configuration
+    block_size: int = 1024  # Size of each block (sequence length)
+    vocab_size: int = 50257  # Number of tokens in the vocabulary
+    padded_vocab_size: Optional[int] = None  # Padded vocabulary size (if applicable)
+    n_layer: int = 12  # Number of transformer layers
+    n_head: int = 12  # Number of attention heads
+    n_embd: int = 768  # Dimensionality of embeddings
+    eps: float = 1e-5  # Small epsilon for numerical stability
 
     # Architecture variations
-    norm_class_name: str = "LayerNorm"
-    activation: str = "gelu"
-    mlp_class_name: str = "GptMLP"
-    scale_embeddings: bool = False
-    mlp_ratio: float = 4.0
+    norm_class_name: str = "LayerNorm"  # Type of normalization layer used (LayerNorm or RMSNorm)
+    activation: str = "gelu"  # Activation function (gelu, relu, etc.)
+    mlp_class_name: str = "GptMLP"  # Class name for the MLP (used in GPT and similar architectures)
+    scale_embeddings: bool = False  # Whether to scale embeddings by sqrt(d_model)
+    mlp_ratio: float = 4.0  # Ratio of hidden dimension to embedding dimension in the MLP
 
-    # LLama 
-    rotary_percentage: float = 0.0
-    parallel_residual: bool = False
-    norm_eps: float = 1e-5
+    # Llama-specific configuration
+    rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
+    parallel_residual: bool = False  # Whether to use parallel residual connections (specific to LLaMA)
+    norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
 
     # Hyperparameters
-    dropout: float = 0.1
-    bias: bool = False
-    learning_rate: float = 3e-4
-    weight_decay: float = 0.1
-    beta1: float = 0.9
-    beta2: float = 0.999
+    dropout: float = 0.1  # Dropout rate for regularization
+    bias: bool = False  # Whether to use bias terms in layers
+    learning_rate: float = 3e-4  # Learning rate for training
+    weight_decay: float = 0.1  # Weight decay for regularization
+    beta1: float = 0.9  # First momentum term for Adam optimizer
+    beta2: float = 0.999  # Second momentum term for Adam optimizer
 
-    # Extra parameters
-    extra_params: Dict[str, Any] = field(default_factory=dict)
+    # Extra parameters for flexibility
+    extra_params: Dict[str, Any] = field(default_factory=dict)  # To store any extra parameters
 
     def __post_init__(self):
+        # Ensure that padded_vocab_size is set if not provided
         if self.padded_vocab_size is None:
             self.padded_vocab_size = self.vocab_size
         
+        # Validate the configuration parameters after initialization
         self.validate()
 
     def __repr__(self):
+        # Return a string representation of the config with key-value pairs
         params = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
         return f"Config({params})"
 
@@ -68,19 +109,22 @@ class Config:
                 print(f"Warning: Invalid config key '{key}', skipping update.")
 
     def get_trainable_params(self):
-        """ Get a dictionary of trainable parameters. """
+        """ Get a dictionary of trainable parameters (those that are int, float, or bool). """
         return {k: v for k, v in self.__dict__.items() if isinstance(v, (int, float, bool))}
 
     def validate(self):
         """ Validate the configuration parameters. """
+        # Ensure that n_embd is divisible by n_head for correct attention behavior
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
+        # Ensure that block_size is positive
         assert self.block_size > 0, "block_size must be positive"
+        # Ensure that mlp_ratio is positive for proper scaling of the MLP layers
         assert self.mlp_ratio > 0, "mlp_ratio must be positive"
         print("✅ All checks passed.")
 
     @classmethod
     def available_configs(cls):
-        """ Return the list of available configurations. """
+        """ Return the list of available configurations by accessing the global configuration registry. """
         return list(name_to_config.keys())
 
     @classmethod
