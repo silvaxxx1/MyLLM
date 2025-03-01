@@ -14,87 +14,74 @@
 
 ---
 
-## **🌟 Why MyLLM_Recipes?**
+## **🌟 Why MyLLM?**
 
 | **Feature**               | **Advantage**                                                                 |
 |---------------------------|-------------------------------------------------------------------------------|
-| **Pure PyTorch Foundation** | Full control over model internals without abstraction layers                 |
-| **Modular Pipelines**       | Swap components like LEGO blocks (data, training, eval)                      |
-| **Research-to-Prod Focus**  | Designed for both experimental flexibility and production robustness         |
-| **Meta_Bot Ready**          | Foundational framework for building self-aware AI tutor                      |
+| **Pure PyTorch Native** | Minimal dependencies with direct PyTorch implementation                 |
+| **LitGPT Inspired**       | Clean, readable, and efficient code following LitGPT's principles                      |
+| **Transformers-like API**  | Familiar API design inspired by Hugging Face Transformers         |
+| **Modular Architecture**          | Easy to extend and customize components                      |
 
 ---
 
-## **🚀 Core Capabilities**
+## **🚀 Core Components**
 
-### **Modular Pipeline Architecture**
-```bash
-pipelines/
-├── data/              # Preprocessing & tokenization
-├── training/          # CPU/GPU/Multi-GPU trainers
-├── finetuning/        # SFT, PPO, DPO strategies
-├── generation/        # Top-k, beam search, etc.
-└── deployment/        # Gradio UI & optimization
+### **Modular Architecture**
+```
+myllm/
+├── model.py           # Core transformer implementation
+├── config.py          # Model configuration
+├── tokenizer.py       # Tokenizer implementation
+└── trainer.py         # Training utilities
 ```
 
-### **Key Implementations**
-| **Component**         | **Tech Stack**          | **Status**   | **Roadmap**                  |
-|-----------------------|-------------------------|--------------|------------------------------|
-| Data Preprocessing    | Custom Tokenizers       | 🟡 Phase 1   | HF Dataset Integration       |
-| Distributed Training  | DDP, DeepSpeed          | 🟡 Phase 2   | FSDP Support                 |
-| RL Fine-Tuning        | PPO, DPO                | 🟡 Phase 3   | Constitutional AI            |
-| Quantized Inference   | GPTQ, Bitsandbytes      | 🟠 Future    | ONNX/TensorRT Export         |
+### **Key Features**
+| **Component**         | **Description**          | **Status**   |
+|-----------------------|-------------------------|--------------|
+| Model Architecture    | Transformer-based LLM with configurable parameters | ✅ Done |
+| Tokenizer            | Character-level tokenization with special tokens | ✅ Done |
+| Training Pipeline    | Flexible trainer with evaluation support | ✅ Done |
+| Model Loading/Saving | Support for loading and saving pretrained models | 🟡 In Progress |
 
 ---
 
-## **⚙️ Framework Highlights**
+## **⚙️ Usage Examples**
 
-### **Multi-Hardware Support**
+### **Model Configuration**
 ```python
-# Automatic hardware configuration
-from core import AutoTrainer
+from myllm import ModelConfig
 
-trainer = AutoTrainer(
-    model=your_model,
-    strategy="auto"  # Detects CPU/GPU/Multi-GPU
+config = ModelConfig(
+    vocab_size=50257,
+    hidden_size=768,
+    num_layers=12,
+    num_attention_heads=12,
+    max_position_embeddings=1024
 )
 ```
 
-### **Training Paradigms**
+### **Model Creation**
 ```python
-# Compare training approaches
-trainer.fit(
-    method="sft",  # Options: ["scratch", "sft", "ppo", "dpo"]
-    dataset=preprocessed_data,
-    metrics=["perplexity", "accuracy"]
-)
+from myllm import LLMModel
+
+model = LLMModel(config)
 ```
 
-### **Unified Evaluation**
+### **Training**
 ```python
-from evaluation import LLMEvaluator
+from myllm import Trainer
+import torch
 
-evaluator = LLMEvaluator(
-    model=your_model,
-    benchmarks=["hellaswag", "truthfulqa"]
+trainer = Trainer(
+    model=model,
+    train_dataloader=train_dataloader,
+    optimizer=torch.optim.AdamW(model.parameters()),
+    num_epochs=3
 )
-results = evaluator.run()
+
+metrics = trainer.train()
 ```
-
----
-
-## **📊 Development Progress**
-
-### **Current Phase: Foundation Building (Q3 2024)**
-| Module           | Progress | Contributors | Documentation |
-|------------------|----------|--------------|---------------|
-| Data Pipeline    | 75%      | [@you]       | [Data Docs]() |
-| Base Trainer     | 60%      | [@team]      | [Train Docs]()|
-| SFT Implementation | 45%    | [@collab]    | [SFT Guide]() |
-
-### **Upcoming Milestones**
-- **Q4 2024**: RLHF Pipelines & Quantization Tools
-- **Q1 2025**: Distributed Inference & Meta_Bot Integration
 
 ---
 
@@ -102,57 +89,38 @@ results = evaluator.run()
 
 ### **Installation**
 ```bash
-conda create -n myllm python=3.10
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
-git clone https://github.com/your-repo/MyLLM_Recipes.git
-cd MyLLM_Recipes && pip install -e .
+git clone https://github.com/your-repo/MyLLM.git
+cd MyLLM
+pip install -e .
 ```
 
-### **Basic Usage**
-```python
-from pipelines import LLMPipeline
-
-# Initialize pipeline
-pipeline = LLMPipeline(
-    model_type="gpt",
-    config_path="configs/base_gpt.yaml"
-)
-
-# Train model
-pipeline.train(
-    dataset_path="data/training/",
-    epochs=3,
-    batch_size=32
-)
-```
+### **Requirements**
+- Python 3.8+
+- PyTorch 2.0+
+- numpy
+- tqdm
 
 ---
 
-## **🤝 Contribution Guidelines**
+## **🤝 Contributing**
 
-We welcome contributions through:
-- **Feature Development**: Implement pipeline components
-- **Benchmarking**: Add evaluation metrics/datasets
-- **Optimization**: Improve training/inference performance
-
-**Process**:
-1. Fork → `feature/your-feature` branch
-2. Add tests → `tests/`
-3. Update docs → `docs/`
-4. Open PR → `develop` branch
+We welcome contributions! Some areas where you can help:
+- Implementing more advanced tokenization methods
+- Adding support for different model architectures
+- Improving training efficiency
+- Adding more examples and documentation
 
 ---
 
 ## **📜 License**
-MIT Licensed - See [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
 ## **🙏 Acknowledgments**
-This framework stands on the shoulders of:
-- [Umar Jamil](https://www.youtube.com/@umarjamilai) for practical LLM insights
-- [Andrej Karpathy](https://karpathy.ai/) for foundational PyTorch patterns
-- [Hugging Face Team](https://huggingface.co/) for inspiration in modular design
+This project is inspired by:
+- [LitGPT](https://github.com/Lightning-AI/lit-gpt) for the minimal implementation approach
+- [Hugging Face Transformers](https://github.com/huggingface/transformers) for the API design
 
 ---
 
@@ -161,4 +129,3 @@ This framework stands on the shoulders of:
   <br>
   <em>Let's build the future of open-source LLM tools together!</em>
 </div>
-

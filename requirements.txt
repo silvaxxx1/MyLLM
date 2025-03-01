@@ -4,4 +4,3 @@ transformers>=4.24.0    # Hugging Face Transformers for various pre-trained mode
 pytest>=6.2.0          # Testing framework for writing tests
 numpy>=1.21.0          # Numerical operations
 matplotlib>=3.4.0      # Plotting library for visualizing training results
-
