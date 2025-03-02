@@ -109,9 +109,9 @@ def apply_rotary_embeddings(q, k, cos, sin):
     q_embed = q_embed.reshape(*q.shape[:-1], -1, 2)
     k_embed = k_embed.reshape(*k.shape[:-1], -1, 2)
     
-    # Compute the rotated versions
-    q_rot = torch.stack([-q_embed[..., 1], q_embed[..., 0]], dim=-1)
-    k_rot = torch.stack([-k_embed[..., 1], k_embed[..., 0]], dim=-1)
+    # Correct rotation: stack [y, -x] instead of [-y, x]
+    q_rot = torch.stack([q_embed[..., 1], -q_embed[..., 0]], dim=-1)
+    k_rot = torch.stack([k_embed[..., 1], -k_embed[..., 0]], dim=-1)
     
     # Reshape back
     q_rot = q_rot.reshape(*q.shape[:-1], -1)
@@ -127,7 +127,7 @@ def apply_rotary_embeddings(q, k, cos, sin):
     q_embed = q_embed[..., :q.shape[-1]]
     k_embed = k_embed[..., :k.shape[-1]]
     
-    # Apply the rotation
+    # Apply the rotation with corrected signs
     q = q_embed * cos - q_rot * sin
     k = k_embed * cos - k_rot * sin
     
@@ -394,16 +394,19 @@ class FlashAttentionWithKVCache(FlashCausalSelfAttention):
     """Extended Flash Attention with KV cache support for efficient autoregressive generation."""
     
     def forward(self, x, kv_cache=None, position_ids=None):
-        batch_size, seq_len, _ = x.size()
-        
+        # Handle input dimensions properly
+        *dims, _ = x.size()
+        batch_size = dims[0] if len(dims) > 0 else 1
+        seq_len = dims[1] if len(dims) > 1 else 1
+
         # Project input to query, key, and value
         qkv = self.c_attn(x)
         q, k, v = qkv.chunk(3, dim=-1)
         
         # Reshape for multi-head attention
-        q = q.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)  # (B, nh, T, hs)
-        k = k.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)  # (B, nh, T, hs)
-        v = v.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)  # (B, nh, T, hs)
+        q = q.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)
+        k = k.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)
+        v = v.view(batch_size, seq_len, self.n_head, self.head_dim).transpose(1, 2)
         
         # Apply rotary embeddings if used
         if self.use_rotary and self.rotary_dim > 0:
@@ -412,7 +415,7 @@ class FlashAttentionWithKVCache(FlashCausalSelfAttention):
                 # Get cos/sin for the positions we need
                 cos, sin = self.rotary_emb(None, seq_len=position_ids.max().item() + 1)
                 # Select the cos/sin for the positions we're processing
-                cos = cos[position_ids].unsqueeze(1)  # Add head dimension
+                cos = cos[position_ids].unsqueeze(1)
                 sin = sin[position_ids].unsqueeze(1)
             else:
                 cos, sin = self.rotary_emb(None, seq_len=seq_len)
@@ -445,23 +448,19 @@ class FlashAttentionWithKVCache(FlashCausalSelfAttention):
             # Scale query for numerical stability
             q = q * (1.0 / math.sqrt(self.head_dim))
             
-            # For cached implementation, we can't use is_causal=True because we're 
-            # attending to all previous tokens, not just within the current segment
+            # For cached implementation, create causal mask
             if kv_cache is not None:
-                # Create causal mask for the full sequence length
                 full_seq_len = k.size(2)
                 attention_mask = torch.triu(
                     torch.ones(full_seq_len, full_seq_len, device=q.device, dtype=torch.bool),
                     diagonal=1
                 )
                 if position_ids is not None:
-                    # If using position IDs, we need to offset the mask
                     seq_row_offset = position_ids.reshape(-1, seq_len)[:, -1].unsqueeze(-1)
                     seq_col_offset = position_ids.reshape(-1, seq_len).unsqueeze(-2)
                     seq_mask = (seq_col_offset + seq_row_offset.transpose(-2, -1)) >= full_seq_len
                     attention_mask = attention_mask | seq_mask
                 
-                # PyTorch's attention implementation uses additive mask
                 attention_mask = attention_mask.to(torch.float) * -1e9
                 
                 y = F.scaled_dot_product_attention(
@@ -471,7 +470,6 @@ class FlashAttentionWithKVCache(FlashCausalSelfAttention):
                     is_causal=False
                 )
             else:
-                # For regular forward pass, we can use is_causal=True
                 y = F.scaled_dot_product_attention(
                     q, k, v, 
                     attn_mask=None,
@@ -479,25 +477,19 @@ class FlashAttentionWithKVCache(FlashCausalSelfAttention):
                     is_causal=True
                 )
         else:
-            # Fallback implementation for older PyTorch versions
-            # Compute attention scores
+            # Fallback implementation
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
             
-            # Apply causal mask if not using cache
             if kv_cache is None:
                 mask = self.mask[:, :, :seq_len, :seq_len]
                 att = att.masked_fill(mask == 0, float('-inf'))
             else:
-                # For cached implementation, create a custom causal mask
                 full_seq_len = k.size(2)
                 mask = torch.tril(torch.ones(full_seq_len, full_seq_len, device=att.device))
                 att = att.masked_fill(mask == 0, float('-inf'))
             
-            # Apply softmax and dropout
             att = F.softmax(att, dim=-1)
             att = self.attn_dropout(att)
-            
-            # Weight the values
             y = att @ v
         
         # Combine heads and apply output projection
@@ -512,46 +504,26 @@ class BlockWithKVCache(Block):
     """Transformer block with KV cache support for efficient generation."""
     
     def __init__(self, config: Config):
-        super(Block, self).__init__()
+        super().__init__(config)  # Fixed super() initialization
         self.parallel_residual = config.parallel_residual
         
-        # Normalization layers
-        self.ln_1 = create_norm_layer(
-            config.norm_class_name, 
-            config.n_embd, 
-            eps=config.norm_eps if config.norm_class_name == "RMSNorm" else config.eps,
-            bias=config.bias
-        )
-        self.ln_2 = create_norm_layer(
-            config.norm_class_name, 
-            config.n_embd, 
-            eps=config.norm_eps if config.norm_class_name == "RMSNorm" else config.eps,
-            bias=config.bias
-        )
-        
-        # Attention and MLP with KV cache support
+        # Re-initialize with correct attention module
         self.attn = FlashAttentionWithKVCache(config)
-        self.mlp = create_mlp_layer(config.mlp_class_name, config)
 
     def forward(self, x, kv_cache=None, position_ids=None):
         if kv_cache is not None:
-            # Update layer index in cache
             layer_idx = kv_cache.get('layer_idx', 0)
             
             if self.parallel_residual:
-                # LLaMA-style parallel residual connections
                 h = x + self.attn(self.ln_1(x), kv_cache=kv_cache, position_ids=position_ids)
                 out = h + self.mlp(self.ln_2(h))
             else:
-                # GPT-style sequential residual connections
                 h = x + self.attn(self.ln_1(x), kv_cache=kv_cache, position_ids=position_ids)
                 out = h + self.mlp(self.ln_2(h))
                 
-            # Increment layer index for next layer
             kv_cache['layer_idx'] = layer_idx + 1
             return out
-        else:
-            return super().forward(x)
+        return super().forward(x)
 
 
 class Transformer(nn.Module):
@@ -565,16 +537,13 @@ class Transformer(nn.Module):
         self.transformer = nn.ModuleDict()
         self.transformer.wte = nn.Embedding(config.padded_vocab_size, config.n_embd)
         
-        # Use positional embeddings for GPT-2, not for LLaMA (which uses rotary)
+        # Positional embeddings
         if config.rotary_percentage == 0:
             self.transformer.wpe = PositionalEmbedding(config)
         else:
             self.transformer.wpe = None
         
-        # Optional embedding scaling (used in some models)
         self.emb_scale = math.sqrt(config.n_embd) if config.scale_embeddings else 1.0
-        
-        # Dropout after embeddings
         self.drop = nn.Dropout(config.dropout)
         
         # Transformer blocks
@@ -594,20 +563,16 @@ class Transformer(nn.Module):
         # Language modeling head
         self.lm_head = nn.Linear(config.n_embd, config.padded_vocab_size, bias=False)
         
-        # Tie weights between token embedding and LM head if using the same vocab size
         if config.vocab_size == config.padded_vocab_size:
             self.transformer.wte.weight = self.lm_head.weight
         
-        # Initialize weights
         self.apply(self._init_weights)
         
-        # Apply special scaled init to the residual projections, per GPT-2 paper
         for pn, p in self.named_parameters():
             if pn.endswith('c_proj.weight') or pn.endswith('down_proj.weight'):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * config.n_layer))
 
     def _init_weights(self, module):
-        """Initialize the weights."""
         if isinstance(module, nn.Linear):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
@@ -617,51 +582,34 @@ class Transformer(nn.Module):
     
     def forward(self, idx, targets=None, position_ids=None, kv_cache=None):
         batch_size, seq_len = idx.size()
-        
-        # Get token embeddings
-        token_emb = self.transformer.wte(idx)  # (B, T, n_embd)
+        token_emb = self.transformer.wte(idx)
         x = token_emb * self.emb_scale
         
-        # Apply positional embeddings if used (GPT-style)
         if self.transformer.wpe is not None:
-            # Generate position IDs if not provided
             if position_ids is None:
                 if kv_cache is not None:
-                    # For generation with KV cache, use absolute positions
                     past_length = kv_cache.get('past_length', 0)
                     position_ids = torch.arange(past_length, past_length + seq_len, 
                                                dtype=torch.long, device=idx.device).unsqueeze(0)
                 else:
-# For regular forward pass, use sequential positions
                     position_ids = torch.arange(0, seq_len, dtype=torch.long, device=idx.device).unsqueeze(0).expand(batch_size, -1)
             
-            # Apply positional embeddings
             pos_emb = self.transformer.wpe(position_ids)
             x = x + pos_emb
         
-        # Apply embedding dropout
         x = self.drop(x)
         
-        # Apply transformer blocks
         if kv_cache is not None:
-            # Reset layer index for each forward pass
             kv_cache['layer_idx'] = 0
-            
-            # Pass through all blocks with KV cache
             for block in self.transformer.h:
                 x = block(x, kv_cache=kv_cache, position_ids=position_ids)
         else:
-            # Standard forward pass through all blocks
             for block in self.transformer.h:
                 x = block(x)
         
-        # Apply final layer norm
         x = self.transformer.ln_f(x)
-        
-        # Project to vocabulary
         logits = self.lm_head(x)
         
-        # Compute loss if targets are provided
         loss = None
         if targets is not None:
             loss = F.cross_entropy(
@@ -672,35 +620,11 @@ class Transformer(nn.Module):
             
         return logits, loss
     
-    def generate(
-        self, 
-        idx, 
-        max_new_tokens=100, 
-        temperature=1.0, 
-        top_k=None, 
-        top_p=None,
-        use_kv_cache=True
-    ):
-        """Generate tokens auto-regressively.
-        
-        Args:
-            idx (torch.Tensor): Context tokens of shape (B, T)
-            max_new_tokens (int): Maximum number of tokens to generate
-            temperature (float): Sampling temperature (1.0 = no change, <1.0 = less random, >1.0 = more random)
-            top_k (int): Sample from top-k most likely tokens, or None to disable
-            top_p (float): Sample from tokens with cumulative probability < top_p, or None to disable
-            use_kv_cache (bool): Whether to use the KV cache for efficient generation
-        
-        Returns:
-            torch.Tensor: Generated tokens of shape (B, T+max_new_tokens)
-        """
-        # Initialize the KV cache if using it
+    def generate(self, idx, max_new_tokens=100, temperature=1.0, top_k=None, top_p=None, use_kv_cache=True):
         kv_cache = None
         if use_kv_cache and hasattr(self.config, 'use_kv_cache') and self.config.use_kv_cache:
             batch_size = idx.size(0)
             device = idx.device
-            
-            # Create KV cache dictionary
             kv_cache = {
                 'k': [torch.zeros(
                     (batch_size, self.config.n_head, self.config.block_size, self.config.n_embd // self.config.n_head),
@@ -714,17 +638,10 @@ class Transformer(nn.Module):
                 'layer_idx': 0
             }
         
-        # Save original tensor for concatenation later
         input_idx = idx
-        
-        # Generate new tokens one at a time
         for _ in range(max_new_tokens):
-            # If using KV cache, only process the new token(s)
             if kv_cache is not None and kv_cache['past_length'] > 0:
-                # During generation, only process the last token
                 idx_cond = idx[:, -1:]
-                
-                # Create position_ids for this step
                 position_ids = torch.full(
                     (batch_size, 1), 
                     kv_cache['past_length'], 
@@ -732,213 +649,33 @@ class Transformer(nn.Module):
                     device=idx.device
                 )
             else:
-                # For first step, process all tokens
                 idx_cond = idx
                 position_ids = None
             
-            # Forward pass
             logits, _ = self.forward(idx_cond, position_ids=position_ids, kv_cache=kv_cache)
-            
-            # Get logits for the last token only
             logits = logits[:, -1, :]
             
-            # Apply temperature
             if temperature != 1.0:
                 logits = logits / temperature
             
-            # Apply top-k sampling
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = float('-inf')
             
-            # Apply top-p (nucleus) sampling
             if top_p is not None and top_p < 1.0:
                 sorted_logits, sorted_indices = torch.sort(logits, descending=True)
                 cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
-                
-                # Remove tokens with cumulative probability above the threshold
                 sorted_indices_to_remove = cumulative_probs > top_p
-                # Keep the first token above the threshold to ensure non-empty output
                 sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
                 sorted_indices_to_remove[..., 0] = 0
-                
-                # Scatter sorted indices back to original shape
                 indices_to_remove = torch.zeros_like(logits, dtype=torch.bool).scatter_(
                     dim=-1, index=sorted_indices, src=sorted_indices_to_remove
                 )
                 logits[indices_to_remove] = float('-inf')
             
-            # Apply softmax and sample
             probs = F.softmax(logits, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
-            
-            # Append the new token to the context
             idx = torch.cat([idx, next_token], dim=1)
         
-        # Return the original context plus the new tokens
         return idx
 
-
-class ConfigLLaMA(Config):
-    """Configuration class for LLaMA models."""
-    
-    def __init__(
-        self,
-        vocab_size=32000,
-        hidden_size=4096,
-        num_hidden_layers=32,
-        num_attention_heads=32,
-        intermediate_size=11008,
-        hidden_act="silu",
-        max_position_embeddings=4096,
-        initializer_range=0.02,
-        rms_norm_eps=1e-6,
-        use_cache=True,
-        pad_token_id=0,
-        bos_token_id=1,
-        eos_token_id=2,
-        tie_word_embeddings=False,
-        rope_theta=10000.0,
-        **kwargs
-    ):
-        super().__init__(
-            n_embd=hidden_size,
-            n_head=num_attention_heads,
-            n_layer=num_hidden_layers,
-            block_size=max_position_embeddings,
-            bias=False,
-            vocab_size=vocab_size,
-            padded_vocab_size=vocab_size,  # No padding for LLaMA vocab
-            dropout=0.0,  # LLaMA doesn't use dropout
-            activation="silu",
-            norm_eps=rms_norm_eps,
-            **kwargs
-        )
-        
-        # LLaMA-specific settings
-        self.norm_class_name = "RMSNorm"
-        self.norm_eps = rms_norm_eps
-        self.mlp_class_name = "LLaMAMLP"
-        self.mlp_ratio = 8/3  # Equivalent to intermediate_size/hidden_size
-        self.rotary_percentage = 1.0  # LLaMA uses full rotary embeddings
-        self.parallel_residual = True  # LLaMA uses parallel residual connections
-        self.scale_embeddings = False  # LLaMA doesn't scale embeddings
-        
-        # Token IDs
-        self.pad_token_id = pad_token_id
-        self.bos_token_id = bos_token_id
-        self.eos_token_id = eos_token_id
-        
-        # For efficient generation
-        self.use_kv_cache = use_cache
-
-
-class ConfigGPT2(Config):
-    """Configuration class for GPT-2 models."""
-    
-    def __init__(
-        self,
-        vocab_size=50257,
-        n_positions=1024,
-        n_ctx=1024,
-        n_embd=768,
-        n_layer=12,
-        n_head=12,
-        mlp_ratio=4,
-        activation_function="gelu",
-        resid_pdrop=0.1,
-        embd_pdrop=0.1,
-        attn_pdrop=0.1,
-        layer_norm_epsilon=1e-5,
-        initializer_range=0.02,
-        scale_attn_weights=True,
-        **kwargs
-    ):
-        super().__init__(
-            n_embd=n_embd,
-            n_head=n_head,
-            n_layer=n_layer,
-            block_size=n_positions,
-            bias=True,
-            vocab_size=vocab_size,
-            padded_vocab_size=vocab_size,  # GPT-2 doesn't use padding for vocab
-            dropout=resid_pdrop,
-            activation=activation_function,
-            norm_eps=layer_norm_epsilon,
-            **kwargs
-        )
-        
-        # GPT-2-specific settings
-        self.norm_class_name = "LayerNorm"
-        self.mlp_class_name = "GptMLP"
-        self.mlp_ratio = mlp_ratio
-        self.rotary_percentage = 0.0  # GPT-2 uses traditional positional embeddings
-        self.parallel_residual = False  # GPT-2 uses sequential residual connections
-        self.scale_embeddings = True  # GPT-2 scales embeddings
-        
-        # Additional dropout rates
-        self.embd_pdrop = embd_pdrop
-        self.attn_pdrop = attn_pdrop
-        
-        # For efficient generation
-        self.use_kv_cache = True
-
-
-def main():
-    """Example usage of the model."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Train or sample from transformer model')
-    parser.add_argument('--model', type=str, default='gpt2', help='Model architecture (gpt2 or llama)')
-    parser.add_argument('--train', action='store_true', help='Train the model instead of sampling')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', 
-                        help='Device to run on (cuda or cpu)')
-    parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
-    parser.add_argument('--max_tokens', type=int, default=100, help='Maximum tokens to generate')
-    parser.add_argument('--temperature', type=float, default=0.8, help='Sampling temperature')
-    parser.add_argument('--top_k', type=int, default=40, help='Top-k sampling parameter')
-    parser.add_argument('--top_p', type=float, default=0.9, help='Top-p sampling parameter')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    
-    args = parser.parse_args()
-    
-    # Set random seed
-    torch.manual_seed(args.seed)
-    
-    # Create configuration
-    if args.model.lower() == 'gpt2':
-        config = ConfigGPT2()
-    elif args.model.lower() == 'llama':
-        config = ConfigLLaMA()
-    else:
-        raise ValueError(f"Unsupported model: {args.model}")
-    
-    # Create model
-    model = Transformer(config).to(args.device)
-    print(f"Model created with {sum(p.numel() for p in model.parameters())/1e6:.2f}M parameters")
-    
-    if args.train:
-        # Training logic would go here
-        print("Training not implemented in this example")
-    else:
-        # Generate text
-        # Create a sample input (batch_size, 1) with BOS token
-        bos_token_id = getattr(config, 'bos_token_id', 0)
-        input_ids = torch.full((args.batch_size, 1), bos_token_id, dtype=torch.long, device=args.device)
-        
-        # Generate text
-        with torch.no_grad():
-            generated_ids = model.generate(
-                input_ids,
-                max_new_tokens=args.max_tokens,
-                temperature=args.temperature,
-                top_k=args.top_k,
-                top_p=args.top_p
-            )
-        
-        # In a real application, you would decode the generated IDs to text
-        print(f"Generated sequence shape: {generated_ids.shape}")
-
-
-if __name__ == "__main__":
-    main() 
