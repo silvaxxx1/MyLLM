@@ -78,16 +78,6 @@ class GroupedQueryFlashAttention(nn.Module):
     
 
 
-class FlashAttention(nn.Module):
-    def __init__(self, config):
-        pass 
-
-
-    def forward(self , x):
-        pass
-
-
-
 class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
