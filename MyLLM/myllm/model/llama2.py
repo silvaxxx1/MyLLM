@@ -35,7 +35,7 @@ class llama2(nn.Module):
         self.trs_blk = nn.ModuleList([Transformer(config) for _ in range(config["n_layers"])])
         
         # Layer normalization after all transformer layers
-        self.norm = nn.LayerNorm(config["emb_dim"]) 
+        self.norm = nn.RMSNorm(config["emb_dim"]) 
         
         # Final linear projection to output logits over the vocabulary
         self.proj = nn.Linear(config["emb_dim"], config["vocab_size"], dtype=config["dtype"], bias=False)
