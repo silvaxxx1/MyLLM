@@ -140,7 +140,7 @@ def pre_compute_freq(config, theta: float = 10000.0):
         freq = torch.outer(positions, theta_val)
         return torch.polar(torch.ones_like(freq), freq)
     
-    
+
 def apply_rope(x: torch.Tensor, freqs_complex: torch.Tensor) -> torch.Tensor:
     _, _, seq_len, _ = x.shape
     freqs_complex = freqs_complex[:seq_len]
@@ -208,22 +208,6 @@ class FeedForward(nn.Module):
         x = nn.functional.silu(x_fc1) * x_fc2
         return self.fc3(x)
 
-
-
-# Initialize the model with the provided configuration
-model = Llama3(LLAMA32_CONFIG)
-
-# Generate a dummy input tensor
-# Assuming batch size of 2 and sequence length of 10
-batch_size = 2
-seq_length = 10
-dummy_input = torch.randint(0, LLAMA32_CONFIG["vocab_size"], (batch_size, seq_length))
-
-# Forward pass through the model
-logits = model(dummy_input)
-
-# Check the output shape
-print(logits.shape)  # Expected shape: [batch_size, seq_length, vocab_size]
 
 
     

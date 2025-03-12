@@ -129,19 +129,3 @@ class llama2(nn.Module):
         return logits
 
 
-
-# Use the provided GPT_CONFIG_124 or create a configuration dictionary
-config = LLAMA2_CONFIG_7B
-
-# Initialize the model
-model = llama2(config).to(device)
-
-# Example input: let's assume we are working with a vocabulary of 50257 tokens
-# and the input is a sequence of token IDs
-input_ids = torch.randint(0, config['vocab_size'], (1, config['context_length'])).to(device)  # Random input tokens
-
-# Forward pass
-output = model(input_ids)
-
-# Check the output shape
-print("Output shape:", output.shape)
