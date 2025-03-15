@@ -37,7 +37,7 @@ Example usage:
 
 # Import statements
 from dataclasses import dataclass, field
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict , Literal
 import json
 
 @dataclass
@@ -53,11 +53,14 @@ class Config:
     eps: float = 1e-5  # Small epsilon for numerical stability
 
     # Architecture variations
-    norm_class_name: str = "LayerNorm"  # Type of normalization layer used (LayerNorm or RMSNorm)
+    norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm" # Type of normalization layer used (LayerNorm or RMSNorm)
     activation: str = "gelu"  # Activation function (gelu, relu, etc.)
-    mlp_class_name: str = "GptMLP"  # Class name for the MLP (used in GPT and similar architectures)
+    mlp_class_name: Literal["GptNeoxMLP", "LLaMAMLP", "GemmaMLP", "LLaMAMoE"] = "GptNeoxMLP"
+  # Class name for the MLP (used in GPT and similar architectures)
     scale_embeddings: bool = False  # Whether to scale embeddings by sqrt(d_model)
     mlp_ratio: float = 4.0  # Ratio of hidden dimension to embedding dimension in the MLP
+    lm_head_bias: bool = False
+
 
     # Llama-specific configuration
     rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
@@ -151,39 +154,3 @@ configs = [
 name_to_config = {config["name"]: config for config in configs}
 
 
-
-# Test the functionality of the Config class and methods
-
-# 1. Test creating Config instances for all available models
-for model_name in name_to_config:
-    print(f"Testing config for {model_name}...")
-    config = Config.from_name(model_name)
-    print(config)
-
-# 2. Test saving and loading configurations
-config_to_test = Config.from_name("gpt2-small")
-config_to_test.save("gpt2-small-config.json")
-loaded_config = Config.load("gpt2-small-config.json")
-print(f"Loaded config for {config_to_test.name}: {loaded_config}")
-
-# 3. Test updating a configuration
-updated_config = Config.from_name("gpt2-small")
-updated_config.update(n_embd=1024, n_layer=18)
-print(f"Updated config for {updated_config.name}: {updated_config}")
-
-# 4. Test validation to make sure no errors occur for valid configs
-for model_name in name_to_config:
-    print(f"Validating config for {model_name}...")
-    config = Config.from_name(model_name)
-    try:
-        config.validate()
-    except AssertionError as e:
-        print(f"Validation failed for {model_name}: {e}")
-
-# 5. Test getting trainable parameters
-trainable_params = config.get_trainable_params()
-print(f"Trainable parameters for {config.name}: {trainable_params}")
-
-# 6. Test accessing all available configurations
-available_configs = Config.available_configs()
-print(f"Available configurations: {available_configs}")
