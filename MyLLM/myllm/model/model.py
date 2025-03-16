@@ -109,6 +109,10 @@ class GPT(nn.Module):
 
 
 class Block(nn.Module):
+    def __init__(self, config:Config)->None:
+        super().__init__()
 
-    pass 
+    def forward(self, x):
+        raise NotImplementedError
 
+    
