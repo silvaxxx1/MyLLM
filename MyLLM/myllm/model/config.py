@@ -62,12 +62,12 @@ class Config:
     lm_head_bias: bool = False
 
 
-    # Llama-specific configuration
     rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
     parallel_residual: bool = False  # Whether to use parallel residual connections (specific to LLaMA)
+    shared_attention_norm : bool = False  # Whether to use shared attention norm (specific to LLaMA)
     norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
 
-    # Hyperparameters
+    # Hyperparameter
     dropout: float = 0.1  # Dropout rate for regularization
     bias: bool = False  # Whether to use bias terms in layers
     learning_rate: float = 3e-4  # Learning rate for training
@@ -138,6 +138,9 @@ class Config:
         return cls(**name_to_config[name])
 
 
+#  google docs string this 
+
+
 # Configuration registry (you can add more configurations here as needed)
 configs = [
     dict(name="gpt2-small", block_size=1024, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
@@ -152,5 +155,5 @@ configs = [
 
 # Create a mapping of model names to configurations
 name_to_config = {config["name"]: config for config in configs}
-
+''''''
 

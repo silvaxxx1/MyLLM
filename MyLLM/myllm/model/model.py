@@ -107,12 +107,90 @@ class GPT(nn.Module):
 
         return logits
 
-
 class Block(nn.Module):
-    def __init__(self, config:Config)->None:
+    def __init__(self, config: Config, block_idx: int) -> None:
         super().__init__()
 
-    def forward(self, x):
-        raise NotImplementedError
+        if not config.parallel_residual and config.shared_attention_norm:
+            raise NotImplementedError(
+                "No checkpoint amongst the ones we support uses this configuration"
+                " (non-parallel residual and shared attention norm)."
+            )
+        
+        self.norm1 = config.norm_class(config.n_embd, eps=config.norm_eps)
+        self.norm2 = None if config.shared_attention_norm else config.norm_class(config.n_embd, eps=config.norm_eps)
+        self.attn = CausalSelfAttention(config, block_idx)
+        self.post_attention_norm = (
+            config.norm_class(config.n_embd, eps=config.norm_eps) if config.post_attention_norm else nn.Identity()
+        )
+        self.post_mlp_norm = (
+            config.norm_class(config.n_embd, eps=config.norm_eps) if config.post_mlp_norm else nn.Identity()
+        )
+        self.mlp = config.mlp_class(config)
+        self.config = config
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Non-parallel residual       Parallel residual
+           ┌─ x                     ┌─ x ──────────────────┐             
+           │  ↓                     │  ↓                   ↓                   
+           │  norm_1                │  norm_1  ───────►    norm_2
+           │  ↓                     │  ↓                   ↓
+           │  attn                  │  attn                MLP
+           │  ↓                     │  ↓                   ↓
+           |  post_attn_norm        |  post_attn_norm      post_mlp_norm
+           |  ↓                     |  ↓                   ↓
+        ┌─ └► +                     └► + ◄─────────────────┘
+        |     ↓
+        │     norm_2
+        │     ↓
+        │     MLP
+        │     ↓
+        |     post_mlp_norm
+        |     ↓
+        └───► +
+        """
+        # Apply the first normalization
+        x_normed = self.norm1(x)
+
+        # Apply self-attention
+        attn_out = self.attn(x_normed)
+
+        # Apply post-attention norm
+        attn_out = self.post_attention_norm(attn_out)
+
+        if self.config.parallel_residual:
+            # Shared norm case: use x_normed, otherwise apply norm2
+            x_normed = self.norm2(x) if self.norm2 is not None else x
+            
+            # Apply MLP
+            mlp_out = self.mlp(x_normed)
+
+            # Sum attention and MLP outputs in parallel
+            x = attn_out + mlp_out + x  
+        else:
+            # Standard residual: add attention output first
+            x = x + attn_out
+
+            # Apply second norm if necessary
+            x_normed = self.norm2(x) if self.norm2 is not None else x
+
+            # Apply MLP
+            x = self.mlp(x_normed)
+
+        # Apply post-MLP norm
+        return self.post_mlp_norm(x)
+
+
+            
+    
 
     
+
+
+
+class CausalSelfAttention(nn.Module):
+    def __init__(self, config:Config,
+                 block_idx:int)->None:
+        super().__init__()
+        pass 
