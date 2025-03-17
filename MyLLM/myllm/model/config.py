@@ -51,21 +51,27 @@ class Config:
     n_head: int = 12  # Number of attention heads
     n_embd: int = 768  # Dimensionality of embeddings
     eps: float = 1e-5  # Small epsilon for numerical stability
+    head_size: Optional[int] = None
+
 
     # Architecture variations
     norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm" # Type of normalization layer used (LayerNorm or RMSNorm)
     activation: str = "gelu"  # Activation function (gelu, relu, etc.)
     mlp_class_name: Literal["GptNeoxMLP", "LLaMAMLP", "GemmaMLP", "LLaMAMoE"] = "GptNeoxMLP"
-  # Class name for the MLP (used in GPT and similar architectures)
     scale_embeddings: bool = False  # Whether to scale embeddings by sqrt(d_model)
     mlp_ratio: float = 4.0  # Ratio of hidden dimension to embedding dimension in the MLP
     lm_head_bias: bool = False
+    attention_bias : bool = False  # Whether to use attention bias
+    bias : bool = False
 
 
     rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
     parallel_residual: bool = False  # Whether to use parallel residual connections (specific to LLaMA)
     shared_attention_norm : bool = False  # Whether to use shared attention norm (specific to LLaMA)
     norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
+    n_query_groups: int = 32  # Number of query groups (specific to LLaMA)
+    norm_qk: bool = False 
+
 
     # Hyperparameter
     dropout: float = 0.1  # Dropout rate for regularization
