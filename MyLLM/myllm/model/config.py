@@ -70,7 +70,8 @@ class Config:
     shared_attention_norm : bool = False  # Whether to use shared attention norm (specific to LLaMA)
     norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
     n_query_groups: int = 32  # Number of query groups (specific to LLaMA)
-    norm_qk: bool = False 
+    norm_qk: bool = False  # Whether to use normalized queries and keys
+    use_rope : bool = False # Whether to use rope embeddings
 
 
     # Hyperparameter

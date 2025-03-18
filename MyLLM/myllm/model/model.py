@@ -292,6 +292,26 @@ class CausalSelfAttention(nn.Module):
         n_query_groups = self.config.n_query_groups 
         n_head = self.config.n_head 
 
+    # to use multi-head attention (MHA), set this to `n_head` (default)
+    # to use multi-query attention (MQA), set this to 1
+    # to use grouped-query attention (GQA), set this to a value in between
+    # Example with `n_head=4`
+    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+    # │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
+    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+    #   │    │    │    │         │        │                 │
+    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+    # │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
+    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+    #   │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
+    # ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
+    # │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
+    # └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
+    # ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
+    #         MHA                    GQA                   MQA
+    #   n_query_groups=4       n_query_groups=2      n_query_groups=1
+    #
+    # credit https://arxiv.org/pdf/2305.13245.pdf
         # Notation : 
         # - B          | batch size
         # - T          | time-step (sequence length)
@@ -313,7 +333,7 @@ class CausalSelfAttention(nn.Module):
             q = self.norm_q(q)
             k = self.norm_k(k)
         
-        # reshape the tensors 
+        # reshape  the tensors 
         # (B, T, n_head * head_size) -> (B, n_head, T, head_size)
         # (B, T, n_query_groups * head_size) -> (B, n_query_groups, T, head_size)
         # (B, T, n_query_groups * head_size) -> (B, n_query_groups, T, head_size)
@@ -329,28 +349,64 @@ class CausalSelfAttention(nn.Module):
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
 
+        # Apply RoPE to Q and K
+        if Config.use_rope: 
+            q = apply_rope(q, self.freqs_complex)
+            k = apply_rope(k, self.freqs_complex)
+
+        # Use Flash Attention 
+        # Efficient attention using Flash Attention CUDA kernels.
+        # NOTE: efficient implementation is disabled if `mask` is not None or softcapping is enabled.
+        # ↓ (B, nh, T, hs) @ (B, nh, T, hs).mT --> (B, nh, T, T) @ (B, nh, T, hs) --> (B, nh, T, hs)
+        y = self.scaled_dot_product_attention(q, k, v, mask)
+
+        # Re-assemble all head outputs side by side.
+        y = y.reshape(B, T, head_size * n_head)
+
+        # Output projection.
+        return self.proj(y)  # (B, T, C) 
+    
+    def scaled_dot_product_attention(self,
+                                    q: torch.Tensor,
+                                    k: torch.Tensor,
+                                    v: torch.Tensor,
+                                    mask: Optional[torch.Tensor] = None
+                                    ) -> torch.Tensor:
+        
+        pass 
+
+
+
+
+
+def pre_compute_freqs(self):
+        pass
+
+def apply_rope():
+        pass 
+        
+
+
+class GPTMLP(nn.Module):
+    pass 
+
+
+class LlamaMLP(nn.Module):
+    pass 
+
+
+class RMSNorm(nn.Module):
+    pass
+
+class KV_Cache(nn.Module):
+    pass 
+
+
+
+    
+    
         
       
 
     
 
- # to use multi-head attention (MHA), set this to `n_head` (default)
-    # to use multi-query attention (MQA), set this to 1
-    # to use grouped-query attention (GQA), set this to a value in between
-    # Example with `n_head=4`
-    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    # │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-    #   │    │    │    │         │        │                 │
-    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    # │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-    #   │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-    # ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-    # │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-    # └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-    # ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-    #         MHA                    GQA                   MQA
-    #   n_query_groups=4       n_query_groups=2      n_query_groups=1
-    #
-    # credit https://arxiv.org/pdf/2305.13245.pdf
