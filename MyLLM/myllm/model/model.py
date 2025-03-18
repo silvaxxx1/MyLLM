@@ -395,8 +395,30 @@ class LlamaMLP(nn.Module):
     pass 
 
 
+
 class RMSNorm(nn.Module):
-    pass
+    """Root Mean Square Layer Normalization.
+    """
+
+    def __init__(self, size: int, dim: int = -1, eps: float = 1e-6, add_unit_offset: bool = False) -> None:
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.ones(size))
+        self.eps = eps
+        self.dim = dim
+        self.add_unit_offset = add_unit_offset
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        dtype = x.dtype
+        x = x.float()
+        # NOTE: the original RMSNorm paper implementation is not equivalent
+        norm_x = torch.mean(x * x, dim=self.dim, keepdim=True)
+        x_normed = x * torch.rsqrt(norm_x + self.eps)
+        weight = (1 + self.weight) if self.add_unit_offset else self.weight
+        return (x_normed * weight.float()).to(dtype=dtype)
+
+    def reset_parameters(self) -> None:
+        torch.nn.init.ones_(self.weight) 
+
 
 class KV_Cache(nn.Module):
     pass 
