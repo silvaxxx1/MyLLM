@@ -11,6 +11,7 @@
 import torch  
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 from typing import Optional
 
@@ -354,6 +355,16 @@ class CausalSelfAttention(nn.Module):
             q = apply_rope(q, self.freqs_complex)
             k = apply_rope(k, self.freqs_complex)
 
+        # apply the mask for casual attention
+        # mask must be in the shape (1 , 1 , T , T)
+        if mask is not None : 
+            # mask --> (T , T) one matrix --> (T , T) upper diag 
+            mask = torch.ones(T , T , dtype=q.dtype , device=q.device).triu(diagonal=1)
+            # fill the mask with 1 for upper diad and the rest is inf
+            mask.masked_fill(mask.bool() , float("inf"))
+            # reshape the mask to (1 , 1 , T , T)
+            mask = mask.view(1, 1, *mask.shape)
+
         # Use Flash Attention 
         # Efficient attention using Flash Attention CUDA kernels.
         # NOTE: efficient implementation is disabled if `mask` is not None or softcapping is enabled.
@@ -366,18 +377,81 @@ class CausalSelfAttention(nn.Module):
         # Output projection.
         return self.proj(y)  # (B, T, C) 
     
-    def scaled_dot_product_attention(self,
-                                    q: torch.Tensor,
-                                    k: torch.Tensor,
-                                    v: torch.Tensor,
-                                    mask: Optional[torch.Tensor] = None
-                                    ) -> torch.Tensor:
+  import torch
+import torch.nn.functional as F
+import math
+from typing import Optional
+
+def scaled_dot_product_attention(self,
+                                q: torch.Tensor,  # (B, nh, T, hs)
+                                k: torch.Tensor,  # (B, nh, T, hs)
+                                v: torch.Tensor,  # (B, nh, T, hs)
+                                mask: Optional[torch.Tensor] = None  # (1, 1, T, T) or None
+                                ) -> torch.Tensor:
+    """
+    Computes the scaled dot-product attention.
+
+    Args:
+    - q (torch.Tensor): Query tensor of shape (B, nh, T, hs).
+    - k (torch.Tensor): Key tensor of shape (B, nh, T, hs).
+    - v (torch.Tensor): Value tensor of shape (B, nh, T, hs).
+    - mask (Optional[torch.Tensor]): Attention mask of shape (1, 1, T, T) or None.
+
+    Returns:
+    - torch.Tensor: Output tensor of shape (B, nh, T, hs).
+    """
+
+    # Scaling factor to prevent exploding gradients
+    scale = 1.0 / math.sqrt(self.config.attention_scores_scalar or self.config.head_size)  
+
+    # Check if softcapping is applied
+    if self.config.attention_logit_softcapping is not None:
+        # Compute raw attention scores (B, nh, T, T)
+        atten_score = q @ k.mT * scale  # Matrix multiplication: (B, nh, T, hs) @ (B, nh, hs, T) -> (B, nh, T, T)
+
+        # Apply softcapping to prevent extremely large values
+        capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
+
+        # If mask is not provided, create a causal mask
+        if mask is None:
+            T = q.size(2)  # Sequence length
+            mask = torch.full((T, T), float("-inf"), dtype=q.dtype, device=q.device).triu(diagonal=1)  # (T, T)
+
+            # Reshape to (1, 1, T, T) for broadcasting
+            mask = mask.view(1, 1, T, T)  
+
+        # Apply the mask to attention scores (B, nh, T, T) + (1, 1, T, T) -> (B, nh, T, T)
+        scores = capped_score + mask  
+
+        # Apply softmax over the last dimension (T) to normalize attention scores
+        scores = F.softmax(scores, dim=-1, dtype=torch.float).to(dtype=q.dtype)  # (B, nh, T, T)
+
+        # Compute the attention output (B, nh, T, T) @ (B, nh, T, hs) -> (B, nh, T, hs)
+        y = scores @ v
+
+    else:
+        # Use PyTorch's optimized attention function when no softcapping is applied
+        y = F.scaled_dot_product_attention(
+            q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None
+        )  # (B, nh, T, hs)
+
+    # Transpose output from (B, nh, T, hs) to (B, T, nh, hs) if needed
+    return y.transpose(1, 2)  # (B, T, nh, hs)
+
+
+
         
-        pass 
+        
 
 
 
 
+
+def softcapping(x: torch.Tensor,
+                thresh: float) -> torch.Tensor:
+    
+    return torch.tanh(x / thresh) * thresh
+    
 
 def pre_compute_freqs(self):
         pass

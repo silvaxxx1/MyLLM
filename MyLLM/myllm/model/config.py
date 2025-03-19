@@ -72,6 +72,9 @@ class Config:
     n_query_groups: int = 32  # Number of query groups (specific to LLaMA)
     norm_qk: bool = False  # Whether to use normalized queries and keys
     use_rope : bool = False # Whether to use rope embeddings
+    attention_scores_scalar : Optional[int] = None 
+    softcapping_threshold : Optional[float] = None 
+    
 
 
     # Hyperparameter
