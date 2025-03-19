@@ -377,10 +377,6 @@ class CausalSelfAttention(nn.Module):
         # Output projection.
         return self.proj(y)  # (B, T, C) 
     
-  import torch
-import torch.nn.functional as F
-import math
-from typing import Optional
 
 def scaled_dot_product_attention(self,
                                 q: torch.Tensor,  # (B, nh, T, hs)
@@ -437,14 +433,6 @@ def scaled_dot_product_attention(self,
 
     # Transpose output from (B, nh, T, hs) to (B, T, nh, hs) if needed
     return y.transpose(1, 2)  # (B, T, nh, hs)
-
-
-
-        
-        
-
-
-
 
 
 def softcapping(x: torch.Tensor,
