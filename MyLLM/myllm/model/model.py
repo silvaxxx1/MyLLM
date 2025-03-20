@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from typing import Optional
+from typing import Optional , Tuple
 
 # Import the configuration class from the config module
 from config import Config 
@@ -245,6 +245,7 @@ class Block(nn.Module):
         # Apply post-MLP normalization
         return self.post_mlp_norm(x)
 
+# Fixed CausalSelfAttention class with proper scaled_dot_product_attention method placement
 class CausalSelfAttention(nn.Module):
     """
     Causal Self-Attention layer for the GPT-like model. This layer performs masked self-attention 
@@ -269,59 +270,71 @@ class CausalSelfAttention(nn.Module):
             The index of the block for layer-specific configurations.
         """
         super().__init__()
-        self.qkv = nn.Linear(Config.n_embd, 
-                             (Config.n_head + 2 * Config.n_query_groups) * Config.head_size,
-                            bias= Config.attention_bias or Config.bias)
+        self.qkv = nn.Linear(config.n_embd, 
+                             (config.n_head + 2 * config.n_query_groups) * config.head_size,
+                            bias=config.attention_bias or config.bias)
         
-        self.proj = nn.Linear(Config.n_head * Config.head_size, Config.n_embd, bias=Config.bias)
+        self.proj = nn.Linear(config.n_head * config.head_size, config.n_embd, bias=config.bias)
 
-        if Config.norm_qk:
-            self.norm_q = config.norm_class(Config.head_size * Config.n_head, eps=config.norm_eps)
-            self.norm_k = config.norm_class(Config.head_size * Config.n_query_groups, eps=config.norm_eps)
+        if config.norm_qk:
+            self.norm_q = config.norm_class(config.head_size * config.n_head, eps=config.norm_eps)
+            self.norm_k = config.norm_class(config.head_size * config.n_query_groups, eps=config.norm_eps)
         else:
             self.norm_q = self.norm_k = None 
 
         self.config = config
         self.block_idx = block_idx
+        
+        # Initialize RoPE frequency computation
+        if config.use_rope:
+            # Pre-compute RoPE frequencies during initialization
+            self.freqs_complex = pre_compute_freq(
+                config=config,
+                context_length=config.block_size,
+                device=None,  # Will be moved to appropriate device during forward pass
+                extra_config=config.rope_scaling if hasattr(config, 'rope_scaling') else None
+            )
 
     def forward(self,
                 x: torch.Tensor,
                 mask: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
+    ) -> torch.Tensor:
         
         head_size = self.config.head_size
         n_query_groups = self.config.n_query_groups 
         n_head = self.config.n_head 
 
-    # to use multi-head attention (MHA), set this to `n_head` (default)
-    # to use multi-query attention (MQA), set this to 1
-    # to use grouped-query attention (GQA), set this to a value in between
-    # Example with `n_head=4`
-    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    # │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-    #   │    │    │    │         │        │                 │
-    # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    # │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-    # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-    #   │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-    # ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-    # │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-    # └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-    # ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-    #         MHA                    GQA                   MQA
-    #   n_query_groups=4       n_query_groups=2      n_query_groups=1
-    #
-    # credit https://arxiv.org/pdf/2305.13245.pdf
+        # to use multi-head attention (MHA), set this to `n_head` (default)
+        # to use multi-query attention (MQA), set this to 1
+        # to use grouped-query attention (GQA), set this to a value in between
+        # Example with `n_head=4`
+        # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+        # │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
+        # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+        #   │    │    │    │         │        │                 │
+        # ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+        # │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
+        # └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+        #   │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
+        # ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
+        # │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
+        # └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
+        # ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
+        #         MHA                    GQA                   MQA
+        #   n_query_groups=4       n_query_groups=2      n_query_groups=1
+        #
+        # credit https://arxiv.org/pdf/2305.13245.pdf
+        
         # Notation : 
         # - B          | batch size
         # - T          | time-step (sequence length)
         # - C          | embedding dimension
-        B , T , C = x.size()
+        B, T, C = x.size()
+        
         # qkv: [B, T, (n_head + 2 * n_query_groups) * head_size] 
         # (B, T, C) -> (B, T, (n_head + 2 * n_query_groups) * head_size)
         qkv = self.qkv(x)
-        # soze of q, k, v
+        # size of q, k, v
         q_size = n_head * head_size
         v_size = k_size = n_query_groups * head_size
         # split the qkv into q, k, v 
@@ -334,105 +347,84 @@ class CausalSelfAttention(nn.Module):
             q = self.norm_q(q)
             k = self.norm_k(k)
         
-        # reshape  the tensors 
+        # reshape the tensors 
         # (B, T, n_head * head_size) -> (B, n_head, T, head_size)
         # (B, T, n_query_groups * head_size) -> (B, n_query_groups, T, head_size)
         # (B, T, n_query_groups * head_size) -> (B, n_query_groups, T, head_size)
-        q = q.view(B, n_head, T, head_size)
-        k = k.view(B, n_query_groups, T, head_size)
-        v = v.view(B, n_query_groups, T, head_size)
-
-        # transpose the tensors 
-        # (B, n_head, T, head_size) -> (B, T, n_head, head_size)
-        # (B, n_query_groups, T, head_size) -> (B, T, n_query_groups, head_size)
-        # (B, n_query_groups, T, head_size) -> (B, T, n_query_groups, head_size)
-        q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
+        q = q.view(B, T, n_head, head_size).transpose(1, 2)
+        k = k.view(B, T, n_query_groups, head_size).transpose(1, 2)
+        v = v.view(B, T, n_query_groups, head_size).transpose(1, 2)
 
         # Apply RoPE to Q and K
-        if Config.use_rope: 
+        if self.config.use_rope:
+            # Move the freqs_complex tensor to the same device as q and k
+            if self.freqs_complex.device != q.device:
+                self.freqs_complex = self.freqs_complex.to(q.device)
             q = apply_rope(q, self.freqs_complex)
             k = apply_rope(k, self.freqs_complex)
 
-        # apply the mask for casual attention
-        # mask must be in the shape (1 , 1 , T , T)
-        if mask is not None : 
-            # mask --> (T , T) one matrix --> (T , T) upper diag 
-            mask = torch.ones(T , T , dtype=q.dtype , device=q.device).triu(diagonal=1)
-            # fill the mask with 1 for upper diad and the rest is inf
-            mask.masked_fill(mask.bool() , float("inf"))
-            # reshape the mask to (1 , 1 , T , T)
-            mask = mask.view(1, 1, *mask.shape)
+        # apply the mask for causal attention
+        # mask must be in the shape (1, 1, T, T)
+        if mask is None and self.config.causal_attention:
+            # Create a causal mask for the current sequence length
+            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
+            mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, T)
 
-        # Use Flash Attention 
-        # Efficient attention using Flash Attention CUDA kernels.
-        # NOTE: efficient implementation is disabled if `mask` is not None or softcapping is enabled.
-        # ↓ (B, nh, T, hs) @ (B, nh, T, hs).mT --> (B, nh, T, T) @ (B, nh, T, hs) --> (B, nh, T, hs)
+        # Use scaled dot product attention 
         y = self.scaled_dot_product_attention(q, k, v, mask)
 
         # Re-assemble all head outputs side by side.
         y = y.reshape(B, T, head_size * n_head)
 
         # Output projection.
-        return self.proj(y)  # (B, T, C) 
+        return self.proj(y)  # (B, T, C)
     
+    def scaled_dot_product_attention(self,
+                                    q: torch.Tensor,  # (B, nh, T, hs)
+                                    k: torch.Tensor,  # (B, nh, T, hs)
+                                    v: torch.Tensor,  # (B, nh, T, hs)
+                                    mask: Optional[torch.Tensor] = None  # (1, 1, T, T) or None
+                                    ) -> torch.Tensor:
+        """
+        Computes the scaled dot-product attention.
 
-def scaled_dot_product_attention(self,
-                                q: torch.Tensor,  # (B, nh, T, hs)
-                                k: torch.Tensor,  # (B, nh, T, hs)
-                                v: torch.Tensor,  # (B, nh, T, hs)
-                                mask: Optional[torch.Tensor] = None  # (1, 1, T, T) or None
-                                ) -> torch.Tensor:
-    """
-    Computes the scaled dot-product attention.
+        Args:
+        - q (torch.Tensor): Query tensor of shape (B, nh, T, hs).
+        - k (torch.Tensor): Key tensor of shape (B, nh, T, hs).
+        - v (torch.Tensor): Value tensor of shape (B, nh, T, hs).
+        - mask (Optional[torch.Tensor]): Attention mask of shape (1, 1, T, T) or None.
 
-    Args:
-    - q (torch.Tensor): Query tensor of shape (B, nh, T, hs).
-    - k (torch.Tensor): Key tensor of shape (B, nh, T, hs).
-    - v (torch.Tensor): Value tensor of shape (B, nh, T, hs).
-    - mask (Optional[torch.Tensor]): Attention mask of shape (1, 1, T, T) or None.
+        Returns:
+        - torch.Tensor: Output tensor of shape (B, T, nh, hs).
+        """
+        # Scaling factor to prevent exploding gradients
+        scale = 1.0 / math.sqrt(self.config.attention_scores_scalar or self.config.head_size)  
 
-    Returns:
-    - torch.Tensor: Output tensor of shape (B, nh, T, hs).
-    """
+        # Check if softcapping is applied
+        if self.config.attention_logit_softcapping is not None:
+            # Compute raw attention scores (B, nh, T, T)
+            atten_score = q @ k.transpose(-1, -2) * scale  # Matrix multiplication: (B, nh, T, hs) @ (B, nh, hs, T) -> (B, nh, T, T)
 
-    # Scaling factor to prevent exploding gradients
-    scale = 1.0 / math.sqrt(self.config.attention_scores_scalar or self.config.head_size)  
+            # Apply softcapping to prevent extremely large values
+            capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
 
-    # Check if softcapping is applied
-    if self.config.attention_logit_softcapping is not None:
-        # Compute raw attention scores (B, nh, T, T)
-        atten_score = q @ k.mT * scale  # Matrix multiplication: (B, nh, T, hs) @ (B, nh, hs, T) -> (B, nh, T, T)
+            # Apply the mask to attention scores if provided
+            if mask is not None:
+                capped_score = capped_score.masked_fill(mask, float("-inf"))
 
-        # Apply softcapping to prevent extremely large values
-        capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
+            # Apply softmax over the last dimension (T) to normalize attention scores
+            scores = F.softmax(capped_score, dim=-1, dtype=torch.float32).to(dtype=q.dtype)  # (B, nh, T, T)
 
-        # If mask is not provided, create a causal mask
-        if mask is None:
-            T = q.size(2)  # Sequence length
-            mask = torch.full((T, T), float("-inf"), dtype=q.dtype, device=q.device).triu(diagonal=1)  # (T, T)
+            # Compute the attention output (B, nh, T, T) @ (B, nh, T, hs) -> (B, nh, T, hs)
+            y = scores @ v
 
-            # Reshape to (1, 1, T, T) for broadcasting
-            mask = mask.view(1, 1, T, T)  
+        else:
+            # Use PyTorch's optimized attention function when no softcapping is applied
+            y = F.scaled_dot_product_attention(
+                q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None and self.config.causal_attention
+            )  # (B, nh, T, hs)
 
-        # Apply the mask to attention scores (B, nh, T, T) + (1, 1, T, T) -> (B, nh, T, T)
-        scores = capped_score + mask  
-
-        # Apply softmax over the last dimension (T) to normalize attention scores
-        scores = F.softmax(scores, dim=-1, dtype=torch.float).to(dtype=q.dtype)  # (B, nh, T, T)
-
-        # Compute the attention output (B, nh, T, T) @ (B, nh, T, hs) -> (B, nh, T, hs)
-        y = scores @ v
-
-    else:
-        # Use PyTorch's optimized attention function when no softcapping is applied
-        y = F.scaled_dot_product_attention(
-            q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None
-        )  # (B, nh, T, hs)
-
-    # Transpose output from (B, nh, T, hs) to (B, T, nh, hs) if needed
-    return y.transpose(1, 2)  # (B, T, nh, hs)
+        return y  # (B, nh, T, hs)
 
 
 def softcapping(x: torch.Tensor,
@@ -441,12 +433,136 @@ def softcapping(x: torch.Tensor,
     return torch.tanh(x / thresh) * thresh
     
 
-def pre_compute_freqs(self):
-        pass
+def pre_compute_freq(config,
+                    context_length=None,
+                    base=10000.0,
+                    device=None,
+                    extra_config=None):
+    """
+    Pre-compute frequency matrix for Rotary Position Encoding (RoPE).
+    
+    This function computes the frequency tensors used for rotary embeddings, with support
+    for both standard RoPE and advanced implementations with frequency scaling for
+    extended context (as used in models like Llama 3).
+    
+    Args:
+        config: Configuration object containing model parameters
+        context_length: Maximum sequence length to pre-compute (defaults to config.context_length)
+        base: Base value for frequency computation (default: 10000.0)
+        device: Torch device to place tensors on
+        extra_config: Optional dictionary for advanced RoPE configuration with keys:
+            - original_max_seq_len: Original context length the model was trained with
+            - factor: Scaling factor for frequency adjustment
+            - low_freq_factor: Factor to determine low frequency threshold
+            - high_freq_factor: Factor to determine high frequency threshold
+    
+    Returns:
+        torch.Tensor: Complex tensor containing pre-computed rotation matrices
+    """
+    # Calculate dimension per attention head
+    head_dim = config.n_embd // config.n_head
+    
+    # Use provided context_length or fall back to config
+    context_length = context_length or config.context_length
 
-def apply_rope():
-        pass 
+    # Compute base inverse frequencies for each dimension
+    # Each dimension gets a different frequency based on its position
+    theta_idx = torch.arange(0, head_dim // 2, dtype=torch.float32, device=device)
+    inv_freq = 1.0 / (base ** (2 * theta_idx / head_dim))
+
+    if extra_config is not None:
+        # --- Advanced RoPE computation (NTK-aware, used in Llama 3) ---
+        # This implementation scales frequencies differently based on their wavelength,
+        # allowing for better extrapolation to longer sequences
         
+        orig_context_len = extra_config["original_max_seq_len"]
+        factor = extra_config["factor"]  # Scaling factor (e.g., 2.0 for doubling context)
+        low_freq_factor = extra_config["low_freq_factor"]  # Threshold for low frequencies
+        high_freq_factor = extra_config["high_freq_factor"]  # Threshold for high frequencies
+
+        # Compute wavelength thresholds
+        # Wavelength = 2π/frequency, so high frequency = low wavelength and vice versa
+        low_wavelength = orig_context_len / low_freq_factor  # Threshold for scaling
+        high_wavelength = orig_context_len / high_freq_factor
+        
+        # Calculate wavelength for each frequency component
+        wavelen = 2 * torch.pi / inv_freq
+        
+        # For low frequencies (high wavelengths > low_wavelength):
+        # Scale these frequencies by dividing by factor (slowing them down)
+        inv_freq_adj = torch.where(wavelen > low_wavelength,
+                                  inv_freq / factor,
+                                  inv_freq)
+        
+        # For medium frequencies - apply a smooth transition between scaled and unscaled
+        # This prevents abrupt changes in the attention pattern
+        smooth_factor = ((orig_context_len / wavelen) - low_freq_factor) / (high_freq_factor - low_freq_factor)
+        smooth_factor = torch.clamp(smooth_factor, 0.0, 1.0)  # Ensure factor is between 0 and 1
+        
+        # Blend between scaled and unscaled frequencies based on smooth_factor
+        smoothed_inv_freq = (1 - smooth_factor) * (inv_freq / factor) + smooth_factor * inv_freq
+        
+        # Apply smoothed frequencies for medium-range wavelengths
+        is_medium = (wavelen <= low_wavelength) & (wavelen >= high_wavelength)
+        inv_freq = torch.where(is_medium, smoothed_inv_freq, inv_freq_adj)
+    
+    # Compute position-frequency outer product:
+    # For each position and frequency, compute position × frequency
+    positions = torch.arange(context_length, dtype=torch.float32, device=device)
+    freq = torch.outer(positions, inv_freq)
+    
+    # Convert to complex rotation factors (e^(i·θ) = cos(θ) + i·sin(θ))
+    return torch.polar(torch.ones_like(freq), freq)
+
+
+def apply_rope(x, freqs_complex):
+    """
+    Apply Rotary Position Encoding to input tensor.
+    
+    This function applies pre-computed rotary embeddings to the input tensor.
+    It works by interpreting pairs of features as complex numbers and multiplying
+    them by the pre-computed complex rotation factors.
+    
+    Args:
+        x: Input tensor of shape [batch, heads, seq_len, head_dim]
+        freqs_complex: Pre-computed complex rotation matrix from pre_compute_freq
+    
+    Returns:
+        torch.Tensor: Tensor with rotary position encoding applied
+    """
+    # Get the actual sequence length from the input tensor
+    _, _, seq_len, _ = x.shape
+    
+    # Truncate frequency tensor to the actual sequence length
+    freqs_complex = freqs_complex[:seq_len]
+    
+    # Add batch and head dimensions to match input tensor
+    freqs_complex = freqs_complex.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, head_dim//2]
+    
+    # Save original dtype for restoration later
+    orig_dtype = x.dtype
+    
+    # Convert to float32 if needed for complex number operations
+    if x.dtype != torch.float32:
+        x = x.float()
+    
+    # Reshape to interpret adjacent dimensions as real and imaginary components
+    # Last dimension becomes [dim/2, 2] where each pair is (real, imag)
+    x_reshape = x.reshape(*x.shape[:-1], -1, 2)
+    
+    # Convert to complex numbers
+    x_complex = torch.view_as_complex(x_reshape)
+    
+    # Apply rotation by multiplying with complex rotation factors
+    # This is equivalent to:
+    # [cos(θ) + i·sin(θ)] × [a + i·b] = [a·cos(θ) - b·sin(θ)] + i·[a·sin(θ) + b·cos(θ)]
+    x_rotate = x_complex * freqs_complex
+    
+    # Convert back to real representation
+    x_rotate = torch.view_as_real(x_rotate)
+    
+    # Restore original shape and dtype
+    return x_rotate.reshape(*x.shape).to(orig_dtype)
 
 
 class GPTMLP(nn.Module):
