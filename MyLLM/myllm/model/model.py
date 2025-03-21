@@ -527,6 +527,52 @@ class GPTMLP(nn.Module):
 class LlamaMLP(nn.Module):
     pass  
 
-class KV_Cache(nn.Module):
-    pass 
+class KVCache(nn.Module):
+    """
+    Buffers `k`, `v` have shape
+    `(batch_size, n_query_groups, max_seq_length, head_size)`.
+    """
+    def __init__(
+        self,
+        k_shape: Tuple[int, int, int, int],
+        v_shape: Tuple[int, int, int, int],
+        device: Optional[torch.device] = None,
+        dtype: Optional[torch.dtype] = None,
+    ) -> None:
+        super().__init__()
+        self.register_buffer("k", torch.zeros(k_shape, device=device, dtype=dtype), persistent=False)
+        self.register_buffer("v", torch.zeros(v_shape, device=device, dtype=dtype), persistent=False)
 
+    def forward(self, input_pos: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Writes new values `k` and `v` into the cache at the positions specified
+        by `input_pos` along the sequence dimension (`max_seq_length`). The batch
+        size of `k` and `v` (`bs`) must be smaller or equal to `KVCache` batch
+        size. Returns the full buffers, adjusted to the batch size `bs`.
+
+        Args:
+            input_pos: Position index, `(bs, T)` or `(T,)`
+            k: New values, `(bs, n_query_groups, T, head_size)`
+            v: New values, `(bs, n_query_groups, T, head_size)`
+
+        Returns:
+            k_full, v_full, `(bs, n_query_groups, max_seq_length, head_size)`
+
+        """
+        # move the buffer to the activation dtype for when AMP is used
+        self.k = self.k.to(k.dtype)
+        self.v = self.v.to(v.dtype)
+        # update the cache
+        bs = k.size(0)
+        k = batched_index_copy_(self.k[:bs, ...], -2, input_pos, k)
+        v = batched_index_copy_(self.v[:bs, ...], -2, input_pos, v)
+        return k, v
+
+    def reset_parameters(self) -> None:
+        torch.nn.init.zeros_(self.k)
+        torch.nn.init.zeros_(self.v)
+
+
+def build_mask_cache(max_seq_length: int, device: Optional[torch.device] = None) -> torch.Tensor:
+    ones = torch.ones((max_seq_length, max_seq_length), device=device, dtype=torch.bool)
+    return torch.tril(ones).unsqueeze(0).unsqueeze(0)
