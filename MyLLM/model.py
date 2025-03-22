@@ -373,7 +373,27 @@ class CausalSelfAttention(nn.Module):
 
         # Create causal mask if not provided
         if mask is None and self.config.causal_attention:
-            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
+Exception has occurred: AttributeError
+'Config' object has no attribute 'causal_attention'
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 375, in forward
+    if mask is None and self.config.causal_attention:
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 227, in forward
+    attn_out = self.attn(x_normed)
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 126, in forward
+    x = block(x)
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 645, in <module>
+    logits = model(input_tokens)
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/config.py", line 212, in mlp_class
+    import model  # Import the module where MLP classes are defined
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 198, in __init__
+    self.mlp = config.mlp_class(config)
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 78, in <dictcomp>
+    {f"block_{block_idx}": Block(config, block_idx) for block_idx in range(config.n_layer)}
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 78, in __init__
+    {f"block_{block_idx}": Block(config, block_idx) for block_idx in range(config.n_layer)}
+  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 637, in <module>
+    model = GPT(config)
+AttributeError: 'Config' object has no attribute 'causal_attention'            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
             mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, T)
 
         # Compute scaled dot-product attention
@@ -624,3 +644,24 @@ class LLaMAMLP(nn.Module):
         x_fc_2 = self.fc_2(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
         x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
         return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
+
+
+
+
+
+# Create an instance of your configuration
+config = Config.from_name("gpt2-small")  # Or any other configuration name
+
+
+# Instantiate the GPT model with your config
+model = GPT(config)
+
+# Prepare input data
+batch_size = 4
+sequence_length = 128
+input_tokens = torch.randint(0, config.vocab_size, (batch_size, sequence_length))
+
+# Forward pass
+logits = model(input_tokens)
+print(logits.shape)  # Output: torch.Size([4, 128, vocab_size])
+

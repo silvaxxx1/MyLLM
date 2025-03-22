@@ -81,8 +81,10 @@ The `Config` class is designed for managing large-scale transformer models with 
 
 # Import statements
 from dataclasses import dataclass, field
-from typing import Optional, Any, Dict , Literal
+from typing import Optional, Any, Dict , Literal , Type
 import json
+from pathlib import Path 
+import torch 
 
 @dataclass
 class Config:
@@ -95,37 +97,34 @@ class Config:
     n_head: int = 12  # Number of attention heads
     n_embd: int = 768  # Dimensionality of embeddings
     eps: float = 1e-5  # Small epsilon for numerical stability
-    head_size: Optional[int] = None
-
+    head_size: Optional[int] = None  # Size of each attention head
 
     # Architecture variations
-    norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm" # Type of normalization layer used (LayerNorm or RMSNorm)
+    norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm"  # Type of normalization layer used (LayerNorm or RMSNorm)
     activation: str = "gelu"  # Activation function (gelu, relu, etc.)
     mlp_class_name: Literal["GptNeoxMLP", "LLaMAMLP", "GemmaMLP", "LLaMAMoE"] = "GptNeoxMLP"
     scale_embeddings: bool = False  # Whether to scale embeddings by sqrt(d_model)
     mlp_ratio: float = 4.0  # Ratio of hidden dimension to embedding dimension in the MLP
     lm_head_bias: bool = False
-    attention_bias : bool = False  # Whether to use attention bias
-    bias : bool = False
-    mlp_hidden_size : Optional[int] = None  
+    attention_bias: bool = False  # Whether to use attention bias
+    bias: bool = False
+    mlp_hidden_size: Optional[int] = None
+    post_mlp_norm: bool = False
     gelu_approx: str = "none"
-
-
 
     rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
     parallel_residual: bool = False  # Whether to use parallel residual connections (specific to LLaMA)
-    shared_attention_norm : bool = False  # Whether to use shared attention norm (specific to LLaMA)
+    shared_attention_norm: bool = False  # Whether to use shared attention norm (specific to LLaMA)
     norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
     n_query_groups: int = 32  # Number of query groups (specific to LLaMA)
     norm_qk: bool = False  # Whether to use normalized queries and keys
-    use_rope : bool = False # Whether to use rope embeddings
+    use_rope: bool = False  # Whether to use rope embeddings
     rope_base: int = 10000
 
-
-    attention_scores_scalar : Optional[int] = None 
-    softcapping_threshold : Optional[float] = None 
+    attention_scores_scalar: Optional[int] = None
+    softcapping_threshold: Optional[float] = None
     attention_logit_softcapping: Optional[float] = None
-
+    post_attention_norm: bool = False
 
     # Hyperparameter
     dropout: float = 0.1  # Dropout rate for regularization
@@ -135,15 +134,22 @@ class Config:
     beta1: float = 0.9  # First momentum term for Adam optimizer
     beta2: float = 0.999  # Second momentum term for Adam optimizer
 
-
     # Extra parameters for flexibility
     extra_params: Dict[str, Any] = field(default_factory=dict)  # To store any extra parameters
 
     def __post_init__(self):
-        # Ensure that padded_vocab_size is set if not provided
+    # Ensure that padded_vocab_size is set if not provided
         if self.padded_vocab_size is None:
             self.padded_vocab_size = self.vocab_size
-        
+
+        # Ensure that head_size is set if not provided
+        if self.head_size is None:
+            self.head_size = self.n_embd // self.n_head  # Default to n_embd // n_head
+
+        # Ensure that mlp_hidden_size is set if not provided
+        if self.mlp_hidden_size is None:
+            self.mlp_hidden_size = int(self.n_embd * self.mlp_ratio)  # Default to n_embd * mlp_ratio
+
         # Validate the configuration parameters after initialization
         self.validate()
 
@@ -153,19 +159,19 @@ class Config:
         return f"Config({params})"
 
     def save(self, file_path: str):
-        """ Save the configuration to a JSON file. """
+        """Save the configuration to a JSON file."""
         with open(file_path, "w") as f:
             json.dump(self.__dict__, f, indent=4)
 
     @classmethod
     def load(cls, file_path: str):
-        """ Load the configuration from a JSON file. """
+        """Load the configuration from a JSON file."""
         with open(file_path, "r") as f:
             data = json.load(f)
         return cls(**data)
 
     def update(self, **kwargs):
-        """ Update the configuration with new key-value pairs. """
+        """Update the configuration with new key-value pairs."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -173,11 +179,11 @@ class Config:
                 print(f"Warning: Invalid config key '{key}', skipping update.")
 
     def get_trainable_params(self):
-        """ Get a dictionary of trainable parameters (those that are int, float, or bool). """
+        """Get a dictionary of trainable parameters (those that are int, float, or bool)."""
         return {k: v for k, v in self.__dict__.items() if isinstance(v, (int, float, bool))}
 
     def validate(self):
-        """ Validate the configuration parameters. """
+        """Validate the configuration parameters."""
         # Ensure that n_embd is divisible by n_head for correct attention behavior
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
         # Ensure that block_size is positive
@@ -188,21 +194,40 @@ class Config:
 
     @classmethod
     def available_configs(cls):
-        """ Return the list of available configurations by accessing the global configuration registry. """
+        """Return the list of available configurations by accessing the global configuration registry."""
         return list(name_to_config.keys())
 
     @classmethod
     def from_name(cls, name: str):
-        """ Create a Config instance from a configuration name. """
+        """Create a Config instance from a configuration name."""
         if name not in name_to_config:
             raise ValueError(f"Config with name {name} not found.")
         return cls(**name_to_config[name])
 
+    @property
+    def mlp_class(self) -> Type:
+        """
+        Dynamically resolves the MLP class based on `mlp_class_name`.
+        """
+        import model  # Import the module where MLP classes are defined
+        return getattr(model, self.mlp_class_name)
 
+    @property
+    def norm_class(self) -> Type:
+        """
+        Dynamically resolves the normalization class based on `norm_class_name`.
+        Supports only `LayerNorm` and `RMSNorm`.
+        """
+        if self.norm_class_name == "RMSNorm":
+            from model import RMSNorm  # Import RMSNorm from the appropriate module
+            return RMSNorm  # Return the RMSNorm class directly
+
+        if self.norm_class_name == "LayerNorm":
+            return torch.nn.LayerNorm  # Return the LayerNorm class directly
+
+        raise ValueError(f"Unsupported normalization class: {self.norm_class_name}")
+    
 #  google docs string this 
-
-
-# Configuration registry (you can add more configurations here as needed)
 configs = [
     dict(name="gpt2-small", block_size=1024, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
     dict(name="gpt2-medium", block_size=1024, vocab_size=50257, n_layer=24, n_head=16, n_embd=1024, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
