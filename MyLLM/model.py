@@ -62,8 +62,8 @@ class GPT(nn.Module):
 
         # Linear layer to map from embedding size to vocabulary size for output logits (language modeling)
         self.lm_head = nn.Linear(
-            config.padded_vocab_size, config.n_embd, bias=config.lm_head_bias
-        )
+            config.n_embd, config.padded_vocab_size, bias=config.lm_head_bias
+            )
 
         # Embedding layer for token IDs (converts tokens to embeddings of size n_embd)
         self.wte = nn.Embedding(config.padded_vocab_size, config.n_embd)
@@ -373,37 +373,18 @@ class CausalSelfAttention(nn.Module):
 
         # Create causal mask if not provided
         if mask is None and self.config.causal_attention:
-Exception has occurred: AttributeError
-'Config' object has no attribute 'causal_attention'
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 375, in forward
-    if mask is None and self.config.causal_attention:
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 227, in forward
-    attn_out = self.attn(x_normed)
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 126, in forward
-    x = block(x)
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 645, in <module>
-    logits = model(input_tokens)
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/config.py", line 212, in mlp_class
-    import model  # Import the module where MLP classes are defined
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 198, in __init__
-    self.mlp = config.mlp_class(config)
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 78, in <dictcomp>
-    {f"block_{block_idx}": Block(config, block_idx) for block_idx in range(config.n_layer)}
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 78, in __init__
-    {f"block_{block_idx}": Block(config, block_idx) for block_idx in range(config.n_layer)}
-  File "/home/silva/SILVA.AI/Projects/MyLLM101/MyLLM/model.py", line 637, in <module>
-    model = GPT(config)
-AttributeError: 'Config' object has no attribute 'causal_attention'            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
+            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
             mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, T)
 
         # Compute scaled dot-product attention
         y = self.scaled_dot_product_attention(q, k, v, mask)
 
         # Reassemble all head outputs
-        y = y.transpose(1, 2).reshape(B, T, C)
+        y = y.transpose(1, 2).contiguous().view(B, T, -1)  # Fix: Use -1 to infer the correct dimension
 
         # Output projection
         return self.proj(y)
+
 
     def scaled_dot_product_attention(self,
                                     q: torch.Tensor,
@@ -425,6 +406,12 @@ AttributeError: 'Config' object has no attribute 'causal_attention'            m
         """
         scale = 1.0 / math.sqrt(self.config.head_size)
 
+        if self.config.n_query_groups != self.config.n_head:
+        # Repeat keys and values to match the number of heads
+            repeat_factor = self.config.n_head // self.config.n_query_groups
+            k = k.repeat_interleave(repeat_factor, dim=1)
+            v = v.repeat_interleave(repeat_factor, dim=1)
+
         if self.config.attention_logit_softcapping is not None:
             atten_score = q @ k.transpose(-1, -2) * scale
             capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
@@ -437,6 +424,7 @@ AttributeError: 'Config' object has no attribute 'causal_attention'            m
                 q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None and self.config.causal_attention
             )
         return y
+    
 
 
 def softcapping(x: torch.Tensor, thresh: float) -> torch.Tensor:
@@ -535,9 +523,6 @@ def apply_rope(x, freqs_complex):
     return x_rotate.reshape(*x.shape).to(orig_dtype)  # Shape: [batch, heads, seq_len, head_dim]
 
 
-import torch
-import torch.nn as nn
-
 class RMSNorm(nn.Module):
     """Root Mean Square Layer Normalization."""
 
@@ -588,9 +573,6 @@ class RMSNorm(nn.Module):
         torch.nn.init.ones_(self.weight)  # Shape: [size]
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 class GptMLP(nn.Module):
     """MLP block used in GPT-like models."""
@@ -647,19 +629,23 @@ class LLaMAMLP(nn.Module):
 
 
 
-
+# test with GPT2 small 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Create an instance of your configuration
 config = Config.from_name("gpt2-small")  # Or any other configuration name
 
+config.n_query_groups = config.n_head = 12 
 
 # Instantiate the GPT model with your config
-model = GPT(config)
+model = GPT(config).to(device)
+
+print(model)
 
 # Prepare input data
 batch_size = 4
 sequence_length = 128
-input_tokens = torch.randint(0, config.vocab_size, (batch_size, sequence_length))
+input_tokens = torch.randint(0, config.vocab_size, (batch_size, sequence_length)).to(device)
 
 # Forward pass
 logits = model(input_tokens)
