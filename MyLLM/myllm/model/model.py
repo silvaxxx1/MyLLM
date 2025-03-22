@@ -433,10 +433,12 @@ def softcapping(x: torch.Tensor, thresh: float) -> torch.Tensor:
     return torch.tanh(x / thresh) * thresh
 
 
+import torch
+
 def pre_compute_freq(config, context_length=None, base=10000.0, device=None, extra_config=None):
     """
     Pre-compute frequency matrix for Rotary Position Encoding (RoPE).
-    
+
     Args:
         config: Configuration object containing model parameters.
         context_length: Maximum sequence length to pre-compute (defaults to config.context_length).
@@ -445,13 +447,14 @@ def pre_compute_freq(config, context_length=None, base=10000.0, device=None, ext
         extra_config: Optional dictionary for advanced RoPE configuration.
 
     Returns:
-        torch.Tensor: Complex tensor containing pre-computed rotation matrices.
+        torch.Tensor: Complex tensor of shape [context_length, head_dim // 2].
     """
-    head_dim = config.n_embd // config.n_head
-    context_length = context_length or config.block_size
+    head_dim = config.n_embd // config.n_head  # Scalar
+    context_length = context_length or config.block_size  # Scalar
 
-    theta_idx = torch.arange(0, head_dim // 2, dtype=torch.float32, device=device)
-    inv_freq = 1.0 / (base ** (2 * theta_idx / head_dim))
+    # Compute the inverse frequency tensor
+    theta_idx = torch.arange(0, head_dim // 2, dtype=torch.float32, device=device)  # Shape: [head_dim // 2]
+    inv_freq = 1.0 / (base ** (2 * theta_idx / head_dim))  # Shape: [head_dim // 2]
 
     if extra_config is not None:
         orig_context_len = extra_config["original_max_seq_len"]
@@ -459,120 +462,165 @@ def pre_compute_freq(config, context_length=None, base=10000.0, device=None, ext
         low_freq_factor = extra_config["low_freq_factor"]
         high_freq_factor = extra_config["high_freq_factor"]
 
-        wavelen = 2 * torch.pi / inv_freq
-        low_wavelength = orig_context_len / low_freq_factor
-        high_wavelength = orig_context_len / high_freq_factor
+        # Compute wavelength and adjusted frequencies
+        wavelen = 2 * torch.pi / inv_freq  # Shape: [head_dim // 2]
+        low_wavelength = orig_context_len / low_freq_factor  # Scalar
+        high_wavelength = orig_context_len / high_freq_factor  # Scalar
 
-        inv_freq_adj = torch.where(wavelen > low_wavelength, inv_freq / factor, inv_freq)
-        smooth_factor = ((orig_context_len / wavelen) - low_freq_factor) / (high_freq_factor - low_freq_factor)
-        smooth_factor = torch.clamp(smooth_factor, 0.0, 1.0)
-        smoothed_inv_freq = (1 - smooth_factor) * (inv_freq / factor) + smooth_factor * inv_freq
-        is_medium = (wavelen <= low_wavelength) & (wavelen >= high_wavelength)
-        inv_freq = torch.where(is_medium, smoothed_inv_freq, inv_freq_adj)
-    
-    positions = torch.arange(context_length, dtype=torch.float32, device=device)
-    freq = torch.outer(positions, inv_freq)
-    return torch.polar(torch.ones_like(freq), freq)
+        inv_freq_adj = torch.where(wavelen > low_wavelength, inv_freq / factor, inv_freq)  # Shape: [head_dim // 2]
+        smooth_factor = ((orig_context_len / wavelen) - low_freq_factor) / (high_freq_factor - low_freq_factor)  # Shape: [head_dim // 2]
+        smooth_factor = torch.clamp(smooth_factor, 0.0, 1.0)  # Shape: [head_dim // 2]
+
+        smoothed_inv_freq = (1 - smooth_factor) * (inv_freq / factor) + smooth_factor * inv_freq  # Shape: [head_dim // 2]
+        is_medium = (wavelen <= low_wavelength) & (wavelen >= high_wavelength)  # Shape: [head_dim // 2]
+        inv_freq = torch.where(is_medium, smoothed_inv_freq, inv_freq_adj)  # Shape: [head_dim // 2]
+
+    # Compute frequency matrix
+    positions = torch.arange(context_length, dtype=torch.float32, device=device)  # Shape: [context_length]
+    freq = torch.outer(positions, inv_freq)  # Shape: [context_length, head_dim // 2]
+
+    # Return complex tensor for RoPE
+    return torch.polar(torch.ones_like(freq), freq)  # Shape: [context_length, head_dim // 2]
 
 
 def apply_rope(x, freqs_complex):
     """
     Apply Rotary Position Encoding to input tensor.
-    
+
     Args:
         x: Input tensor of shape [batch, heads, seq_len, head_dim].
         freqs_complex: Pre-computed complex rotation matrix from pre_compute_freq.
 
     Returns:
-        torch.Tensor: Tensor with rotary position encoding applied.
+        torch.Tensor: Tensor with rotary position encoding applied, same shape as x.
     """
-    _, _, seq_len, _ = x.shape
-    freqs_complex = freqs_complex[:seq_len].unsqueeze(0).unsqueeze(0)
+    batch, heads, seq_len, head_dim = x.shape  # [batch, heads, seq_len, head_dim]
+
+    # Extract relevant sequence length from precomputed frequencies
+    freqs_complex = freqs_complex[:seq_len].unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, seq_len, head_dim // 2]
+
     orig_dtype = x.dtype
     if x.dtype != torch.float32:
         x = x.float()
-    x_reshape = x.reshape(*x.shape[:-1], -1, 2)
-    x_complex = torch.view_as_complex(x_reshape)
-    x_rotate = x_complex * freqs_complex
-    x_rotate = torch.view_as_real(x_rotate)
-    return x_rotate.reshape(*x.shape).to(orig_dtype)
 
+    # Reshape input to complex form
+    x_reshape = x.reshape(*x.shape[:-1], -1, 2)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
+    x_complex = torch.view_as_complex(x_reshape)  # Shape: [batch, heads, seq_len, head_dim // 2]
+
+    # Apply rotation
+    x_rotate = x_complex * freqs_complex  # Shape: [batch, heads, seq_len, head_dim // 2]
+
+    # Convert back to real representation
+    x_rotate = torch.view_as_real(x_rotate)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
+    return x_rotate.reshape(*x.shape).to(orig_dtype)  # Shape: [batch, heads, seq_len, head_dim]
+
+
+import torch
+import torch.nn as nn
 
 class RMSNorm(nn.Module):
     """Root Mean Square Layer Normalization."""
 
-    def __init__(self, size: int, dim: int = -1, eps: float = 1e-6, add_unit_offset: bool = False) -> None:
+    def __init__(self,
+                size: int,
+                dim: int = -1,
+                eps: float = 1e-6,
+                add_unit_offset: bool = False
+                ) -> None:
+        """
+        Args:
+            size (int): The number of features in the input tensor (last dimension size).
+            dim (int): The dimension along which to compute the RMS normalization (default: -1).
+            eps (float): A small constant for numerical stability (default: 1e-6).
+            add_unit_offset (bool): Whether to add a unit offset to the weight parameter (default: False).
+        """
         super().__init__()
-        self.weight = torch.nn.Parameter(torch.ones(size))
+        self.weight = torch.nn.Parameter(torch.ones(size))  # Shape: [size]
         self.eps = eps
         self.dim = dim
         self.add_unit_offset = add_unit_offset
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        dtype = x.dtype
-        x = x.float()
-        norm_x = torch.mean(x * x, dim=self.dim, keepdim=True)
-        x_normed = x * torch.rsqrt(norm_x + self.eps)
-        weight = (1 + self.weight) if self.add_unit_offset else self.weight
-        return (x_normed * weight.float()).to(dtype=dtype)
-
-    def reset_parameters(self) -> None:
-        torch.nn.init.ones_(self.weight)
-
-
-class GPTMLP(nn.Module):
-    pass 
-
-
-class LlamaMLP(nn.Module):
-    pass  
-
-class KVCache(nn.Module):
-    """
-    Buffers `k`, `v` have shape
-    `(batch_size, n_query_groups, max_seq_length, head_size)`.
-    """
-    def __init__(
-        self,
-        k_shape: Tuple[int, int, int, int],
-        v_shape: Tuple[int, int, int, int],
-        device: Optional[torch.device] = None,
-        dtype: Optional[torch.dtype] = None,
-    ) -> None:
-        super().__init__()
-        self.register_buffer("k", torch.zeros(k_shape, device=device, dtype=dtype), persistent=False)
-        self.register_buffer("v", torch.zeros(v_shape, device=device, dtype=dtype), persistent=False)
-
-    def forward(self, input_pos: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Writes new values `k` and `v` into the cache at the positions specified
-        by `input_pos` along the sequence dimension (`max_seq_length`). The batch
-        size of `k` and `v` (`bs`) must be smaller or equal to `KVCache` batch
-        size. Returns the full buffers, adjusted to the batch size `bs`.
+        Apply Root Mean Square Normalization to the input tensor.
 
         Args:
-            input_pos: Position index, `(bs, T)` or `(T,)`
-            k: New values, `(bs, n_query_groups, T, head_size)`
-            v: New values, `(bs, n_query_groups, T, head_size)`
+            x (torch.Tensor): Input tensor of shape [batch_size, ..., size].
 
         Returns:
-            k_full, v_full, `(bs, n_query_groups, max_seq_length, head_size)`
-
+            torch.Tensor: Normalized tensor of the same shape as input.
         """
-        # move the buffer to the activation dtype for when AMP is used
-        self.k = self.k.to(k.dtype)
-        self.v = self.v.to(v.dtype)
-        # update the cache
-        bs = k.size(0)
-        k = batched_index_copy_(self.k[:bs, ...], -2, input_pos, k)
-        v = batched_index_copy_(self.v[:bs, ...], -2, input_pos, v)
-        return k, v
+        dtype = x.dtype
+        x = x.float()  # Ensure computation is in float32 for numerical stability
+
+        # Compute mean square along the specified dimension
+        norm_x = torch.mean(x * x, dim=self.dim, keepdim=True)  # Shape: [batch_size, ..., 1]
+
+        # Normalize the input
+        x_normed = x * torch.rsqrt(norm_x + self.eps)  # Shape: [batch_size, ..., size]
+
+        # Apply learnable weight scaling
+        weight = (1 + self.weight) if self.add_unit_offset else self.weight  # Shape: [size]
+        return (x_normed * weight.float()).to(dtype=dtype)  # Shape: [batch_size, ..., size]
 
     def reset_parameters(self) -> None:
-        torch.nn.init.zeros_(self.k)
-        torch.nn.init.zeros_(self.v)
+        """Reinitialize the weight parameters."""
+        torch.nn.init.ones_(self.weight)  # Shape: [size]
 
 
-def build_mask_cache(max_seq_length: int, device: Optional[torch.device] = None) -> torch.Tensor:
-    ones = torch.ones((max_seq_length, max_seq_length), device=device, dtype=torch.bool)
-    return torch.tril(ones).unsqueeze(0).unsqueeze(0)
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class GptMLP(nn.Module):
+    """MLP block used in GPT-like models."""
+    
+    def __init__(self, config) -> None:
+        """
+        Args:
+            config: Configuration object containing model parameters.
+        """
+        super().__init__()
+        self.fc = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.proj = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)  # Shape: [batch_size, seq_len, n_embd]
+        self.config = config
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch_size, seq_len, n_embd].
+
+        Returns:
+            torch.Tensor: Output tensor of shape [batch_size, seq_len, n_embd].
+        """
+        x = self.fc(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x = F.gelu(x, approximate=self.config.gelu_approx)  # GELU activation (same shape)
+        return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
+
+
+class LLaMAMLP(nn.Module):
+    """MLP block used in LLaMA-like models with Gated Activation Units (GAUs)."""
+    
+    def __init__(self, config) -> None:
+        """
+        Args:
+            config: Configuration object containing model parameters.
+        """
+        super().__init__()
+        self.fc_1 = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.fc_2 = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.proj = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)  # Shape: [batch_size, seq_len, n_embd]
+        self.config = config
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch_size, seq_len, n_embd].
+
+        Returns:
+            torch.Tensor: Output tensor of shape [batch_size, seq_len, n_embd].
+        """
+        x_fc_1 = self.fc_1(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x_fc_2 = self.fc_2(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
+        return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]

@@ -1,39 +1,83 @@
 """
 Configuration Management for Transformer-based Models
 
-This module defines a `Config` class to manage the configuration settings of various transformer-based models, including models like GPT-2 and LLaMA. It provides functionality for:
+This module defines a `Config` class for managing the configuration settings of various transformer-based models, such as GPT-2 and LLaMA. The `Config` class provides functionality for:
 
-1. Defining core parameters for the model architecture, such as:
+1. **Core Parameters**:
     - `block_size`: Sequence length for input data.
     - `vocab_size`: The number of tokens in the vocabulary.
     - `n_layer`: Number of transformer layers.
     - `n_head`: Number of attention heads.
     - `n_embd`: Embedding dimensionality.
-    - And other model-specific parameters.
+    - Other model-specific parameters.
 
-2. Architecture variations for flexibility, such as different normalization layers and activation functions.
+2. **Architecture Variations**:
+    - Options for different normalization layers (`LayerNorm`, `RMSNorm`).
+    - Activation functions like `gelu`, `relu`, etc.
+    - Customizable MLP configurations (`GptNeoxMLP`, `LLaMAMLP`, etc.).
+    - Parallel residual connections, rotary embeddings, and other LLaMA-specific features.
 
-3. Model-specific parameters (e.g., for LLaMA models, including rotary embeddings and parallel residual connections).
+3. **Hyperparameters**:
+    - Dropout rate for regularization.
+    - Learning rate, weight decay, and optimizer settings (e.g., Adam optimizer).
+    - Additional model-specific hyperparameters like attention bias, dropout rates, and more.
 
-4. Hyperparameters such as dropout rate, learning rate, and Adam optimizer settings.
+4. **Configuration Management**:
+    - Save and load configurations from JSON files for easy configuration management.
+    - Dynamic updating of configuration parameters.
 
-5. The ability to save and load configurations from JSON files, facilitating easy configuration management.
+5. **Validation**:
+    - Validation checks to ensure compatibility of certain parameters (e.g., ensuring that `n_embd` is divisible by `n_head` for correct attention behavior).
 
-6. Configuration validation checks (e.g., ensuring that `n_embd` is divisible by `n_head`).
+6. **Trainable Parameters**:
+    - A method to retrieve only the trainable parameters from the configuration (those that are `int`, `float`, or `bool`).
 
-7. The ability to update specific configuration parameters dynamically.
+7. **Multi-Model Support**:
+    - The ability to manage multiple model configurations (e.g., GPT-2, LLaMA) using a configuration registry.
 
-8. Retrieval of only the trainable parameters from the configuration.
+## Example Usage
 
-9. The ability to manage multiple configurations (e.g., for different model architectures like GPT-2 and LLaMA) with an easy-to-use registry.
+- **Creating a Config instance**:  
+    `Config.from_name("gpt2-small")` creates a `Config` instance for the GPT-2 small model.
 
-The module is designed to be used for managing large-scale transformer models with customizable settings, allowing easy integration with training pipelines.
+- **Validating the configuration**:  
+    `config.validate()` ensures that the configuration parameters are valid.
 
-Example usage:
-- Create a `Config` instance for a specific model using `Config.from_name()`.
-- Validate the configuration using `.validate()`.
-- Save and load configurations from disk using `.save()` and `.load()`.
+- **Saving and loading configurations**:  
+    `config.save("config.json")` saves the configuration to a JSON file, while `Config.load("config.json")` loads it from a file.
+
+- **Updating configuration parameters**:  
+    `config.update(block_size=2048, learning_rate=1e-4)` dynamically updates specific parameters.
+
+- **Getting trainable parameters**:  
+    `config.get_trainable_params()` returns a dictionary of trainable parameters.
+
+## Attributes
+- `name`: Name of the model configuration.
+- `block_size`: Size of each sequence block.
+- `vocab_size`: The size of the vocabulary.
+- `n_layer`: Number of transformer layers.
+- `n_head`: Number of attention heads.
+- `n_embd`: Dimensionality of the embedding layer.
+- `norm_class_name`: Type of normalization layer used (either `LayerNorm` or `RMSNorm`).
+- `activation`: Activation function used in the model.
+- `learning_rate`: Learning rate for optimization.
+- `weight_decay`: Weight decay used for regularization.
+- `beta1`, `beta2`: Adam optimizer parameters.
+
+## Configuration Registry
+
+The module supports different configurations for various transformer models. You can access available configurations via the `available_configs()` method.
+
+Example configurations include:
+- `"gpt2-small"`, `"gpt2-medium"`, `"gpt2-large"`, `"gpt2-xl"`, `"llama2-7b"`, `"llama2-13b"`, etc.
+
+---
+
+The `Config` class is designed for managing large-scale transformer models with flexible settings, allowing easy integration into training pipelines.
+
 """
+
 
 # Import statements
 from dataclasses import dataclass, field
@@ -63,6 +107,9 @@ class Config:
     lm_head_bias: bool = False
     attention_bias : bool = False  # Whether to use attention bias
     bias : bool = False
+    mlp_hidden_size : Optional[int] = None  
+    gelu_approx: str = "none"
+
 
 
     rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
@@ -74,9 +121,10 @@ class Config:
     use_rope : bool = False # Whether to use rope embeddings
     rope_base: int = 10000
 
+
     attention_scores_scalar : Optional[int] = None 
     softcapping_threshold : Optional[float] = None 
-    attention_logit_softcapping = Optional[float] = None 
+    attention_logit_softcapping: Optional[float] = None
 
 
     # Hyperparameter
@@ -86,6 +134,7 @@ class Config:
     weight_decay: float = 0.1  # Weight decay for regularization
     beta1: float = 0.9  # First momentum term for Adam optimizer
     beta2: float = 0.999  # Second momentum term for Adam optimizer
+
 
     # Extra parameters for flexibility
     extra_params: Dict[str, Any] = field(default_factory=dict)  # To store any extra parameters
@@ -167,5 +216,4 @@ configs = [
 
 # Create a mapping of model names to configurations
 name_to_config = {config["name"]: config for config in configs}
-''''''
 
