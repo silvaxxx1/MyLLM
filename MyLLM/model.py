@@ -627,6 +627,15 @@ class LLaMAMLP(nn.Module):
         x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
         return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
 
+class KVCache(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        
+        pass 
+
+def batched_index_copy_(t, dim, idx):
+    pass 
+
 
 
 # test with GPT2 small 
@@ -648,6 +657,5 @@ sequence_length = 128
 input_tokens = torch.randint(0, config.vocab_size, (batch_size, sequence_length)).to(device)
 
 # Forward pass
-logits = model(input_tokens)
-print(logits.shape)  # Output: torch.Size([4, 128, vocab_size])
-
+logits = model(input_tokens) 
+print(logits.shape)  # Output: torch.Size([4, 128, vocab_size]) 
