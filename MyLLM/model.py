@@ -637,7 +637,6 @@ def batched_index_copy_(t, dim, idx):
     pass 
 
 
-
 # test with GPT2 small 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
