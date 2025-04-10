@@ -637,6 +637,7 @@ def batched_index_copy_(t, dim, idx):
     pass 
 
 
+
 # test with GPT2 small 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -658,3 +659,11 @@ input_tokens = torch.randint(0, config.vocab_size, (batch_size, sequence_length)
 # Forward pass
 logits = model(input_tokens) 
 print(logits.shape)  # Output: torch.Size([4, 128, vocab_size]) 
+
+
+# TODO:
+# 1. Add tests for the new features and configurations.
+# 2. Implement the KVCache class and its methods.
+# 3. Inject the KVCache into the model's forward pass.
+# finlize the test_model.py
+# 
