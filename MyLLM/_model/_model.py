@@ -1,329 +1,675 @@
-# Decoder-Only Transformer Model Implementation (GPT-style)
-import torch
+import torch  
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+
 from typing import Optional, Tuple
-from config import Config
+
+# Import the configuration class from the config module
+from config import Config 
+
+class KVCache(nn.Module):
+    """
+    A key-value cache module for transformer models to enable efficient autoregressive decoding.
+
+    Stores past key and value tensors and provides an update method to append new entries.
+
+    Args:
+        batch_size (int): Expected batch size during inference.
+        max_seq_len (int): Maximum sequence length (capacity of the cache).
+        num_kv_heads (int): Number of attention heads for keys and values.
+        head_dim (int): Dimensionality of each attention head.
+        dtype (torch.dtype): Data type for the cache tensors.
+    """
+
+    def __init__(
+        self,
+        batch_size: int,
+        max_seq_len: int,
+        num_kv_heads: int,
+        head_dim: int,
+        dtype: torch.dtype,
+    ) -> None:
+        super().__init__()
+
+        # Shape: (B, H, S, D)
+        # B = batch_size, H = num_kv_heads, S = max_seq_len, D = head_dim
+        cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
+
+        # Buffers to hold cached keys and values
+        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+
+        # Tracks positions in the sequence [0, 1, ..., max_seq_len - 1]
+        # Shape: (max_seq_len,)
+        self.register_buffer("cache_pos", torch.arange(0, cache_shape[2]), persistent=False)
+
+        self.batch_size = batch_size
+
+    def reset(self) -> None:
+        """
+        Clears the cache and resets the position to the start.
+        """
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+        self.cache_pos -= self.size  # Resets to 0
+
+    @property
+    def size(self) -> int:
+        """
+        Returns:
+            int: The number of tokens currently stored in the cache.
+        """
+        return self.cache_pos[0].item()
+
+    def update(
+        self, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Appends new key and value tensors to the cache.
+
+        Args:
+            k_val (torch.Tensor): Key tensor of shape (B, H, S_new, D)
+            v_val (torch.Tensor): Value tensor of shape (B, H, S_new, D)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: 
+                Updated caches:
+                    - k_cache: Tensor of shape (B, H, max_seq_len, D)
+                    - v_cache: Tensor of shape (B, H, max_seq_len, D)
+
+        Raises:
+            ValueError: If the new batch size exceeds the initialized batch size.
+            AssertionError: If adding the new sequence would exceed max_seq_len.
+        """
+        bsz, _, seq_len, _ = k_val.shape  # (B, H, S_new, D)
+
+        # Ensure incoming batch size fits the allocated cache
+        if bsz > self.k_cache.shape[0]:
+            raise ValueError(
+                f"The current cache has a batch size of {self.k_cache.shape[0]}, "
+                f"but received input with batch size {k_val.shape[0]}"
+            )
+
+        # Ensure there's enough room in the cache for the new entries
+        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
+
+        # Reference to the current key and value caches
+        k_out = self.k_cache  # Shape: (B, H, max_seq_len, D)
+        v_out = self.v_cache  # Shape: (B, H, max_seq_len, D)
+
+        # Write new keys and values at the current cache position
+        # Write into: [:, :, current_pos:current_pos+seq_len]
+        k_out[:bsz, :, self.cache_pos[:seq_len]] = k_val
+        v_out[:bsz, :, self.cache_pos[:seq_len]] = v_val
+
+        # Advance the cache position by the number of new tokens
+        self.cache_pos.add_(seq_len)
+
+        return k_out, v_out
+
 
 class GPT(nn.Module):
-    """A GPT-like transformer model with support for multiple architectures.
+    """
+    A GPT-like transformer model, designed as a decoder-only architecture.
+    This model supports various configurations and can be easily extended for different GPT-like models.
     
     Attributes:
-        wte (nn.Embedding): Token embeddings
-        wpe (nn.Embedding): Position embeddings (if enabled)
-        transformer (nn.ModuleDict): Stack of transformer blocks
-        ln_f (nn.Module): Final layer norm
-        lm_head (nn.Linear): Output projection
+    ----------
+    config: Config
+        Configuration object that contains hyperparameters for the model such as 
+        vocabulary size, embedding dimensions, number of layers, etc.
+    lm_head: nn.Linear
+        Linear layer that maps the embedding space to the vocabulary space for output logits.
+    wte: nn.Embedding
+        Token embedding layer that converts token IDs into dense vector representations.
+    wpe: nn.Embedding
+        Position embedding layer used to encode the position of tokens in the sequence (specific to GPT-2).
+    transformer: nn.ModuleDict
+        A dictionary of transformer blocks (decoder layers), each block is a separate module.
+    ln_f: nn.Module
+        Final layer normalization applied after all transformer blocks.
     """
     
     def __init__(self, config: Config) -> None:
+        """
+        Initialize the GPT model.
+
+        Parameters:
+        -----------
+        config: Config
+            Configuration object containing hyperparameters for the model, such as 
+            vocabulary size, embedding dimensions, number of layers, etc.
+        """
         super().__init__()
         self.config = config
-        
-        # Validate crucial parameters
-        assert hasattr(config, 'padded_vocab_size'), "Config must specify padded_vocab_size"
-        assert hasattr(config, 'n_embd'), "Config must specify n_embd"
-        if config.use_learned_pos_emb and config.use_rope:
-            raise ValueError("Cannot combine learned positional embeddings and RoPE")
 
-        # Embedding layers
+        # Validate configuration
+        if not hasattr(config, 'padded_vocab_size'):
+            raise ValueError("Config must specify 'padded_vocab_size'.")
+        if not hasattr(config, 'n_embd'):
+            raise ValueError("Config must specify 'n_embd'.")
+
+        # Linear layer to map from embedding size to vocabulary size for output logits (language modeling)
+        self.lm_head = nn.Linear(
+            config.n_embd, config.padded_vocab_size, bias=config.lm_head_bias
+            )
+
+        # Embedding layer for token IDs (converts tokens to embeddings of size n_embd)
         self.wte = nn.Embedding(config.padded_vocab_size, config.n_embd)
-        if config.use_learned_pos_emb:
+        
+        # GPT-2 specific: position embeddings (maps sequence positions to embeddings of size n_embd)
+        if config.name == "gpt2":
             self.wpe = nn.Embedding(config.block_size, config.n_embd)
-            
-        # Output projection with optional weight tying
-        self.lm_head = nn.Linear(config.n_embd, config.padded_vocab_size, 
-                               bias=config.lm_head_bias)
-        if config.tie_weights:
-            assert self.lm_head.weight.shape == self.wte.weight.shape, \
-                "Embedding and head dimensions must match for weight tying"
-            self.lm_head.weight = self.wte.weight
 
-        # Transformer blocks
-        self.transformer = nn.ModuleDict({
-            f"block_{i}": Block(config, i) for i in range(config.n_layer)
-        })
+        # Transformer blocks (decoder layers)
+        # A ModuleDict to store multiple transformer blocks, each one being an individual layer
+        self.transformer = nn.ModuleDict(
+            {f"block_{block_idx}": Block(config, block_idx) for block_idx in range(config.n_layer)}
+        )
+
+        # Final layer normalization before output
         self.ln_f = config.norm_class(config.n_embd, eps=config.norm_eps)
+        
+        # KV cache for autoregressive decoding (initialized to None)
+        self.kv_cache = None
 
-        # Initialization
-        self.apply(self._init_weights)
-        if getattr(config, 'init_method', None) == 'trunc_normal':
-            self._apply_trunc_normal_init()
+    def initialize_kv_cache(self, batch_size: int, max_seq_len: int, dtype=torch.float32) -> None:
+        """
+        Initialize the key-value cache for autoregressive generation.
+        
+        Parameters:
+        -----------
+        batch_size: int
+            Batch size for inference.
+        max_seq_len: int
+            Maximum sequence length (context length).
+        dtype: torch.dtype
+            Data type for the cache tensors.
+        """
+        head_dim = self.config.n_embd // self.config.n_head
+        num_kv_heads = self.config.n_query_groups
+        
+        # Create a KV cache for each transformer block
+        for block_idx, block in self.transformer.items():
+            block.attn.initialize_kv_cache(batch_size, max_seq_len, num_kv_heads, head_dim, dtype)
 
-    def _init_weights(self, module):
-        """Initialize weights for linear and embedding layers."""
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-            if isinstance(module, nn.Linear) and module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
+    def forward(self, x: torch.Tensor, use_cache: bool = False) -> torch.Tensor:
+        """
+        Forward pass through the GPT model.
 
-    def _apply_trunc_normal_init(self):
-        """Apply truncated normal initialization to all parameters."""
-        for module in self.modules():
-            if isinstance(module, (nn.Linear, nn.Embedding)):
-                nn.init.trunc_normal_(module.weight, std=0.02)
+        Parameters:
+        -----------
+        x: torch.Tensor
+            Input tensor of shape (batch_size, seq_len), containing token indices.
+        use_cache: bool
+            Whether to use the KV cache for autoregressive inference.
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, T = x.size()
+        Returns:
+        --------
+        logits: torch.Tensor
+            Logits of shape (batch_size, seq_len, vocab_size) representing unnormalized 
+            probabilities for each token in the vocabulary.
+        """
+        B, T = x.size()  # B = batch size, T = sequence length
+
+        # Check if input sequence length is within the allowed block size
         if T > self.config.block_size:
-            raise ValueError(f"Sequence length {T} exceeds block size {self.config.block_size}")
+            raise ValueError(
+                f"Cannot attend to {T} tokens, block size is only {self.config.block_size}. "
+                "This is likely because the input text exceeds the supported context length of this model."
+            )
 
-        # Token embeddings
-        tok_emb = self.wte(x)
-        x = tok_emb
+        # Add token embeddings: Convert token IDs into embeddings of size n_embd
+        token_embeddings = self.wte(x)
 
-        # Position embeddings
-        if self.config.use_learned_pos_emb:
-            pos = torch.arange(0, T, dtype=torch.long, device=x.device)
-            x = x + self.wpe(pos)
+        # If the model is GPT-2, we also need to add position embeddings
+        if self.config.name == "gpt2":
+            # Generate position indices for each token (0, 1, 2, ..., seq_len-1)
+            pos = torch.arange(0, T, dtype=torch.long, device=x.device).unsqueeze(0)
+            # Get position embeddings corresponding to each token's position
+            position_embeddings = self.wpe(pos)
+            # Add the token embeddings with the position embeddings
+            x = token_embeddings + position_embeddings
+        else:
+            # For non-GPT-2 models, only token embeddings are used
+            x = token_embeddings
 
-        # Transformer blocks
+        # Now, pass the tensor through each transformer block (decoder layers)
+        # The output of each block will be passed into the next block
         for block in self.transformer.values():
-            x = block(x)
+            x = block(x, use_cache=use_cache)
 
-        # Final output
-        return self.lm_head(self.ln_f(x))
+        # After passing through all transformer blocks, apply final layer normalization
+        x = self.ln_f(x)
+
+        # The final output logits are produced by applying the lm_head (Linear layer)
+        logits = self.lm_head(x)
+
+        return logits
+        
+    def reset_cache(self) -> None:
+        """Reset the KV cache for all transformer blocks."""
+        for block in self.transformer.values():
+            if hasattr(block.attn, 'kv_cache') and block.attn.kv_cache is not None:
+                block.attn.kv_cache.reset()
+
 
 class Block(nn.Module):
-    """Transformer block implementing both parallel and sequential residuals.
+    """
+    A single transformer block (decoder layer), composed of multi-head self-attention and a position-wise feed-forward network.
     
     Attributes:
-        norm1, norm2 (nn.Module): Pre-attention/MLP normalizations
-        attn (CausalSelfAttention): Attention module
-        mlp (nn.Module): Feed-forward module
+    ----------
+    norm1: nn.Module
+        The normalization layer applied before self-attention.
+    norm2: nn.Module, optional
+        The normalization layer applied before the feed-forward network.
+    attn: CausalSelfAttention
+        The causal self-attention mechanism that performs attention on the input sequence.
+    post_attention_norm: nn.Module
+        Post-attention normalization, applied after the self-attention mechanism.
+    post_mlp_norm: nn.Module
+        Post-MLP normalization, applied after the feed-forward network.
+    mlp: nn.Module
+        The multi-layer perceptron (MLP) component of the transformer block.
     """
     
     def __init__(self, config: Config, block_idx: int) -> None:
-        super().__init__()
-        self.config = config
-        
-        # Normalization layers
-        self.norm1 = config.norm_class(config.n_embd, eps=config.norm_eps)
-        self.norm2 = config.norm_class(config.n_embd, eps=config.norm_eps) 
-             
-        # Attention and MLP
-        self.attn = CausalSelfAttention(config, block_idx)
-        self.mlp = config.mlp_class(config)
-        
-        # Post-normalization layers
-        self.post_attn_norm = (
-            config.norm_class(config.n_embd, eps=config.norm_eps) 
-            if config.post_attention_norm else nn.Identity()
-        )
-        self.post_mlp_norm = (
-            config.norm_class(config.n_embd, eps=config.norm_eps)
-            if config.post_mlp_norm else nn.Identity()
-        )
+        """
+        Initialize a single transformer block (decoder layer).
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        residual = x
+        Parameters:
+        -----------
+        config: Config
+            Configuration object containing hyperparameters for the block, such as 
+            embedding dimensions, number of attention heads, etc.
+        block_idx: int
+            The index of the block in the model (used for layer-specific configurations).
+        """
+        super().__init__()
+
+        # Check for unsupported configurations
+        if not config.parallel_residual and config.shared_attention_norm:
+            raise NotImplementedError(
+                "No checkpoint amongst the ones we support uses this configuration"
+                " (non-parallel residual and shared attention norm)."
+            )
         
-        # Attention branch
-        x_norm = self.norm1(x)
-        attn_out = self.attn(x_norm)
-        attn_out = self.post_attn_norm(attn_out)
+        # Layer Normalization before Attention
+        self.norm1 = config.norm_class(config.n_embd, eps=config.norm_eps)
+        
+        # Optional second layer normalization before MLP
+        self.norm2 = None if config.shared_attention_norm else config.norm_class(config.n_embd, eps=config.norm_eps)
+        
+        # Causal self-attention mechanism
+        self.attn = CausalSelfAttention(config, block_idx)
+        
+        # Post-attention normalization
+        self.post_attention_norm = (
+            config.norm_class(config.n_embd, eps=config.norm_eps) if config.post_attention_norm else nn.Identity()
+        )
+        
+        # Post-MLP normalization
+        self.post_mlp_norm = (
+            config.norm_class(config.n_embd, eps=config.norm_eps) if config.post_mlp_norm else nn.Identity()
+        )
+        
+        # Multi-layer Perceptron (MLP) component
+        self.mlp = config.mlp_class(config)
+        self.config = config
+
+    def forward(self, x: torch.Tensor, use_cache: bool = False) -> torch.Tensor:
+        
+        """
+        Non-parallel residual       Parallel residual
+           ┌─ x                     ┌─ x ──────────────────┐             Note: if `shared_attention_norm` is True,
+           │  ↓                     │  ↓                   ↓                   the output from `norm_1` is reused
+           │  norm_1                │  norm_1  ───────►    norm_2
+           │  ↓                     │  ↓                   ↓
+           │  attn                  │  attn                MLP
+           │  ↓                     │  ↓                   ↓
+           |  post_attn_norm        |  post_attn_norm      post_mlp_norm
+           |  ↓                     |  ↓                   ↓
+        ┌─ └► +                     └► + ◄─────────────────┘
+        |     ↓
+        │     norm_2
+        │     ↓
+        │     MLP
+        │     ↓
+        |     post_mlp_norm
+        |     ↓
+        └───► +
+        """
+        # Apply the first normalization
+        x_normed = self.norm1(x)
+
+        # Apply self-attention with optional KV cache
+        attn_out = self.attn(x_normed, use_cache=use_cache)
+
+        # Apply post-attention normalization
+        attn_out = self.post_attention_norm(attn_out)
 
         if self.config.parallel_residual:
-            # Parallel MLP branch
-            mlp_norm = self.norm2(x) if self.norm2 is not None else x
-            mlp_out = self.mlp(mlp_norm)
+            # Shared norm case: use x_normed, otherwise apply norm2
+            x_normed = self.norm2(x) if self.norm2 is not None else x
             
-            # Combine with scaling
-            scale = 1/math.sqrt(2) if self.config.parallel_residual_scale else 1
-            x = residual + (attn_out + mlp_out) * scale
-        else:
-            # Sequential processing
-            x = residual + attn_out
-            x_norm = self.norm2(x) if self.norm2 is not None else x
-            x = x + self.mlp(x_norm)
+            # Apply MLP
+            mlp_out = self.mlp(x_normed)
 
+            # Sum attention and MLP outputs in parallel
+            x = attn_out + mlp_out + x  
+        else:
+            # Standard residual: add attention output first
+            x = x + attn_out
+
+            # Apply second norm if necessary
+            x_normed = self.norm2(x) if self.norm2 is not None else x
+
+            # Apply MLP
+            x = self.mlp(x_normed)
+
+        # Apply post-MLP normalization
         return self.post_mlp_norm(x)
 
+
 class CausalSelfAttention(nn.Module):
-    """Multi-head self attention with support for MHA/MQA/GQA and RoPE."""
+    """
+    Causal Self-Attention layer for the GPT-like model. This layer performs masked self-attention 
+    where each token can only attend to previous tokens in the sequence (causal attention).
     
+    Attributes:
+    ----------
+    config: Config
+        Configuration object containing hyperparameters for the attention mechanism.
+    block_idx: int
+        The index of the block, used for specific layer configurations.
+    kv_cache: Optional[KVCache]
+        Key-value cache for efficient autoregressive decoding.
+    """
     def __init__(self, config: Config, block_idx: int) -> None:
+        """
+        Initialize the Causal Self-Attention layer.
+
+        Parameters:
+        -----------
+        config: Config
+            Configuration object containing hyperparameters such as the number of attention heads and the embedding size.
+        block_idx: int
+            The index of the block for layer-specific configurations.
+        """
         super().__init__()
-        self.config = config
+        self.qkv = nn.Linear(config.n_embd, 
+                             (config.n_head + 2 * config.n_query_groups) * config.head_size,
+                            bias=config.attention_bias or config.bias)
         
-        # QKV projections
-        self.qkv = nn.Linear(
-            config.n_embd, 
-            (config.n_head + 2*config.n_query_groups) * config.head_size,
-            bias=config.attention_bias
-        )
-        self.proj = nn.Linear(config.n_head * config.head_size, config.n_embd, 
-                            bias=config.bias)
-        
-        # Query/key normalization
+        self.proj = nn.Linear(config.n_head * config.head_size, config.n_embd, bias=config.bias)
+
         if config.norm_qk:
-            self.norm_q = config.norm_class(config.head_size * config.n_head, 
-                                           eps=config.norm_eps)
-            self.norm_k = config.norm_class(config.head_size * config.n_query_groups,
-                                           eps=config.norm_eps)
+            self.norm_q = config.norm_class(config.head_size * config.n_head, eps=config.norm_eps)
+            self.norm_k = config.norm_class(config.head_size * config.n_query_groups, eps=config.norm_eps)
+        else:
+            self.norm_q = self.norm_k = None 
+
+        self.config = config
+        self.block_idx = block_idx
+        self.kv_cache = None
         
-        # RoPE initialization
+        # Initialize RoPE frequency computation
         if config.use_rope:
-            self.register_buffer(
-                "freqs_complex",
-                self.pre_compute_freq(config),
-                persistent=False
+            # Pre-compute RoPE frequencies during initialization
+            self.freqs_complex = pre_compute_freq(
+                config=config,
+                context_length=config.block_size,
+                device=None,  # Will be moved to appropriate device during forward pass
+                extra_config=config.rope_scaling if hasattr(config, 'rope_scaling') else None
             )
 
-    def pre_compute_freq(self, config: Config) -> torch.Tensor:
-        """Precompute RoPE frequencies with scaling validation."""
-        head_dim = config.n_embd // config.n_head
-        context_length = config.block_size
+    def initialize_kv_cache(self, batch_size: int, max_seq_len: int, num_kv_heads: int, head_dim: int, dtype: torch.dtype) -> None:
+        """
+        Initialize the key-value cache for this attention layer.
         
-        if getattr(config, 'rope_scaling', None):
-            required = ["original_max_seq_len", "factor", 
-                       "low_freq_factor", "high_freq_factor"]
-            assert all(key in config.rope_scaling for key in required), \
-                "Missing RoPE scaling parameters"
+        Parameters:
+        -----------
+        batch_size: int
+            Batch size for inference.
+        max_seq_len: int
+            Maximum sequence length (context length).
+        num_kv_heads: int
+            Number of key-value heads.
+        head_dim: int
+            Dimension of each attention head.
+        dtype: torch.dtype
+            Data type for the cache tensors.
+        """
+        self.kv_cache = KVCache(batch_size, max_seq_len, num_kv_heads, head_dim, dtype)
 
-        theta = 1.0 / (config.rope_base ** (
-            torch.arange(0, head_dim//2, dtype=torch.float32) / head_dim))
-        freqs = torch.outer(
-            torch.arange(context_length, dtype=torch.float32), 
-            theta
-        )
-        return torch.polar(torch.ones_like(freqs), freqs)
+    def forward(self,
+                x: torch.Tensor,
+                mask: Optional[torch.Tensor] = None,
+                use_cache: bool = False
+    ) -> torch.Tensor:
+        """
+        Forward pass for the causal self-attention layer.
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, T, C = x.size()
+        Parameters:
+        -----------
+        x: torch.Tensor
+            Input tensor of shape (batch_size, seq_len, n_embd).
+        mask: Optional[torch.Tensor]
+            Optional attention mask of shape (1, 1, seq_len, seq_len).
+        use_cache: bool
+            Whether to use KV cache for autoregressive inference.
+
+        Returns:
+        --------
+        torch.Tensor
+            Output tensor of shape (batch_size, seq_len, n_embd).
+        """
+
+        # to use multi-head attention (MHA), set this to `n_head` (default)
+        # to use multi-query attention (MQA), set this to 1
+        # to use grouped-query attention (GQA), set this to a value in between
+        # Example with `n_head=4`
+
+        B, T, C = x.size()  # B = batch size, T = sequence length, C = embedding dimension
+
+        # Compute queries, keys, and values
         qkv = self.qkv(x)
-        
-        # Split QKV
         q_size = self.config.n_head * self.config.head_size
         k_size = v_size = self.config.n_query_groups * self.config.head_size
         q, k, v = qkv.split([q_size, k_size, v_size], dim=-1)
-        
-        # Normalize queries/keys
-        if hasattr(self, 'norm_q'):
-            q, k = self.norm_q(q), self.norm_k(k)
-            
-        # Reshape for attention
-        q = q.view(B, T, self.config.n_head, -1).transpose(1, 2)
-        k = k.view(B, T, self.config.n_query_groups, -1).transpose(1, 2)
-        v = v.view(B, T, self.config.n_query_groups, -1).transpose(1, 2)
-        
-        # Apply RoPE
+
+        # Normalize queries and keys if specified
+        if self.norm_q is not None:
+            q = self.norm_q(q)
+            k = self.norm_k(k)
+
+        # Reshape for multi-head attention
+        q = q.view(B, T, self.config.n_head, self.config.head_size).transpose(1, 2)
+        k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
+        v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
+
+        # Apply RoPE to queries and keys
         if self.config.use_rope:
-            q, k = apply_rope(q, self.freqs_complex), apply_rope(k, self.freqs_complex)
-            
-        # Attention computation
-        y = self.scaled_dot_product_attention(q, k, v)
-        y = y.transpose(1, 2).contiguous().view(B, T, -1)
+            if self.freqs_complex.device != q.device:
+                self.freqs_complex = self.freqs_complex.to(q.device)
+            q = apply_rope(q, self.freqs_complex)
+            k = apply_rope(k, self.freqs_complex)
+
+        # Handle KV caching for autoregressive generation
+        if use_cache and self.kv_cache is not None:
+            # During autoregressive generation with cache, only the last token needs attention
+            if self.kv_cache.size > 0:
+                # Use the cached keys and values and only compute attention for the new token
+                k_cache, v_cache = self.kv_cache.update(k, v)
+                
+                # Create attention mask for cached + new tokens
+                cache_size = self.kv_cache.size
+                # Only the new token (last position) needs to attend to all previous tokens
+                if mask is None and self.config.causal_attention:
+                    # Create a mask where the new token can attend to all cached tokens
+                    # Shape: (1, 1, 1, cache_size)
+                    mask = torch.zeros(1, 1, 1, cache_size, dtype=torch.bool, device=q.device)
+                
+                # Use scaled dot product attention with cached keys and values
+                y = self.scaled_dot_product_attention(q, k_cache[:, :, :cache_size], v_cache[:, :, :cache_size], mask)
+            else:
+                # First token - initialize cache
+                self.kv_cache.update(k, v)
+                
+                # Create causal mask if not provided
+                if mask is None and self.config.causal_attention:
+                    mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
+                    mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, T)
+                
+                # Compute attention
+                y = self.scaled_dot_product_attention(q, k, v, mask)
+        else:
+            # Create causal mask if not provided and causal attention is enabled
+            if mask is None and self.config.causal_attention:
+                mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
+                mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, T)
+
+            # Standard attention computation
+            y = self.scaled_dot_product_attention(q, k, v, mask)
+
+        # Reassemble all head outputs
+        y = y.transpose(1, 2).contiguous().view(B, T, -1)  # Fix: Use -1 to infer the correct dimension
+
+        # Output projection
         return self.proj(y)
 
-    def scaled_dot_product_attention(self, q, k, v):
-        """Attention computation with softcapping and causal mask."""
-        # Validate MQA/GQA setup
-        if self.config.n_query_groups != self.config.n_head:
-            assert self.config.n_head % self.config.n_query_groups == 0, \
-                "n_head must be divisible by n_query_groups"
-            k = k.repeat_interleave(self.config.n_head//self.config.n_query_groups, dim=1)
-            v = v.repeat_interleave(self.config.n_head//self.config.n_query_groups, dim=1)
-            
+
+    def scaled_dot_product_attention(self,
+                                    q: torch.Tensor,
+                                    k: torch.Tensor,
+                                    v: torch.Tensor,
+                                    mask: Optional[torch.Tensor] = None
+                                    ) -> torch.Tensor:
+        """
+        Computes the scaled dot-product attention.
+
+        Args:
+        - q (torch.Tensor): Query tensor of shape (B, nh, T, hs).
+        - k (torch.Tensor): Key tensor of shape (B, nh, T, hs).
+        - v (torch.Tensor): Value tensor of shape (B, nh, T, hs).
+        - mask (Optional[torch.Tensor]): Attention mask of shape (1, 1, T, T) or None.
+
+        Returns:
+        - torch.Tensor: Output tensor of shape (B, nh, T, hs).
+        """
         scale = 1.0 / math.sqrt(self.config.head_size)
-        attn = (q @ k.transpose(-2, -1)) * scale
-        
-        # Softcapping
-        if self.config.attention_logit_softcapping:
-            attn = torch.tanh(attn / self.config.attention_logit_softcapping) \
-                 * self.config.attention_logit_softcapping
-            
-        # Causal mask
-        if self.config.causal_attention:
-            mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
-            attn = attn.masked_fill(mask.unsqueeze(0).unsqueeze(0), float('-inf'))
-            
-        attn = F.softmax(attn, dim=-1, dtype=torch.float32).to(q.dtype)
-        return attn @ v
 
-class RMSNorm(nn.Module):
-    """RMS Normalization with optional unit offset."""
+        if self.config.n_query_groups != self.config.n_head:
+        # Repeat keys and values to match the number of heads
+            repeat_factor = self.config.n_head // self.config.n_query_groups
+            k = k.repeat_interleave(repeat_factor, dim=1)
+            v = v.repeat_interleave(repeat_factor, dim=1)
+
+        if self.config.attention_logit_softcapping is not None:
+            atten_score = q @ k.transpose(-1, -2) * scale
+            capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
+            if mask is not None:
+                capped_score = capped_score.masked_fill(mask, float("-inf"))
+            scores = F.softmax(capped_score, dim=-1, dtype=torch.float32).to(dtype=q.dtype)
+            y = scores @ v
+        else:
+            y = F.scaled_dot_product_attention(
+                q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None and self.config.causal_attention
+            )
+        return y
     
-    def __init__(self, dim: int, eps: float = 1e-6, add_unit_offset: bool = False):
-        super().__init__()
-        self.eps = eps
-        self.add_unit_offset = add_unit_offset
-        self.weight = nn.Parameter(torch.ones(dim))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_norm = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
-        return (x_norm * (1 + self.weight) if self.add_unit_offset 
-               else x_norm * self.weight).type_as(x)
 
-class GptMLP(nn.Module):
-    """GPT-style MLP with activation flexibility."""
-    
-    def __init__(self, config):
-        super().__init__()
-        self.fc = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)
-        self.proj = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)
-        self.act = self._get_activation(config.activation)
-        
-        # GELU approximation handling
-        self.gelu_approx = getattr(config, 'gelu_approx', 'none')
+def softcapping(x: torch.Tensor, thresh: float) -> torch.Tensor:
+    """
+    Apply softcapping to the input tensor to prevent extreme values.
 
-    def _get_activation(self, name: str):
-        if name == 'gelu':
-            return lambda x: F.gelu(x, approximate=self.gelu_approx)
-        assert hasattr(F, name), f"Unsupported activation: {name}"
-        return getattr(F, name)
+    Args:
+    - x (torch.Tensor): Input tensor.
+    - thresh (float): Threshold for softcapping.
 
-    def forward(self, x):
-        return self.proj(self.act(self.fc(x)))
+    Returns:
+    - torch.Tensor: Softcapped tensor.
+    """
+    return torch.tanh(x / thresh) * thresh
 
-class LLaMAMLP(nn.Module):
-    """LLaMA-style MLP with SiLU gating."""
-    
-    def __init__(self, config):
-        super().__init__()
-        self.gate = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)
-        self.up = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)
-        self.down = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)
 
-    def forward(self, x):
-        return self.down(F.silu(self.gate(x)) * self.up(x))
+def pre_compute_freq(config, context_length=None, base=10000.0, device=None, extra_config=None):
+    """
+    Pre-compute frequency matrix for Rotary Position Encoding (RoPE).
 
-class KVCache(nn.Module):
-    """Efficient KV Cache for autoregressive decoding."""
-    
-    def __init__(self, batch_size: int, max_seq_len: int, 
-                num_kv_heads: int, head_dim: int, dtype: torch.dtype):
-        super().__init__()
-        self.register_buffer("k_cache", torch.zeros(
-            (batch_size, num_kv_heads, max_seq_len, head_dim), dtype=dtype), 
-            persistent=False)
-        self.register_buffer("v_cache", torch.zeros(
-            (batch_size, num_kv_heads, max_seq_len, head_dim), dtype=dtype),
-            persistent=False)
-        self.register_buffer("cache_pos", torch.tensor(0, dtype=torch.long))
+    Args:
+        config: Configuration object containing model parameters.
+        context_length: Maximum sequence length to pre-compute (defaults to config.context_length).
+        base: Base value for frequency computation (default: 10000.0).
+        device: Torch device to place tensors on.
+        extra_config: Optional dictionary for advanced RoPE configuration.
 
-    def update(self, k_val: torch.Tensor, v_val: torch.Tensor):
-        seq_len = k_val.size(2)
-        remaining = self.k_cache.size(2) - self.cache_pos.item()
-        assert seq_len <= remaining, f"Cache overflow: {seq_len} > {remaining}"
-        
-        start = self.cache_pos.item()
-        end = start + seq_len
-        
-        self.k_cache[:, :, start:end] = k_val
-        self.v_cache[:, :, start:end] = v_val
-        self.cache_pos += seq_len
-        
-        return self.k_cache[:, :, :end], self.v_cache[:, :, :end]
+    Returns:
+        torch.Tensor: Complex tensor of shape [context_length, head_dim // 2].
+    """
+    head_dim = config.n_embd // config.n_head  # Scalar
+    context_length = context_length or config.block_size  # Scalar
 
-    def reset(self):
-        self.k_cache.zero_()
-        self.v_cache.zero_()
-        self.cache_pos.zero_()
+    # Compute the inverse frequency tensor
+    theta_idx = torch.arange(0, head_dim // 2, dtype=torch.float32, device=device)  # Shape: [head_dim // 2]
+    inv_freq = 1.0 / (base ** (2 * theta_idx / head_dim))  # Shape: [head_dim // 2]
 
-def apply_rope(x: torch.Tensor, freqs_complex: torch.Tensor) -> torch.Tensor:
-    """Apply RoPE to input tensor."""
-    x_complex = torch.view_as_complex(x.float().reshape(*x.shape[:-1], -1, 2))
-    rotated = x_complex * freqs_complex[:x.size(2)].unsqueeze(0).unsqueeze(0)
-    return torch.view_as_real(rotated).flatten(-2).type_as(x)
+    if extra_config is not None:
+        orig_context_len = extra_config["original_max_seq_len"]
+        factor = extra_config["factor"]
+        low_freq_factor = extra_config["low_freq_factor"]
+        high_freq_factor = extra_config["high_freq_factor"]
+
+        # Compute wavelength and adjusted frequencies
+        wavelen = 2 * torch.pi / inv_freq  # Shape: [head_dim // 2]
+        low_wavelength = orig_context_len / low_freq_factor  # Scalar
+        high_wavelength = orig_context_len / high_freq_factor  # Scalar
+
+        inv_freq_adj = torch.where(wavelen > low_wavelength, inv_freq / factor, inv_freq)  # Shape: [head_dim // 2]
+        smooth_factor = ((orig_context_len / wavelen) - low_freq_factor) / (high_freq_factor - low_freq_factor)  # Shape: [head_dim // 2]
+        smooth_factor = torch.clamp(smooth_factor, 0.0, 1.0)  # Shape: [head_dim // 2]
+
+        smoothed_inv_freq = (1 - smooth_factor) * (inv_freq / factor) + smooth_factor * inv_freq  # Shape: [head_dim // 2]
+        is_medium = (wavelen <= low_wavelength) & (wavelen >= high_wavelength)  # Shape: [head_dim // 2]
+        inv_freq = torch.where(is_medium, smoothed_inv_freq, inv_freq_adj)  # Shape: [head_dim // 2]
+
+    # Compute frequency matrix
+    positions = torch.arange(context_length, dtype=torch.float32, device=device)  # Shape: [context_length]
+    freq = torch.outer(positions, inv_freq)  # Shape: [context_length, head_dim // 2]
+
+    # Return complex tensor for RoPE
+    return torch.polar(torch.ones_like(freq), freq)  # Shape: [context_length, head_dim // 2]
+
+
+def apply_rope(x, freqs_complex):
+    """
+    Apply Rotary Position Encoding to input tensor.
+
+    Args:
+        x: Input tensor of shape [batch, heads, seq_len, head_dim].
+        freqs_complex: Pre-computed complex rotation matrix from pre_compute_freq.
+
+    Returns:
+        torch.Tensor: Tensor with rotary position encoding applied, same shape as x.
+    """
+    batch, heads, seq_len, head_dim = x.shape  # [batch, heads, seq_len, head_dim]
+
+    # Extract relevant sequence length from precomputed frequencies
+    freqs_complex = freqs_complex[:seq_len].unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, seq_len, head_dim // 2]
+
+    orig_dtype = x.dtype
+    if x.dtype != torch.float32:
+        x = x.float()
+
+    # Reshape input to complex form
+    x_reshape = x.reshape(*x.shape[:-1], -1, 2)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
+    x_complex = torch.view_as_complex(x_reshape)  # Shape: [batch, heads, seq_len, head_dim // 2]
+
+    # Apply rotation
+    x_rotate = x_complex * freqs_complex  # Shape: [batch, heads, seq_len, head_dim // 2]
+
+    # Convert back to real representation
+    x_rotate = torch.view_as_real(x_rotate)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
