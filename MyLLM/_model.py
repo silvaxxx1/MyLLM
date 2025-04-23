@@ -251,10 +251,11 @@ class Block(nn.Module):
 
         if self.config.parallel_residual:
             # Shared norm case: use x_normed, otherwise apply norm2
-            x_normed = self.norm2(x) if self.norm2 is not None else x
+            mlp_norm_input = x_normed if self.norm2 is None else self.norm2(x)
             
             # Apply MLP
-            mlp_out = self.mlp(x_normed)
+            mlp_out = self.mlp(mlp_norm_input)
+            mlp_out = self.post_mlp_norm(mlp_out)
 
             # Sum attention and MLP outputs in parallel
             x = attn_out + mlp_out + x  
@@ -266,10 +267,13 @@ class Block(nn.Module):
             x_normed = self.norm2(x) if self.norm2 is not None else x
 
             # Apply MLP
-            x = self.mlp(x_normed)
+            mlp_out = self.mlp(x_normed)
+            mlp_out = self.post_mlp_norm(mlp_out)
 
-        # Apply post-MLP normalization
-        return self.post_mlp_norm(x)
+            # Add MLP output to the running sum
+            x = x + mlp_out
+
+        return x
 
 
 class CausalSelfAttention(nn.Module):
@@ -389,6 +393,14 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
         v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
 
+        # for debugging
+        print(f"Input x shape: {x.shape}")
+        print(f"Query (q) shape: {q.shape}")
+        print(f"Key (k) shape: {k.shape}")
+        print(f"Value (v) shape: {v.shape}")
+        print(f"Mask shape: {mask.shape if mask is not None else 'None'}")
+
+
         # Apply RoPE to queries and keys
         if self.config.use_rope:
             if self.freqs_complex.device != q.device:
@@ -451,8 +463,8 @@ class CausalSelfAttention(nn.Module):
 
         Args:
         - q (torch.Tensor): Query tensor of shape (B, nh, T, hs).
-        - k (torch.Tensor): Key tensor of shape (B, nh, T, hs).
-        - v (torch.Tensor): Value tensor of shape (B, nh, T, hs).
+        - k (torch.Tensor): Key tensor of shape (B, nh_kv, T, hs).
+        - v (torch.Tensor): Value tensor of shape (B, nh_kv, T, hs).
         - mask (Optional[torch.Tensor]): Attention mask of shape (1, 1, T, T) or None.
 
         Returns:
@@ -460,22 +472,36 @@ class CausalSelfAttention(nn.Module):
         """
         scale = 1.0 / math.sqrt(self.config.head_size)
 
+        # GQA/MQA implementation - repeat keys and values to match the number of query heads
         if self.config.n_query_groups != self.config.n_head:
-        # Repeat keys and values to match the number of heads
+            # Repeat keys and values to match the number of heads
             repeat_factor = self.config.n_head // self.config.n_query_groups
             k = k.repeat_interleave(repeat_factor, dim=1)
             v = v.repeat_interleave(repeat_factor, dim=1)
 
+        # Handle logit softcapping if configured
         if self.config.attention_logit_softcapping is not None:
-            atten_score = q @ k.transpose(-1, -2) * scale
+            # Calculate attention scores with scaling
+            atten_score = torch.matmul(q, k.transpose(-1, -2)) * scale
+            # Apply softcapping to the scores
             capped_score = softcapping(atten_score, self.config.attention_logit_softcapping)
+            # Apply mask if provided
             if mask is not None:
+                # Set masked positions to -inf
                 capped_score = capped_score.masked_fill(mask, float("-inf"))
+            # Apply softmax to get attention weights
             scores = F.softmax(capped_score, dim=-1, dtype=torch.float32).to(dtype=q.dtype)
-            y = scores @ v
+            # Apply attention weights to values
+            y = torch.matmul(scores, v)
         else:
+            # Use torch's built-in SDPA function when available
+            # This is a more efficient implementation
             y = F.scaled_dot_product_attention(
-                q, k, v, attn_mask=mask, dropout_p=0.0, scale=scale, is_causal=mask is None and self.config.causal_attention
+                q, k, v, 
+                attn_mask=None if mask is None else ~mask,  # Note the inversion of the mask
+                dropout_p=0.0, 
+                scale=scale, 
+                is_causal=mask is None and self.config.causal_attention
             )
         return y
     
@@ -573,7 +599,6 @@ def apply_rope(x, freqs_complex):
     # Convert back to real representation
     x_rotate = torch.view_as_real(x_rotate)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
     return x_rotate.reshape(*x.shape).to(orig_dtype)  # Shape: [batch, heads, seq_len, head_dim]
-
 
 
 
@@ -781,4 +806,68 @@ class LLaMAMLP(nn.Module):
         x_fc_2 = self.fc_2(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
         x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
         return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
+
+
+def test_model(use_gpu: bool = True):
+    """Test the model with a small test configuration based on LLaMA architecture"""
+    print("\nTesting model configuration...")
+    
+    # Initialize the configuration, ensuring n_query_groups == n_head
+    config2 = Config.from_name("gpt2-small")
+    
+    
+    # Select device
+    if use_gpu and torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Testing on GPU...")
+    else:
+        device = torch.device("cpu")
+        print("Testing on CPU...")
+    
+    # Initialize model
+    model2 = GPT(config2).to(device)
+    print(f"Model initialized successfully on {device}")
+    
+    print(f"Config after initialization: {config2}")
+
+    # Test with small batch
+    batch_size = 2
+    seq_len = 16
+        
+    # Create random input
+    input_ids = torch.randint(
+            0, config2.vocab_size, 
+            (batch_size, seq_len),
+            device=device
+        )
+        
+    
+    # Initialize KV cache
+    model2.initialize_kv_cache(batch_size=batch_size, max_seq_len=seq_len)
+        
+    # Test forward pass
+    with torch.no_grad():
+        # Regular forward pass
+        output = model2(input_ids)
+        print(f"Forward pass shape: {output.shape}")
+        
+        # Test autoregressive generation
+        print("\nTesting autoregressive generation...")
+        for i in range(3):  # Generate 3 tokens
+            single_token = torch.randint(
+                0, config2.vocab_size, 
+                (1, 1),
+                device=device
+            )
+            output = model2(single_token)
+
+            # You may want to reset cache between autoregressive generations
+            model2.reset_cache()
+                
+    print("\nModel testing complete.")
+
+if __name__ == "__main__":
+    test_model(use_gpu=True)
+
+    
 

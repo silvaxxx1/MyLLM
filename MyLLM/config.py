@@ -77,12 +77,15 @@ Example configurations include:
 The `Config` class is designed for managing large-scale transformer models with flexible settings, allowing easy integration into training pipelines.
 
 """
-# config.py
 
 from dataclasses import dataclass, field
 from typing import Optional, Any, Dict, Literal, Type
 import json
 import torch
+import logging
+
+# Set up logging configuration
+logging.basicConfig(level=logging.WARNING)  # This suppresses info level messages
 
 @dataclass
 class Config:
@@ -113,7 +116,7 @@ class Config:
     parallel_residual: bool = False
     shared_attention_norm: bool = False
     norm_eps: float = 1e-5
-    n_query_groups: int = 32
+    n_query_groups: Optional[int] = None  # Default value; will be updated in __post_init__ if necessary
     norm_qk: bool = False
     use_rope: bool = False
     rope_base: int = 10000
@@ -122,6 +125,8 @@ class Config:
     softcapping_threshold: Optional[float] = None
     attention_logit_softcapping: Optional[float] = None
     post_attention_norm: bool = False
+    weight_tying = True  # Whether to tie the weights of lm_head and token embeddings
+    learnable_pos_emb = True  # Whether to use learnable positional embeddings
 
     dropout: float = 0.1
     learning_rate: float = 3e-4
@@ -138,6 +143,8 @@ class Config:
             self.head_size = self.n_embd // self.n_head
         if self.mlp_hidden_size is None:
             self.mlp_hidden_size = int(self.n_embd * self.mlp_ratio)
+        if self.n_query_groups is None:
+            self.n_query_groups = self.n_head  # Ensure n_query_groups is equal to n_head
         self.validate()
 
     def __repr__(self):
@@ -168,13 +175,50 @@ class Config:
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
         assert self.block_size > 0, "block_size must be positive"
         assert self.mlp_ratio > 0, "mlp_ratio must be positive"
-        print("✅ All checks passed.")
+        # Removed the print statement here
+        # logging.info("✅ All checks passed.")  # Use logging instead of print
+
+    def estimate_memory(self, batch_size: int = 1, dtype: torch.dtype = torch.float32) -> Dict[str, float]:
+        """Estimate memory usage in GB"""
+        bytes_per_param = 4 if dtype == torch.float32 else 2  # float32 vs float16/bfloat16
+        
+        # Parameter memory
+        n_params = (
+            self.n_layer * (
+                # Self-attention
+                4 * self.n_embd * self.n_embd +  # QKV + output projection
+                # MLP
+                2 * self.n_embd * self.mlp_hidden_size +
+                self.mlp_hidden_size * self.n_embd
+            ) +
+            # Embeddings
+            self.vocab_size * self.n_embd +
+            # Layer norms
+            4 * self.n_layer * self.n_embd
+        )
+        param_memory = n_params * bytes_per_param / 1024**3  # Convert to GB
+        
+        # Activation memory (rough estimate)
+        activation_memory = (
+            batch_size * self.block_size * self.n_embd * 
+            self.n_layer * 4 * bytes_per_param / 1024**3
+        )
+        
+        return {
+            "parameters_gb": param_memory,
+            "activations_gb": activation_memory,
+            "total_gb": param_memory + activation_memory,
+            "n_parameters": n_params
+        }
 
     @classmethod
     def from_name(cls, name: str):
         if name not in name_to_config:
             raise ValueError(f"Config with name {name} not found.")
-        return cls(**name_to_config[name])
+        config = cls(**name_to_config[name])
+        config.__post_init__()  # ✅ Ensure all derived fields are set
+        return config
+
 
     @classmethod
     def available_configs(cls):
@@ -206,8 +250,8 @@ name_to_config = {
         dict(name="llama2-13b", block_size=4096, vocab_size=32000, n_layer=40, n_head=40, n_embd=5120, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
         dict(name="llama3-1b", block_size=8192, vocab_size=128256, n_layer=24, n_head=16, n_embd=2048, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
         dict(name="llama3-3b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=3072, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-        dict(name="llama3-8b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-        dict(name="llama3-70b", block_size=8192, vocab_size=128256, n_layer=80, n_head=64, n_embd=8192, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-        dict(name="gpt-neox-125m", block_size=2048, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", scale_embeddings=True),
+        dict(name="llama3-8b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5)
     ]
 }
+
+
