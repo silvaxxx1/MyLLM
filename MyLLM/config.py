@@ -77,51 +77,45 @@ Example configurations include:
 The `Config` class is designed for managing large-scale transformer models with flexible settings, allowing easy integration into training pipelines.
 
 """
+# config.py
 
-
-# Import statements
 from dataclasses import dataclass, field
-from typing import Optional, Any, Dict , Literal , Type
+from typing import Optional, Any, Dict, Literal, Type
 import json
-from pathlib import Path 
-import torch 
+import torch
 
 @dataclass
 class Config:
-    # Core parameters
-    name: str = ""  # Name of the model configuration
-    block_size: int = 1024  # Size of each block (sequence length)
-    vocab_size: int = 50257  # Number of tokens in the vocabulary
-    padded_vocab_size: Optional[int] = None  # Padded vocabulary size (if applicable)
-    n_layer: int = 12  # Number of transformer layers
-    n_head: int = 12  # Number of attention heads
-    n_embd: int = 768  # Dimensionality of embeddings
-    eps: float = 1e-5  # Small epsilon for numerical stability
-    head_size: Optional[int] = None  # Size of each attention head
+    name: str = ""
+    block_size: int = 1024
+    vocab_size: int = 50257
+    padded_vocab_size: Optional[int] = None
+    n_layer: int = 12
+    n_head: int = 12
+    n_embd: int = 768
+    eps: float = 1e-5
+    head_size: Optional[int] = None
 
-    # Architecture variations
-    norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm"  # Type of normalization layer used (LayerNorm or RMSNorm)
-    activation: str = "gelu"  # Activation function (gelu, relu, etc.)
-    mlp_class_name: Literal["GptNeoxMLP", "LLaMAMLP", "GemmaMLP", "LLaMAMoE"] = "GptNeoxMLP"
-    scale_embeddings: bool = False  # Whether to scale embeddings by sqrt(d_model)
-    mlp_ratio: float = 4.0  # Ratio of hidden dimension to embedding dimension in the MLP
+    norm_class_name: Literal["LayerNorm", "RMSNorm"] = "LayerNorm"
+    activation: str = "gelu"
+    mlp_class_name: Literal["GptNeoxMLP", "LLaMAMLP", "GemmaMLP", "LLaMAMoE", "GptMLP"] = "GptNeoxMLP"
+    scale_embeddings: bool = False
+    mlp_ratio: float = 4.0
     lm_head_bias: bool = False
-    attention_bias: bool = False  # Whether to use attention bias
+    attention_bias: bool = False
     bias: bool = False
     mlp_hidden_size: Optional[int] = None
     post_mlp_norm: bool = False
     gelu_approx: str = "none"
 
-
-    causal_attention : bool = True  
-
-    rotary_percentage: float = 0.0  # Percentage for rotary embeddings (specific to LLaMA models)
-    parallel_residual: bool = False  # Whether to use parallel residual connections (specific to LLaMA)
-    shared_attention_norm: bool = False  # Whether to use shared attention norm (specific to LLaMA)
-    norm_eps: float = 1e-5  # Small epsilon for normalization (specific to LLaMA)
-    n_query_groups: int = 32  # Number of query groups (specific to LLaMA)
-    norm_qk: bool = False  # Whether to use normalized queries and keys
-    use_rope: bool = False  # Whether to use rope embeddings
+    causal_attention: bool = True
+    rotary_percentage: float = 0.0
+    parallel_residual: bool = False
+    shared_attention_norm: bool = False
+    norm_eps: float = 1e-5
+    n_query_groups: int = 32
+    norm_qk: bool = False
+    use_rope: bool = False
     rope_base: int = 10000
 
     attention_scores_scalar: Optional[int] = None
@@ -129,52 +123,38 @@ class Config:
     attention_logit_softcapping: Optional[float] = None
     post_attention_norm: bool = False
 
-    # Hyperparameter
-    dropout: float = 0.1  # Dropout rate for regularization
-    bias: bool = False  # Whether to use bias terms in layers
-    learning_rate: float = 3e-4  # Learning rate for training
-    weight_decay: float = 0.1  # Weight decay for regularization
-    beta1: float = 0.9  # First momentum term for Adam optimizer
-    beta2: float = 0.999  # Second momentum term for Adam optimizer
+    dropout: float = 0.1
+    learning_rate: float = 3e-4
+    weight_decay: float = 0.1
+    beta1: float = 0.9
+    beta2: float = 0.999
 
-    # Extra parameters for flexibility
-    extra_params: Dict[str, Any] = field(default_factory=dict)  # To store any extra parameters
+    extra_params: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-    # Ensure that padded_vocab_size is set if not provided
         if self.padded_vocab_size is None:
             self.padded_vocab_size = self.vocab_size
-
-        # Ensure that head_size is set if not provided
         if self.head_size is None:
-            self.head_size = self.n_embd // self.n_head  # Default to n_embd // n_head
-
-        # Ensure that mlp_hidden_size is set if not provided
+            self.head_size = self.n_embd // self.n_head
         if self.mlp_hidden_size is None:
-            self.mlp_hidden_size = int(self.n_embd * self.mlp_ratio)  # Default to n_embd * mlp_ratio
-
-        # Validate the configuration parameters after initialization
+            self.mlp_hidden_size = int(self.n_embd * self.mlp_ratio)
         self.validate()
 
     def __repr__(self):
-        # Return a string representation of the config with key-value pairs
         params = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
         return f"Config({params})"
 
     def save(self, file_path: str):
-        """Save the configuration to a JSON file."""
         with open(file_path, "w") as f:
             json.dump(self.__dict__, f, indent=4)
 
     @classmethod
     def load(cls, file_path: str):
-        """Load the configuration from a JSON file."""
         with open(file_path, "r") as f:
             data = json.load(f)
         return cls(**data)
 
     def update(self, **kwargs):
-        """Update the configuration with new key-value pairs."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -182,95 +162,52 @@ class Config:
                 print(f"Warning: Invalid config key '{key}', skipping update.")
 
     def get_trainable_params(self):
-        """Get a dictionary of trainable parameters (those that are int, float, or bool)."""
         return {k: v for k, v in self.__dict__.items() if isinstance(v, (int, float, bool))}
 
     def validate(self):
-        """Validate the configuration parameters."""
-        # Ensure that n_embd is divisible by n_head for correct attention behavior
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
-        # Ensure that block_size is positive
         assert self.block_size > 0, "block_size must be positive"
-        # Ensure that mlp_ratio is positive for proper scaling of the MLP layers
         assert self.mlp_ratio > 0, "mlp_ratio must be positive"
         print("✅ All checks passed.")
 
     @classmethod
-    def available_configs(cls):
-        """Return the list of available configurations by accessing the global configuration registry."""
-        return list(name_to_config.keys())
-
-    @classmethod
     def from_name(cls, name: str):
-        """Create a Config instance from a configuration name."""
         if name not in name_to_config:
             raise ValueError(f"Config with name {name} not found.")
         return cls(**name_to_config[name])
 
+    @classmethod
+    def available_configs(cls):
+        return list(name_to_config.keys())
+
     @property
     def mlp_class(self) -> Type:
-        """
-        Dynamically resolves the MLP class based on `mlp_class_name`.
-        """
-        import model  # Import the module where MLP classes are defined
+        import model
         return getattr(model, self.mlp_class_name)
 
     @property
     def norm_class(self) -> Type:
-        """
-        Dynamically resolves the normalization class based on `norm_class_name`.
-        Supports only `LayerNorm` and `RMSNorm`.
-        """
         if self.norm_class_name == "RMSNorm":
-            from model import RMSNorm  # Import RMSNorm from the appropriate module
-            return RMSNorm  # Return the RMSNorm class directly
-
+            from model import RMSNorm
+            return RMSNorm
         if self.norm_class_name == "LayerNorm":
-            return torch.nn.LayerNorm  # Return the LayerNorm class directly
-
+            return torch.nn.LayerNorm
         raise ValueError(f"Unsupported normalization class: {self.norm_class_name}")
-    
-#  google docs string this 
-configs = [
-    # Existing configurations
-    dict(name="gpt2-small", block_size=1024, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
-    dict(name="gpt2-medium", block_size=1024, vocab_size=50257, n_layer=24, n_head=16, n_embd=1024, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
-    dict(name="gpt2-large", block_size=1024, vocab_size=50257, n_layer=36, n_head=20, n_embd=1280, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
-    dict(name="gpt2-xl", block_size=1024, vocab_size=50257, n_layer=48, n_head=25, n_embd=1600, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
-    
-    dict(name="llama2-7b", block_size=4096, vocab_size=32000, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="llama2-13b", block_size=4096, vocab_size=32000, n_layer=40, n_head=40, n_embd=5120, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    
-    dict(name="llama3-1b", block_size=8192, vocab_size=128256, n_layer=24, n_head=16, n_embd=2048, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="llama3-3b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=3072, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="llama3-8b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="llama3-70b", block_size=8192, vocab_size=128256, n_layer=80, n_head=64, n_embd=8192, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
 
-    # New configurations
-    dict(name="gpt-neox-125m", block_size=2048, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="gpt-neox-350m", block_size=2048, vocab_size=50257, n_layer=24, n_head=16, n_embd=1024, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="gpt-neox-1.3b", block_size=2048, vocab_size=50257, n_layer=24, n_head=16, n_embd=2048, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    dict(name="gpt-neox-2.7b", block_size=2048, vocab_size=50257, n_layer=32, n_head=20, n_embd=2560, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
-    
-    dict(name="mistral-7b", block_size=8192, vocab_size=32000, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", activation="silu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-5, n_query_groups=8),
-    dict(name="mistral-13b", block_size=8192, vocab_size=32000, n_layer=40, n_head=40, n_embd=5120, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", activation="silu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-5, n_query_groups=8),
-    
-    dict(name="falcon-7b", block_size=2048, vocab_size=65024, n_layer=32, n_head=32, n_embd=4544, norm_class_name="LayerNorm", mlp_class_name="FalconMLP", activation="gelu", rotary_percentage=0.0, parallel_residual=False, norm_eps=1e-5, n_query_groups=1),
-    dict(name="falcon-40b", block_size=2048, vocab_size=65024, n_layer=60, n_head=64, n_embd=8192, norm_class_name="LayerNorm", mlp_class_name="FalconMLP", activation="gelu", rotary_percentage=0.0, parallel_residual=False, norm_eps=1e-5, n_query_groups=1),
-    
-    dict(name="phi-2", block_size=2048, vocab_size=51200, n_layer=24, n_head=32, n_embd=2560, norm_class_name="LayerNorm", mlp_class_name="PhiMLP", activation="gelu_new", rotary_percentage=0.0, parallel_residual=False, norm_eps=1e-5),
-    dict(name="phi-3", block_size=4096, vocab_size=51200, n_layer=32, n_head=32, n_embd=3072, norm_class_name="LayerNorm", mlp_class_name="PhiMLP", activation="gelu_new", rotary_percentage=0.0, parallel_residual=False, norm_eps=1e-5),
-    
-    dict(name="qwen-7b", block_size=2048, vocab_size=151936, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="QwenMLP", activation="silu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-6),
-    dict(name="qwen-14b", block_size=2048, vocab_size=151936, n_layer=40, n_head=40, n_embd=5120, norm_class_name="RMSNorm", mlp_class_name="QwenMLP", activation="silu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-6),
-    
-    dict(name="gemma-2b", block_size=8192, vocab_size=256000, n_layer=18, n_head=8, n_embd=2048, norm_class_name="RMSNorm", mlp_class_name="GemmaMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-6),
-    dict(name="gemma-7b", block_size=8192, vocab_size=256000, n_layer=28, n_head=16, n_embd=3072, norm_class_name="RMSNorm", mlp_class_name="GemmaMLP", activation="gelu", rotary_percentage=1.0, parallel_residual=False, norm_eps=1e-6),
-    
-    dict(name="llama-moe-7b", block_size=4096, vocab_size=32000, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMoE", activation="silu", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5, num_experts=8),
-    dict(name="hybrid-7b", block_size=4096, vocab_size=32000, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="HybridMLP", activation="gelu", rotary_percentage=0.5, parallel_residual=False, norm_eps=1e-5),
-]
 
-# Create a mapping of model names to configurations
-name_to_config = {config["name"]: config for config in configs}
-
+# Configuration Registry
+name_to_config = {
+    cfg["name"]: cfg for cfg in [
+        dict(name="gpt2-small", block_size=1024, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
+        dict(name="gpt2-medium", block_size=1024, vocab_size=50257, n_layer=24, n_head=16, n_embd=1024, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
+        dict(name="gpt2-large", block_size=1024, vocab_size=50257, n_layer=36, n_head=20, n_embd=1280, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
+        dict(name="gpt2-xl", block_size=1024, vocab_size=50257, n_layer=48, n_head=25, n_embd=1600, norm_class_name="LayerNorm", mlp_class_name="GptMLP", activation="gelu", scale_embeddings=True),
+        dict(name="llama2-7b", block_size=4096, vocab_size=32000, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="llama2-13b", block_size=4096, vocab_size=32000, n_layer=40, n_head=40, n_embd=5120, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="llama3-1b", block_size=8192, vocab_size=128256, n_layer=24, n_head=16, n_embd=2048, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="llama3-3b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=3072, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="llama3-8b", block_size=8192, vocab_size=128256, n_layer=32, n_head=32, n_embd=4096, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="llama3-70b", block_size=8192, vocab_size=128256, n_layer=80, n_head=64, n_embd=8192, norm_class_name="RMSNorm", mlp_class_name="LLaMAMLP", rotary_percentage=1.0, parallel_residual=True, norm_eps=1e-5),
+        dict(name="gpt-neox-125m", block_size=2048, vocab_size=50257, n_layer=12, n_head=12, n_embd=768, norm_class_name="LayerNorm", mlp_class_name="GptNeoxMLP", activation="gelu", scale_embeddings=True),
+    ]
+}

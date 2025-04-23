@@ -19,6 +19,7 @@ from typing import Optional, Tuple
 # Import the configuration class from the config module
 from config import Config 
 
+# GPT Model Class Definition 
 class GPT(nn.Module):
     """
     A GPT-like transformer model, designed as a decoder-only architecture.
@@ -627,11 +628,113 @@ class LLaMAMLP(nn.Module):
         x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
         return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
 
+
+###############################################################################
+# KVCache class # This class is used to cache key-value pairs for efficient attention computation in transformer models.
+# this is impelementation of the KVCache class was inspired heavily by the pytorch implementation of the same class
+# you subtitute this with the  torchtune.modules.kv_cache module
+# this implementation go with the minimalist dependency approach we adopted
+ 
 class KVCache(nn.Module):
-    def __init__(self, config):
+    """
+    A key-value cache module for transformer models to enable efficient autoregressive decoding.
+
+    Stores past key and value tensors and provides an update method to append new entries.
+
+    Args:
+        batch_size (int): Expected batch size during inference.
+        max_seq_len (int): Maximum sequence length (capacity of the cache).
+        num_kv_heads (int): Number of attention heads for keys and values.
+        head_dim (int): Dimensionality of each attention head.
+        dtype (torch.dtype): Data type for the cache tensors.
+    """
+
+    def __init__(
+        self,
+        batch_size: int,
+        max_seq_len: int,
+        num_kv_heads: int,
+        head_dim: int,
+        dtype: torch.dtype,
+    ) -> None:
         super().__init__()
-        
-        pass 
+
+        # Shape: (B, H, S, D)
+        # B = batch_size, H = num_kv_heads, S = max_seq_len, D = head_dim
+        cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
+
+        # Buffers to hold cached keys and values
+        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+
+        # Tracks positions in the sequence [0, 1, ..., max_seq_len - 1]
+        # Shape: (max_seq_len,)
+        self.register_buffer("cache_pos", torch.arange(0, cache_shape[2]), persistent=False)
+
+        self.batch_size = batch_size
+
+    def reset(self) -> None:
+        """
+        Clears the cache and resets the position to the start.
+        """
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+        self.cache_pos -= self.size  # Resets to 0
+
+    @property
+    def size(self) -> int:
+        """
+        Returns:
+            int: The number of tokens currently stored in the cache.
+        """
+        return self.cache_pos[0].item()
+
+    def update(
+        self, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Appends new key and value tensors to the cache.
+
+        Args:
+            k_val (torch.Tensor): Key tensor of shape (B, H, S_new, D)
+            v_val (torch.Tensor): Value tensor of shape (B, H, S_new, D)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: 
+                Updated caches:
+                    - k_cache: Tensor of shape (B, H, max_seq_len, D)
+                    - v_cache: Tensor of shape (B, H, max_seq_len, D)
+
+        Raises:
+            ValueError: If the new batch size exceeds the initialized batch size.
+            AssertionError: If adding the new sequence would exceed max_seq_len.
+        """
+        bsz, _, seq_len, _ = k_val.shape  # (B, H, S_new, D)
+
+        # Ensure incoming batch size fits the allocated cache
+        if bsz > self.k_cache.shape[0]:
+            raise ValueError(
+                f"The current cache has a batch size of {self.k_cache.shape[0]}, "
+                f"but received input with batch size {k_val.shape[0]}"
+            )
+
+        # Ensure there's enough room in the cache for the new entries
+        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
+
+        # Reference to the current key and value caches
+        k_out = self.k_cache  # Shape: (B, H, max_seq_len, D)
+        v_out = self.v_cache  # Shape: (B, H, max_seq_len, D)
+
+        # Write new keys and values at the current cache position
+        # Write into: [:, :, current_pos:current_pos+seq_len]
+        k_out[:, :, self.cache_pos[:seq_len]] = k_val
+        v_out[:, :, self.cache_pos[:seq_len]] = v_val
+
+        # Advance the cache position by the number of new tokens
+        self.cache_pos.add_(seq_len)
+
+        return k_out, v_out
+
 
 def batched_index_copy_(t, dim, idx):
     pass 
