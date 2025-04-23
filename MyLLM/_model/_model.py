@@ -8,107 +8,6 @@ from typing import Optional, Tuple
 # Import the configuration class from the config module
 from config import Config 
 
-class KVCache(nn.Module):
-    """
-    A key-value cache module for transformer models to enable efficient autoregressive decoding.
-
-    Stores past key and value tensors and provides an update method to append new entries.
-
-    Args:
-        batch_size (int): Expected batch size during inference.
-        max_seq_len (int): Maximum sequence length (capacity of the cache).
-        num_kv_heads (int): Number of attention heads for keys and values.
-        head_dim (int): Dimensionality of each attention head.
-        dtype (torch.dtype): Data type for the cache tensors.
-    """
-
-    def __init__(
-        self,
-        batch_size: int,
-        max_seq_len: int,
-        num_kv_heads: int,
-        head_dim: int,
-        dtype: torch.dtype,
-    ) -> None:
-        super().__init__()
-
-        # Shape: (B, H, S, D)
-        # B = batch_size, H = num_kv_heads, S = max_seq_len, D = head_dim
-        cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
-
-        # Buffers to hold cached keys and values
-        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
-        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
-
-        # Tracks positions in the sequence [0, 1, ..., max_seq_len - 1]
-        # Shape: (max_seq_len,)
-        self.register_buffer("cache_pos", torch.arange(0, cache_shape[2]), persistent=False)
-
-        self.batch_size = batch_size
-
-    def reset(self) -> None:
-        """
-        Clears the cache and resets the position to the start.
-        """
-        self.k_cache.zero_()
-        self.v_cache.zero_()
-        self.cache_pos -= self.size  # Resets to 0
-
-    @property
-    def size(self) -> int:
-        """
-        Returns:
-            int: The number of tokens currently stored in the cache.
-        """
-        return self.cache_pos[0].item()
-
-    def update(
-        self, k_val: torch.Tensor, v_val: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Appends new key and value tensors to the cache.
-
-        Args:
-            k_val (torch.Tensor): Key tensor of shape (B, H, S_new, D)
-            v_val (torch.Tensor): Value tensor of shape (B, H, S_new, D)
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: 
-                Updated caches:
-                    - k_cache: Tensor of shape (B, H, max_seq_len, D)
-                    - v_cache: Tensor of shape (B, H, max_seq_len, D)
-
-        Raises:
-            ValueError: If the new batch size exceeds the initialized batch size.
-            AssertionError: If adding the new sequence would exceed max_seq_len.
-        """
-        bsz, _, seq_len, _ = k_val.shape  # (B, H, S_new, D)
-
-        # Ensure incoming batch size fits the allocated cache
-        if bsz > self.k_cache.shape[0]:
-            raise ValueError(
-                f"The current cache has a batch size of {self.k_cache.shape[0]}, "
-                f"but received input with batch size {k_val.shape[0]}"
-            )
-
-        # Ensure there's enough room in the cache for the new entries
-        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
-
-        # Reference to the current key and value caches
-        k_out = self.k_cache  # Shape: (B, H, max_seq_len, D)
-        v_out = self.v_cache  # Shape: (B, H, max_seq_len, D)
-
-        # Write new keys and values at the current cache position
-        # Write into: [:, :, current_pos:current_pos+seq_len]
-        k_out[:bsz, :, self.cache_pos[:seq_len]] = k_val
-        v_out[:bsz, :, self.cache_pos[:seq_len]] = v_val
-
-        # Advance the cache position by the number of new tokens
-        self.cache_pos.add_(seq_len)
-
-        return k_out, v_out
-
-
 class GPT(nn.Module):
     """
     A GPT-like transformer model, designed as a decoder-only architecture.
@@ -673,3 +572,213 @@ def apply_rope(x, freqs_complex):
 
     # Convert back to real representation
     x_rotate = torch.view_as_real(x_rotate)  # Shape: [batch, heads, seq_len, head_dim // 2, 2]
+    return x_rotate.reshape(*x.shape).to(orig_dtype)  # Shape: [batch, heads, seq_len, head_dim]
+
+
+
+
+class KVCache(nn.Module):
+    """
+    A key-value cache module for transformer models to enable efficient autoregressive decoding.
+
+    Stores past key and value tensors and provides an update method to append new entries.
+
+    Args:
+        batch_size (int): Expected batch size during inference.
+        max_seq_len (int): Maximum sequence length (capacity of the cache).
+        num_kv_heads (int): Number of attention heads for keys and values.
+        head_dim (int): Dimensionality of each attention head.
+        dtype (torch.dtype): Data type for the cache tensors.
+    """
+
+    def __init__(
+        self,
+        batch_size: int,
+        max_seq_len: int,
+        num_kv_heads: int,
+        head_dim: int,
+        dtype: torch.dtype,
+    ) -> None:
+        super().__init__()
+
+        # Shape: (B, H, S, D)
+        # B = batch_size, H = num_kv_heads, S = max_seq_len, D = head_dim
+        cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
+
+        # Buffers to hold cached keys and values
+        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+
+        # Tracks positions in the sequence [0, 1, ..., max_seq_len - 1]
+        # Shape: (max_seq_len,)
+        self.register_buffer("cache_pos", torch.arange(0, cache_shape[2]), persistent=False)
+
+        self.batch_size = batch_size
+
+    def reset(self) -> None:
+        """
+        Clears the cache and resets the position to the start.
+        """
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+        self.cache_pos -= self.size  # Resets to 0
+
+    @property
+    def size(self) -> int:
+        """
+        Returns:
+            int: The number of tokens currently stored in the cache.
+        """
+        return self.cache_pos[0].item()
+
+    def update(
+        self, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Appends new key and value tensors to the cache.
+
+        Args:
+            k_val (torch.Tensor): Key tensor of shape (B, H, S_new, D)
+            v_val (torch.Tensor): Value tensor of shape (B, H, S_new, D)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: 
+                Updated caches:
+                    - k_cache: Tensor of shape (B, H, max_seq_len, D)
+                    - v_cache: Tensor of shape (B, H, max_seq_len, D)
+
+        Raises:
+            ValueError: If the new batch size exceeds the initialized batch size.
+            AssertionError: If adding the new sequence would exceed max_seq_len.
+        """
+        bsz, _, seq_len, _ = k_val.shape  # (B, H, S_new, D)
+
+        # Ensure incoming batch size fits the allocated cache
+        if bsz > self.k_cache.shape[0]:
+            raise ValueError(
+                f"The current cache has a batch size of {self.k_cache.shape[0]}, "
+                f"but received input with batch size {k_val.shape[0]}"
+            )
+
+        # Ensure there's enough room in the cache for the new entries
+        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
+
+        # Reference to the current key and value caches
+        k_out = self.k_cache  # Shape: (B, H, max_seq_len, D)
+        v_out = self.v_cache  # Shape: (B, H, max_seq_len, D)
+
+        # Write new keys and values at the current cache position
+        # Write into: [:, :, current_pos:current_pos+seq_len]
+        k_out[:bsz, :, self.cache_pos[:seq_len]] = k_val
+        v_out[:bsz, :, self.cache_pos[:seq_len]] = v_val
+
+        # Advance the cache position by the number of new tokens
+        self.cache_pos.add_(seq_len)
+
+        return k_out, v_out
+
+
+class RMSNorm(nn.Module):
+    """Root Mean Square Layer Normalization."""
+
+    def __init__(self,
+                size: int,
+                dim: int = -1,
+                eps: float = 1e-6,
+                add_unit_offset: bool = False
+                ) -> None:
+        """
+        Args:
+            size (int): The number of features in the input tensor (last dimension size).
+            dim (int): The dimension along which to compute the RMS normalization (default: -1).
+            eps (float): A small constant for numerical stability (default: 1e-6).
+            add_unit_offset (bool): Whether to add a unit offset to the weight parameter (default: False).
+        """
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.ones(size))  # Shape: [size]
+        self.eps = eps
+        self.dim = dim
+        self.add_unit_offset = add_unit_offset
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply Root Mean Square Normalization to the input tensor.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch_size, ..., size].
+
+        Returns:
+            torch.Tensor: Normalized tensor of the same shape as input.
+        """
+        dtype = x.dtype
+        x = x.float()  # Ensure computation is in float32 for numerical stability
+
+        # Compute mean square along the specified dimension
+        norm_x = torch.mean(x * x, dim=self.dim, keepdim=True)  # Shape: [batch_size, ..., 1]
+
+        # Normalize the input
+        x_normed = x * torch.rsqrt(norm_x + self.eps)  # Shape: [batch_size, ..., size]
+
+        # Apply learnable weight scaling
+        weight = (1 + self.weight) if self.add_unit_offset else self.weight  # Shape: [size]
+        return (x_normed * weight.float()).to(dtype=dtype)  # Shape: [batch_size, ..., size]
+
+    def reset_parameters(self) -> None:
+        """Reinitialize the weight parameters."""
+        torch.nn.init.ones_(self.weight)  # Shape: [size]
+
+
+
+class GptMLP(nn.Module):
+    """MLP block used in GPT-like models."""
+    
+    def __init__(self, config) -> None:
+        """
+        Args:
+            config: Configuration object containing model parameters.
+        """
+        super().__init__()
+        self.fc = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.proj = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)  # Shape: [batch_size, seq_len, n_embd]
+        self.config = config
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch_size, seq_len, n_embd].
+
+        Returns:
+            torch.Tensor: Output tensor of shape [batch_size, seq_len, n_embd].
+        """
+        x = self.fc(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x = F.gelu(x, approximate=self.config.gelu_approx)  # GELU activation (same shape)
+        return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
+
+
+class LLaMAMLP(nn.Module):
+    """MLP block used in LLaMA-like models with Gated Activation Units (GAUs)."""
+    
+    def __init__(self, config) -> None:
+        """
+        Args:
+            config: Configuration object containing model parameters.
+        """
+        super().__init__()
+        self.fc_1 = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.fc_2 = nn.Linear(config.n_embd, config.mlp_hidden_size, bias=config.bias)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        self.proj = nn.Linear(config.mlp_hidden_size, config.n_embd, bias=config.bias)  # Shape: [batch_size, seq_len, n_embd]
+        self.config = config
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch_size, seq_len, n_embd].
+
+        Returns:
+            torch.Tensor: Output tensor of shape [batch_size, seq_len, n_embd].
+        """
+        x_fc_1 = self.fc_1(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x_fc_2 = self.fc_2(x)  # Shape: [batch_size, seq_len, mlp_hidden_size]
+        x = F.silu(x_fc_1) * x_fc_2  # Shape: [batch_size, seq_len, mlp_hidden_size] (Element-wise multiplication)
+        return self.proj(x)  # Shape: [batch_size, seq_len, n_embd]
+
