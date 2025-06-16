@@ -1,4 +1,4 @@
-# **MyLLM: My Journey to Building Meta\_Bot** 🚀
+# 🚀 MyLLM: Building *My* Meta\_Bot — A Hands-On Journey
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
@@ -6,184 +6,159 @@
 
 ---
 
-## ⚠️ **Caution: Project Status**
-
-This repository is **actively under development** and evolving. Some functionality is still incomplete, experimental, or untested.
-
-* **Notebooks:** Mostly complete and stable — great for learning and experimentation.
-* **Modules:** Cleaned-up code modularization — functional and usable for deeper study.
-* **MyLLM Core Framework:** Actively in progress — working but evolving, with some features incomplete.
-* **MetaBot Chatbot:** Planned for the future — initial ideas exist but not yet implemented fully.
-
-Please use this repo mainly as a learning tool and to follow my hands-on journey rather than as a production-ready package.
+<div align="center">
+  <img src="./PIP.png" alt="Framework Architecture" width="800"/>
+  <br>
+  <em>From prototype to production — an end-to-end ecosystem for building & fine-tuning production-grade LLMs</em>
+</div>
 
 ---
 
-## **About This Project**
+## ⚠️ Heads Up! This is a *Work In Progress* 🚧
 
-This repository captures my personal exploration and hands-on journey into Large Language Models (LLMs). It reflects the process I followed — learning, building, iterating — to deeply understand how LLMs work and how to create my own.
+> 🛠️ Some parts are stable and ready for you to explore, others are actively evolving or experimental.
+>
+> * **Notebooks:** Interactive tutorials for hands-on learning
+> * **Modules:** Modular mini-projects and training scripts
+> * **MyLLM Core Framework:** Pure PyTorch, clean, extensible, actively developed
+> * **MetaBot Chatbot:** Coming soon — a chatbot that explains *itself*!
 
-It’s organized into **4 key phases** that represent my evolving understanding and code maturity:
-
----
-
-## **4 Key Phases of My Learning and Build Process**
-
-### 1. 📓 **Notebook — My Interactive Playground**
-
-This is where I started exploring core LLM concepts interactively.
-The notebooks are my “sandbox” for trying out ideas, understanding transformers, and experimenting with tokenization and training loops.
-
-### 2. 🧩 **Modules — From Experiments to Code**
-
-Once I grasped the concepts, I refactored notebook code into clean, modular mini-projects.
-This helped me organize the codebase and build reusable components — moving towards more practical, maintainable implementations.
-
-### 3. ⚙️ **MyLLM — Building the Engine**
-
-This is the core framework I built from scratch using PyTorch to replicate the engineering behind modern LLM pipelines.
-It’s designed to keep dependencies minimal while allowing me to build, train, fine-tune, and run reinforcement learning on transformer models — really getting into the engineering details.
-
-### 4. 🤖 **MetaBot — Bringing It All Together**
-
-As a final step, I used the MyLLM framework to create `MetaBot`, a chatbot that not only answers questions but can explain how it itself was built.
-This meta-level application was a milestone in applying everything I’d learned into a tangible, interactive system.
+**Jump in, experiment, break stuff, learn!** This repo is a sandbox for us all.
 
 ---
 
-## **UI & Deployment Plans**
+## 🌟 Ready to Jump In? Start Here!
 
-To make this project more accessible, I plan to build a **user-friendly web interface using Gradio**. This UI will allow anyone to interact with MetaBot easily — no coding required.
+### 1️⃣ Explore Interactive Notebooks — Your Playground 🧠
 
-The goal is to deploy this interface for public use, showcasing the chatbot’s capabilities and providing an engaging experience to explore the LLM concepts behind the scenes.
-
----
-
-## **Why I Built This**
-
-* To *learn by doing* — not just read or watch, but actually build each part.
-* To break down complex LLM engineering into understandable pieces.
-* To create a pipeline that’s transparent and fully controlled from first principles.
-* To experiment with building intelligent applications based on my own models.
-
----
-
-## **How to Explore This Repo**
-
-If you want to follow my steps or experiment yourself:
+* Check out `notebooks/` for step-by-step transformer tutorials.
+* Run, tweak, and observe model internals in action.
 
 ```bash
 git clone https://github.com/silvaxxx1/MyLLM101.git
 cd MyLLM101
 pip install -r requirements.txt
+jupyter notebook notebooks/0.0.WELCOME.ipynb
 ```
 
-* Dive into `notebooks/` to see my initial experiments and ideas.
-* Check out `modules/` for cleaner, modularized code versions.
-* Explore the `MyLLM/` folder — this is where the core framework lives.
-* Run the chatbot (when ready):
+*Pro tip:* Modify the attention mask code and see what changes in output!
+
+---
+
+### 2️⃣ Modular Mini-Projects for Experiments 🧩
+
+* Organize reusable components in `modules/`.
+* Train small GPTs from scratch quickly:
 
 ```bash
-python -m metabot.chat --mode basic
+python modules/train_gpt.py --config configs/basic.yml
 ```
 
 ---
 
-## **Current Progress**
+### 3️⃣ Meet *MyLLM* — The Engine Behind It All ⚙️
 
-* Core GPT training pipeline implemented and evolving
-* Interactive notebooks mostly stable and usable
-* Modular components organized and tested
-* MetaBot chatbot is a future plan
+* Pure PyTorch native transformer models with minimal dependencies.
+* Inspired by LitGPT and Hugging Face for clean APIs and modularity.
+* Designed for deep understanding and flexibility in research and production.
 
 ---
 
-## **🔍 Preview: MyLLM API — Simple & Powerful**
-
-The **MyLLM** framework offers a clear and intuitive API, inspired by Hugging Face and LitGPT, while keeping everything lightweight and customizable.
+## 🛠️ MyLLM API Preview — Simple, Familiar, Powerful
 
 ```python
 from myllm import LLM, SFTTrainer, DPOTTrainer, PPOTrainer, Quantizer
 
-# Load a pretrained or custom LLM model
+# Load a pretrained or fine-tuned model
 llm = LLM.load("my_model_checkpoint")
 
-# Generate text with a simple call
-output = llm.generate("Once upon a time,", max_length=100)
+# Generate text with flexible options
+output = llm.generate("Once upon a time, in a world of AI,")
 print(output)
 
 # Supervised Fine-Tuning (SFT)
-sft_trainer = SFTTrainer(
-    model=llm,
-    dataset=my_dataset,
-    epochs=3,
-    batch_size=8,
-    learning_rate=5e-5,
-)
-sft_trainer.train()
+sft = SFTTrainer(model=llm, dataset=my_training_data)
+sft.train(epochs=3, batch_size=16)
 
-# Direct Preference Optimization (DPO) Trainer for RL fine-tuning
-dpo_trainer = DPOTTrainer(
-    model=llm,
-    dataset=my_dataset,
-    epochs=3,
-    batch_size=8,
-    learning_rate=5e-5,
-)
-dpo_trainer.train()
+# Direct Preference Optimization (DPO)
+dpo = DPOTTrainer(model=llm, dataset=my_preference_data)
+dpo.train(epochs=5)
 
-# Proximal Policy Optimization (PPO) Trainer for RL
-ppo_trainer = PPOTrainer(
-    model=llm,
-    env=my_env,
-    epochs=10,
-    batch_size=4,
-)
-ppo_trainer.train()
+# Proximal Policy Optimization (PPO) for RLHF
+ppo = PPOTrainer(model=llm, environment=my_custom_env)
+ppo.train(iterations=10)
 
-# Model Quantization to reduce size and speed up inference
+# Quantization for efficient inference
 quantizer = Quantizer(model=llm)
-quantized_llm = quantizer.apply(precision="int8")
-
-# Save your (fine-tuned or quantized) model
-quantized_llm.save("fine_tuned_quantized_model.pt")
+llm_quantized = quantizer.apply(precision="int8")
 ```
 
----
-
-### Why this API?
-
-* **Familiar and simple:** Easy to pick up if you’ve used HF Transformers or LitGPT.
-* **Multiple training strategies:** Supports supervised fine-tuning, DPO, PPO, and more.
-* **Model optimization:** Built-in quantization for efficient inference.
-* **Minimal dependencies:** Pure PyTorch with transparent engineering.
-* **Extendable & modular:** Add your own trainers, optimizers, or custom layers easily.
+*Experiment combining features: What happens if you quantize before fine-tuning?*
 
 ---
 
-## **Inspired By**
+### 4️⃣ Coming Soon — *MetaBot* 🤖
 
-This project was inspired by the brilliant work of:
-
-* Umar Jamil — for practical transformer tutorials
-* Andrej Karpathy’s nanoGPT — minimalistic and elegant GPT code
-* Sebastian Raschka’s LLM Foundations — in-depth theoretical and practical insights
-
-Their resources motivated me to build something that’s both a learning tool and an engineering project.
+* A chatbot that not only talks but *explains how it was built*.
+* Built with MyLLM + Gradio UI for smooth interaction.
+* Help build this next milestone!
 
 ---
 
-## **License**
+## 🚀 Quick Wins & Challenges for You
 
-MIT License — Feel free to explore, adapt, and learn along.
+* Run a notebook, tweak learning rates, observe training dynamics.
+* Train a mini GPT, generate text, try making it rhyme!
+* Write your own prompts and experiment with completions.
+* Fork the repo, add a new trainer (PPO is waiting for you!).
+* Help build the Gradio UI for MetaBot — ideas welcome!
+
+---
+
+## 🔮 Roadmap — What’s Next?
+
+| Status | Milestone                   | Details                               |
+| ------ | --------------------------- | ------------------------------------- |
+| ✅      | Interactive Notebooks       | Learn LLM fundamentals hands-on       |
+| ✅      | Modular Mini-Projects       | Build reusable, composable components |
+| ⚙️     | MyLLM Core Framework        | Fine-tuning, DPO, PPO, quantization   |
+| 🛠     | MetaBot Chatbot + Gradio UI | Interactive chatbot & deployment      |
+
+---
+
+## 💡 Why I Built This
+
+* To learn deeply by building transformers from scratch
+* To share an open, transparent development journey
+* To demystify transformer internals and fine-tuning techniques
+* To create a scalable, extensible platform for experimentation
+
+---
+
+## 🙌 Inspired By
+
+* [Umar Jamil](https://github.com/umarjamil) — Practical LLM tutorials
+* [Andrej Karpathy](https://github.com/karpathy) — NanoGPT minimalism
+* [Sebastian Raschka](https://github.com/rasbt) — Deep transformer insights
+
+Their work motivated this project.
+
+---
+
+## 🏁 Ready to start? Let’s build the future of LLMs — together.
 
 ---
 
 <div align="center">  
   <img src="./META_BOT.jpg" alt="Meta_Bot" width="600" />  
   <br>  
-  <em>Join me in this hands-on journey — building, learning, and evolving an LLM from scratch.</em>  
+  <em>Jump in! Experiment! Ask questions! Build your own Meta_Bot!</em>  
 </div>
 
 ---
 
+## 📜 License
+
+[MIT License](./LICENSE)
+
+---
