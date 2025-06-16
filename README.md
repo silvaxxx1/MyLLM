@@ -1,8 +1,21 @@
-# **MyLLM101: My Journey to Building Meta\_Bot** 🚀
+# **MyLLM: My Journey to Building Meta\_Bot** 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org/)
+
+---
+
+## ⚠️ **Caution: Project Status**
+
+This repository is **actively under development** and evolving. Some functionality is still incomplete, experimental, or untested.
+
+* **Notebooks:** Mostly complete and stable — great for learning and experimentation.
+* **Modules:** Cleaned-up code modularization — functional and usable for deeper study.
+* **MyLLM Core Framework:** Actively in progress — working but evolving, with some features incomplete.
+* **MetaBot Chatbot:** Planned for the future — initial ideas exist but not yet implemented fully.
+
+Please use this repo mainly as a learning tool and to follow my hands-on journey rather than as a production-ready package.
 
 ---
 
@@ -38,6 +51,14 @@ This meta-level application was a milestone in applying everything I’d learned
 
 ---
 
+## **UI & Deployment Plans**
+
+To make this project more accessible, I plan to build a **user-friendly web interface using Gradio**. This UI will allow anyone to interact with MetaBot easily — no coding required.
+
+The goal is to deploy this interface for public use, showcasing the chatbot’s capabilities and providing an engaging experience to explore the LLM concepts behind the scenes.
+
+---
+
 ## **Why I Built This**
 
 * To *learn by doing* — not just read or watch, but actually build each part.
@@ -60,7 +81,7 @@ pip install -r requirements.txt
 * Dive into `notebooks/` to see my initial experiments and ideas.
 * Check out `modules/` for cleaner, modularized code versions.
 * Explore the `MyLLM/` folder — this is where the core framework lives.
-* Run the chatbot:
+* Run the chatbot (when ready):
 
 ```bash
 python -m metabot.chat --mode basic
@@ -71,9 +92,9 @@ python -m metabot.chat --mode basic
 ## **Current Progress**
 
 * Core GPT training pipeline implemented and evolving
-* Interactive notebooks fully functional
+* Interactive notebooks mostly stable and usable
 * Modular components organized and tested
-* MetaBot chatbot in early working state
+* MetaBot chatbot is a future plan
 
 ---
 
@@ -165,3 +186,4 @@ MIT License — Feel free to explore, adapt, and learn along.
 </div>
 
 ---
+
