@@ -4,3 +4,4 @@ transformers
 pytest
 numpy
 matplotlib
+sentencepiece 

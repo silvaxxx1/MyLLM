@@ -1037,4 +1037,18 @@ class GemmaMLP(LLaMAMLP):
         x_fc_1 = self.fc_1(x)
         x_fc_2 = self.fc_2(x)
         x = F.gelu(x_fc_1, approximate=self.config.gelu_approximate) * x_fc_2
-        return self.proj(x)
+        return self.proj(x) 
+    
+
+if __name__ == '__main__':
+    # lets test the model 
+    from config import Config
+    config = Config.from_name("gpt2-small")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("using device",device)
+    model = GPT(config).to(device)
+    inputs = torch.randint(0, config.vocab_size, (1, 10)).to(device)
+    outputs = model(inputs)
+    print(outputs.shape)  # (1, 10, vocab_size) 
+    print(model)
+
