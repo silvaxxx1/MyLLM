@@ -1,6 +1,6 @@
-torch>=1.12.0           # PyTorch for building and training models
-tiktoken>=0.2.0        # Tokenization library for efficient token handling
-transformers>=4.24.0    # Hugging Face Transformers for various pre-trained models
-pytest>=6.2.0          # Testing framework for writing tests
-numpy>=1.21.0          # Numerical operations
-matplotlib>=3.4.0      # Plotting library for visualizing training results
+torch
+tiktoken
+transformers
+pytest
+numpy
+matplotlib
