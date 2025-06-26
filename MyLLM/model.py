@@ -154,7 +154,12 @@ Methods:
         # Track if KV cache is initialized
         self.kv_cache_initialized = False
 
-    def initialize_kv_cache(self, batch_size: int, max_seq_len: int, dtype=torch.float32) -> None:
+    def initialize_kv_cache(
+                            self, batch_size: int,
+                            max_seq_len: int,
+                            dtype=torch.float32
+                            ) -> None:
+        
         """Initialize the key-value cache for autoregressive generation."""
         head_dim = self.config.n_embd // self.config.n_head
         num_kv_heads = self.config.n_query_groups
