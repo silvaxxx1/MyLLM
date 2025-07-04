@@ -22,7 +22,8 @@ class LLM(nn.Module):
         else:
             self.model.eval()
 
-    def load(self, model_variant: str, model_family: str = "gpt2", cache_dir: str = "./models"):
+    def load(self, model_variant, model_family="gpt2", cache_dir="./models", efficient=True):
+
         if self.model is None:
             if self.config is None:
                 raise RuntimeError("Config must be set before loading weights.")

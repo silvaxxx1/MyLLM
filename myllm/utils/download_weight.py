@@ -62,64 +62,48 @@ def load_safetensors(filepath: str) -> dict:
     return load_file(filepath)
 
 
-def load_gpt2_weights(model, params):
-    num_blocks = len([k for k in params.keys() if k.startswith("h.") and ".attn.c_attn.weight" in k])
+def load_gpt2_weights(model, params, device="cuda", efficient=True):
+    print(f"{'Efficiently' if efficient else 'Bulk'} loading GPT-2 weights to {device}...")
 
-    # Loading embeddings and positional embeddings
-    print("Loading embeddings and positional embeddings...")
-    model.wte.weight.data.copy_(params["wte.weight"].detach().clone())
-    model.wpe.weight.data.copy_(params["wpe.weight"].detach().clone())
+    def copy(name, dest):
+        tensor = params.get(name)
+        if tensor is not None and dest is not None:
+            dest.data.copy_(tensor.to(device) if efficient else tensor.clone().to(device))
 
-    # Use tqdm to track block loading
+    # Load embeddings
+    copy("wte.weight", model.wte.weight)
+    copy("wpe.weight", model.wpe.weight)
+
+    num_blocks = len([k for k in params if k.startswith("h.") and ".attn.c_attn.weight" in k])
     with tqdm(total=num_blocks, desc="Loading transformer blocks", ascii=True) as pbar:
         for i in range(num_blocks):
             prefix = f"h.{i}"
+            block = model.transformer[f"block_{i}"]
 
-            c_attn_w = params[f"{prefix}.attn.c_attn.weight"].T
-            c_attn_b = params.get(f"{prefix}.attn.c_attn.bias", None)
-            model.transformer[f"block_{i}"].attn.qkv.weight.data.copy_(c_attn_w)
-            if model.transformer[f"block_{i}"].attn.qkv.bias is not None and c_attn_b is not None:
-                model.transformer[f"block_{i}"].attn.qkv.bias.data.copy_(c_attn_b)
-
-            c_proj_w = params[f"{prefix}.attn.c_proj.weight"].T
-            c_proj_b = params.get(f"{prefix}.attn.c_proj.bias", None)
-            model.transformer[f"block_{i}"].attn.proj.weight.data.copy_(c_proj_w)
-            if model.transformer[f"block_{i}"].attn.proj.bias is not None and c_proj_b is not None:
-                model.transformer[f"block_{i}"].attn.proj.bias.data.copy_(c_proj_b)
-
-            c_fc_w = params[f"{prefix}.mlp.c_fc.weight"].T
-            c_fc_b = params.get(f"{prefix}.mlp.c_fc.bias", None)
-            c_proj_w_mlp = params[f"{prefix}.mlp.c_proj.weight"].T
-            c_proj_b_mlp = params.get(f"{prefix}.mlp.c_proj.bias", None)
-
-            model.transformer[f"block_{i}"].mlp.fc.weight.data.copy_(c_fc_w)
-            if model.transformer[f"block_{i}"].mlp.fc.bias is not None and c_fc_b is not None:
-                model.transformer[f"block_{i}"].mlp.fc.bias.data.copy_(c_fc_b)
-
-            model.transformer[f"block_{i}"].mlp.proj.weight.data.copy_(c_proj_w_mlp)
-            if model.transformer[f"block_{i}"].mlp.proj.bias is not None and c_proj_b_mlp is not None:
-                model.transformer[f"block_{i}"].mlp.proj.bias.data.copy_(c_proj_b_mlp)
-
-            ln_1_w = params[f"{prefix}.ln_1.weight"]
-            ln_1_b = params[f"{prefix}.ln_1.bias"]
-            ln_2_w = params[f"{prefix}.ln_2.weight"]
-            ln_2_b = params[f"{prefix}.ln_2.bias"]
-
-            model.transformer[f"block_{i}"].norm1.weight.data.copy_(ln_1_w)
-            model.transformer[f"block_{i}"].norm1.bias.data.copy_(ln_1_b)
-            model.transformer[f"block_{i}"].norm2.weight.data.copy_(ln_2_w)
-            model.transformer[f"block_{i}"].norm2.bias.data.copy_(ln_2_b)
+            copy(f"{prefix}.attn.c_attn.weight", block.attn.qkv.weight)
+            copy(f"{prefix}.attn.c_attn.bias", block.attn.qkv.bias)
+            copy(f"{prefix}.attn.c_proj.weight", block.attn.proj.weight)
+            copy(f"{prefix}.attn.c_proj.bias", block.attn.proj.bias)
+            copy(f"{prefix}.mlp.c_fc.weight", block.mlp.fc.weight)
+            copy(f"{prefix}.mlp.c_fc.bias", block.mlp.fc.bias)
+            copy(f"{prefix}.mlp.c_proj.weight", block.mlp.proj.weight)
+            copy(f"{prefix}.mlp.c_proj.bias", block.mlp.proj.bias)
+            copy(f"{prefix}.ln_1.weight", block.norm1.weight)
+            copy(f"{prefix}.ln_1.bias", block.norm1.bias)
+            copy(f"{prefix}.ln_2.weight", block.norm2.weight)
+            copy(f"{prefix}.ln_2.bias", block.norm2.bias)
 
             pbar.update(1)
 
     print("Loading final LayerNorm and lm_head...")
-    model.ln_f.weight.data.copy_(params["ln_f.weight"])
-    model.ln_f.bias.data.copy_(params["ln_f.bias"])
+    copy("ln_f.weight", model.ln_f.weight)
+    copy("ln_f.bias", model.ln_f.bias)
 
-    if "lm_head.weight" in params:
-        model.lm_head.weight.data.copy_(params["lm_head.weight"])
-    else:
-        model.lm_head.weight = model.wte.weight
+    if hasattr(model, "lm_head"):
+        if "lm_head.weight" in params:
+            copy("lm_head.weight", model.lm_head.weight)
+        else:
+            model.lm_head.weight = model.wte.weight  # Tie weights fallback
 
 def get_gpt2_safetensors_url(model_variant: str) -> str:
     URL_DIR = {

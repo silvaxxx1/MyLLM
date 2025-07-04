@@ -5,9 +5,12 @@ from transformers import GPT2Tokenizer
 
 def main():
     config = Config.from_name("gpt2-medium")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
+
     llm = LLM(config=config, device=device)
-    llm.load(model_variant="gpt2-medium", model_family="gpt2")
+
+    # ✅ Load with efficient sequential loading
+    llm.load(model_variant="gpt2-medium", model_family="gpt2", efficient=True)
 
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
