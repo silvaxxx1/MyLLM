@@ -1046,14 +1046,37 @@ class GemmaMLP(LLaMAMLP):
     
 
 if __name__ == '__main__':
-    # lets test the model 
+    import torch
     from config import Config
-    config = Config.from_name("gpt2-small")
+
+    # Load config
+    config = Config.from_name("gpt2-small")  # or your custom model name
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("using device",device)
-    model = GPT(config).to(device)
+    print("Using device:", device)
+    # clean up the gpu memory 
+    import gc
+
+    # Clear CUDA cache and collect garbage
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+
+    # Build and move model to device in half precision
+    model = GPT(config).to(device).half()
+    model.eval()
+
+    # Create dummy input in half precision
     inputs = torch.randint(0, config.vocab_size, (1, 10)).to(device)
-    outputs = model(inputs)
-    print(outputs.shape)  # (1, 10, vocab_size) 
+    inputs = inputs.to(device)
+
+    # Only convert input to half if it's floating point
+
+
+    with torch.no_grad():
+        outputs = model(inputs)
+
+    print("Output shape:", outputs.shape)  # Expected: (1, 10, vocab_size)
     print(model)
+
 
