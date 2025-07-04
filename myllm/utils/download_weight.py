@@ -5,6 +5,7 @@ from safetensors.torch import load_file
 from tqdm import tqdm
 import sys
 import time
+import gc
 from threading import Thread
 
 
@@ -62,8 +63,36 @@ def load_safetensors(filepath: str) -> dict:
     return load_file(filepath)
 
 
-def load_gpt2_weights(model, params, device="cuda", efficient=True):
-    print(f"{'Efficiently' if efficient else 'Bulk'} loading GPT-2 weights to {device}...")
+def cleanup():
+    """Explicitly free CPU and GPU memory."""
+    gc.collect()
+    torch.cuda.empty_cache()
+    time.sleep(1)
+
+
+def load_gpt2_weights_meta(model_class, config, params, device="cuda", efficient=True):
+    """
+    Load GPT-2 weights efficiently with meta device model init to reduce CPU memory usage.
+
+    Args:
+        model_class: The GPT model class (constructor takes config)
+        config: Model config dict or object for model_class constructor
+        params: Dict of weights loaded on CPU (from safetensors)
+        device: Target device (e.g., "cuda")
+        efficient: Whether to use efficient copying (default True)
+
+    Returns:
+        model loaded on device with weights copied in
+    """
+
+    print(f"{'Efficiently' if efficient else 'Bulk'} loading GPT-2 weights to {device} with meta device...")
+
+    # Initialize model on meta device (no RAM allocated for parameters)
+    with torch.device("meta"):
+        model = model_class(config)
+
+    # Move model to empty tensors allocated on GPU device
+    model = model.to_empty(device=device)
 
     def copy(name, dest):
         tensor = params.get(name)
@@ -105,6 +134,10 @@ def load_gpt2_weights(model, params, device="cuda", efficient=True):
         else:
             model.lm_head.weight = model.wte.weight  # Tie weights fallback
 
+    cleanup()
+    return model
+
+
 def get_gpt2_safetensors_url(model_variant: str) -> str:
     URL_DIR = {
         "gpt2-small": "gpt2",
@@ -116,3 +149,14 @@ def get_gpt2_safetensors_url(model_variant: str) -> str:
         raise ValueError(f"Unknown GPT2 variant {model_variant}")
     base_url = "https://huggingface.co/openai-community"
     return f"{base_url}/{URL_DIR[model_variant]}/resolve/main/model.safetensors"
+
+
+# ===== Example usage =====
+# from your_model_file import GPTModel, BASE_CONFIG
+# model_variant = "gpt2-xl"
+# model_class = GPTModel
+# config = BASE_CONFIG  # or your config object
+
+# model_file = download_safetensors(f"{model_variant}.safetensors", "models", get_gpt2_safetensors_url(model_variant))
+# params = load_safetensors(model_file)
+# model = load_gpt2_weights_meta(model_class, config, params, device="cuda", efficient=True)

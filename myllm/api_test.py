@@ -4,13 +4,13 @@ from api import LLM
 from transformers import GPT2Tokenizer
 
 def main():
-    config = Config.from_name("gpt2-medium")
+    config = Config.from_name("gpt2-small")
     device = "cpu"
 
     llm = LLM(config=config, device=device)
 
     # ✅ Load with efficient sequential loading
-    llm.load(model_variant="gpt2-medium", model_family="gpt2", efficient=True)
+    llm.load(model_variant="gpt2-small", model_family="gpt2", efficient=True)
 
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 

@@ -3,7 +3,13 @@ import torch
 import torch.nn as nn
 from model import GPT
 from config import Config
-from utils.download_weight import download_safetensors, load_safetensors, load_gpt2_weights, get_gpt2_safetensors_url , Spinner 
+from utils.download_weight import (
+    download_safetensors,
+    load_safetensors,
+    load_gpt2_weights_meta,  # Updated import
+    get_gpt2_safetensors_url,
+    Spinner
+)
 
 class LLM(nn.Module):
     def __init__(self, config: Config = None, device: str = "cpu"):
@@ -24,24 +30,18 @@ class LLM(nn.Module):
 
     def load(self, model_variant, model_family="gpt2", cache_dir="./models", efficient=True):
 
-        if self.model is None:
-            if self.config is None:
-                raise RuntimeError("Config must be set before loading weights.")
-            self.model = GPT(self.config).to(self.device)
-
-        if model_family == "gpt2":
-            filename = f"model-{model_variant}.safetensors"
-            url = get_gpt2_safetensors_url(model_variant)
-            
-            filepath = download_safetensors(filename, cache_dir, url)
-
-            params = load_safetensors(filepath)
-            
-            with Spinner("Assigning weights to model"):
-                load_gpt2_weights(self.model, params)
-        else:
+        if model_family != "gpt2":
             raise NotImplementedError(f"Loading weights for {model_family} not implemented.")
 
+        filename = f"model-{model_variant}.safetensors"
+        url = get_gpt2_safetensors_url(model_variant)
+
+        filepath = download_safetensors(filename, cache_dir, url)
+        params = load_safetensors(filepath)
+
+        with Spinner("Assigning weights to model"):
+            # Use memory-efficient loading which returns the loaded model
+            self.model = load_gpt2_weights_meta(GPT, self.config, params, device=self.device, efficient=efficient)
 
     def save(self, save_path: str):
         if self.model is None:
