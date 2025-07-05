@@ -1,15 +1,17 @@
 import os
+import shutil
 import urllib.request
 import torch
 from safetensors.torch import load_file
 from tqdm import tqdm
-import sys
 import time
 import gc
+import requests
 from threading import Thread
+from model import GPT 
+from config import Config 
 
-
-# Spinner class for loading weights
+# Spinner for UI feedback
 class Spinner:
     def __init__(self, msg="Loading..."):
         self.msg = msg
@@ -30,114 +32,172 @@ class Spinner:
         self.thread.join()
         print("\r" + " " * (len(self.msg) + 2) + "\r", end="")
 
+# Utility to check free disk space (bytes)
+def check_disk_space(dir_path, needed_bytes):
+    try:
+        total, used, free = shutil.disk_usage(dir_path)
+        if free < needed_bytes:
+            print(f"⚠️ Warning: Only {free / (1024**2):.2f} MB free on disk, but {needed_bytes / (1024**2):.2f} MB required.")
+            return False
+        return True
+    except Exception as e:
+        print(f"⚠️ Could not check disk space: {e}")
+        return True  # Fail safe, proceed anyway
 
-def download_safetensors(model_name: str, model_dir: str, url: str) -> str:
+# -----------------------------
+# Download + Verify .safetensors
+# -----------------------------
+def download_safetensors(model_name: str, model_dir: str, url: str, expected_size=None) -> str:
     os.makedirs(model_dir, exist_ok=True)
     filepath = os.path.join(model_dir, model_name)
+
     if os.path.exists(filepath):
-        print(f"File {filepath} already exists, skipping download.")
-        return filepath
+        try:
+            _ = load_file(filepath)
+            print(f"✅ File {filepath} already exists and is valid.")
+            return filepath
+        except Exception:
+            print(f"⚠️ Corrupted file at {filepath}, redownloading...")
+            os.remove(filepath)
 
-    print(f"Downloading {model_name} from {url} ...")
+    if expected_size:
+        if not check_disk_space(model_dir, expected_size):
+            print("🛑 Not enough disk space to download model. Aborting.")
+            raise RuntimeError("Insufficient disk space.")
 
-    # Download with tqdm progress bar
-    with urllib.request.urlopen(url) as response:
-        total_size = int(response.getheader('Content-Length').strip())
-        chunk_size = 1024 * 1024  # 1MB
-        with open(filepath, 'wb') as f, tqdm(
-            total=total_size, unit='B', unit_scale=True, desc=model_name, ascii=True
-        ) as pbar:
-            while True:
-                chunk = response.read(chunk_size)
-                if not chunk:
-                    break
-                f.write(chunk)
-                pbar.update(len(chunk))
+    print(f"⬇️ Downloading {model_name} from {url} ...")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, stream=True, timeout=30)
+            response.raise_for_status()
+            total_size = int(response.headers.get('content-length', 0))
 
-    print("Download complete.")
-    return filepath
+            with open(filepath, 'wb') as f, tqdm(total=total_size, unit='B', unit_scale=True,
+                                                 desc=model_name, ascii=True) as pbar:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
 
+            _ = load_file(filepath)  # verify
+            print("✅ Download complete and verified.")
+            return filepath
+        except Exception as e:
+            print(f"❌ Download attempt {attempt + 1} failed: {str(e)}")
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            if attempt == max_retries - 1:
+                raise RuntimeError("❌ Failed to download after retries.")
+            print(f"⏳ Retrying in {2 ** attempt} seconds...")
+            time.sleep(2 ** attempt)
 
+# -----------------------------
+# Load Weights (Safe Version)
+# -----------------------------
 def load_safetensors(filepath: str) -> dict:
-    print(f"Loading weights from {filepath} ...")
-    return load_file(filepath)
+    print(f"📦 Loading weights from {filepath} ...")
+    try:
+        return load_file(filepath, device="cpu")  # Always CPU first
+    except Exception as e:
+        raise RuntimeError(f"Failed to load safetensors: {str(e)}")
 
-
+# -----------------------------
+# Cleanup Utility
+# -----------------------------
 def cleanup():
-    """Explicitly free CPU and GPU memory."""
     gc.collect()
     torch.cuda.empty_cache()
     time.sleep(1)
 
+# -----------------------------
+# Main Weight Loader
+# -----------------------------
+def load_gpt2_weights_meta(model, config, params, device="cuda"):
+    print(f"⚡ Loading GPT-2 weights safely to {device}")
 
-def load_gpt2_weights_meta(model_class, config, params, device="cuda", efficient=True):
-    """
-    Load GPT-2 weights efficiently with meta device model init to reduce CPU memory usage.
-
-    Args:
-        model_class: The GPT model class (constructor takes config)
-        config: Model config dict or object for model_class constructor
-        params: Dict of weights loaded on CPU (from safetensors)
-        device: Target device (e.g., "cuda")
-        efficient: Whether to use efficient copying (default True)
-
-    Returns:
-        model loaded on device with weights copied in
-    """
-
-    print(f"{'Efficiently' if efficient else 'Bulk'} loading GPT-2 weights to {device} with meta device...")
-
-    # Initialize model on meta device (no RAM allocated for parameters)
-    with torch.device("meta"):
-        model = model_class(config)
-
-    # Move model to empty tensors allocated on GPU device
-    model = model.to_empty(device=device)
-
-    def copy(name, dest):
+    def safe_copy(name, dest):
         tensor = params.get(name)
         if tensor is not None and dest is not None:
-            dest.data.copy_(tensor.to(device) if efficient else tensor.clone().to(device))
+            # transpose if shapes mismatch
+            if tensor.shape[::-1] == dest.shape:
+                tensor = tensor.T
+            tensor = tensor.to(dest.device, non_blocking=True)
+            with torch.no_grad():
+                dest.copy_(tensor)
+
+
+    # Move model to CPU for safe copying
+    model.to("cpu")
 
     # Load embeddings
-    copy("wte.weight", model.wte.weight)
-    copy("wpe.weight", model.wpe.weight)
+    safe_copy("wte.weight", model.wte.weight)
+    if hasattr(model, "wpe"):
+        safe_copy("wpe.weight", model.wpe.weight)
 
+    # Count number of blocks in checkpoint by checking keys starting with h.{i}.attn.c_attn.weight
     num_blocks = len([k for k in params if k.startswith("h.") and ".attn.c_attn.weight" in k])
+    print(f"Detected {num_blocks} transformer blocks in weights.")
+
     with tqdm(total=num_blocks, desc="Loading transformer blocks", ascii=True) as pbar:
         for i in range(num_blocks):
             prefix = f"h.{i}"
             block = model.transformer[f"block_{i}"]
 
-            copy(f"{prefix}.attn.c_attn.weight", block.attn.qkv.weight)
-            copy(f"{prefix}.attn.c_attn.bias", block.attn.qkv.bias)
-            copy(f"{prefix}.attn.c_proj.weight", block.attn.proj.weight)
-            copy(f"{prefix}.attn.c_proj.bias", block.attn.proj.bias)
-            copy(f"{prefix}.mlp.c_fc.weight", block.mlp.fc.weight)
-            copy(f"{prefix}.mlp.c_fc.bias", block.mlp.fc.bias)
-            copy(f"{prefix}.mlp.c_proj.weight", block.mlp.proj.weight)
-            copy(f"{prefix}.mlp.c_proj.bias", block.mlp.proj.bias)
-            copy(f"{prefix}.ln_1.weight", block.norm1.weight)
-            copy(f"{prefix}.ln_1.bias", block.norm1.bias)
-            copy(f"{prefix}.ln_2.weight", block.norm2.weight)
-            copy(f"{prefix}.ln_2.bias", block.norm2.bias)
+            # Load combined qkv weights and bias (c_attn.*)
+            safe_copy(f"{prefix}.attn.c_attn.weight", block.attn.qkv.weight)
+            if f"{prefix}.attn.c_attn.bias" in params:
+                safe_copy(f"{prefix}.attn.c_attn.bias", block.attn.qkv.bias)
+
+            # Load proj weights and bias
+            safe_copy(f"{prefix}.attn.c_proj.weight", block.attn.proj.weight)
+            if f"{prefix}.attn.c_proj.bias" in params:
+                safe_copy(f"{prefix}.attn.c_proj.bias", block.attn.proj.bias)
+
+            # Load MLP weights and biases
+            safe_copy(f"{prefix}.mlp.c_fc.weight", block.mlp.fc.weight)
+            safe_copy(f"{prefix}.mlp.c_fc.bias", block.mlp.fc.bias)
+            safe_copy(f"{prefix}.mlp.c_proj.weight", block.mlp.proj.weight)
+            safe_copy(f"{prefix}.mlp.c_proj.bias", block.mlp.proj.bias)
+
+            # Load LayerNorm weights and biases
+            safe_copy(f"{prefix}.ln_1.weight", block.norm1.weight)
+            safe_copy(f"{prefix}.ln_1.bias", block.norm1.bias)
+            safe_copy(f"{prefix}.ln_2.weight", block.norm2.weight)
+            safe_copy(f"{prefix}.ln_2.bias", block.norm2.bias)
 
             pbar.update(1)
 
-    print("Loading final LayerNorm and lm_head...")
-    copy("ln_f.weight", model.ln_f.weight)
-    copy("ln_f.bias", model.ln_f.bias)
+    # Load final LayerNorm and LM head weights and bias
+    print("🎯 Loading final LayerNorm and LM head...")
+    safe_copy("ln_f.weight", model.ln_f.weight)
+    safe_copy("ln_f.bias", model.ln_f.bias)
 
     if hasattr(model, "lm_head"):
         if "lm_head.weight" in params:
-            copy("lm_head.weight", model.lm_head.weight)
+            safe_copy("lm_head.weight", model.lm_head.weight)
         else:
-            model.lm_head.weight = model.wte.weight  # Tie weights fallback
+            # fallback: tie lm_head to token embeddings
+            model.lm_head.weight = model.wte.weight
 
-    cleanup()
+    # Move model to target device
+    try:
+        model.to(device)
+    except RuntimeError as e:
+        print(f"⚠️ Warning: Failed to move model to {device} due to: {e}")
+        print("Model remains on CPU.")
+
+    # Cleanup memory
+    gc.collect()
+    torch.cuda.empty_cache()
+    time.sleep(1)
+
     return model
 
 
+# -----------------------------
+# Helper: Get Download URL
+# -----------------------------
 def get_gpt2_safetensors_url(model_variant: str) -> str:
     URL_DIR = {
         "gpt2-small": "gpt2",
@@ -151,12 +211,39 @@ def get_gpt2_safetensors_url(model_variant: str) -> str:
     return f"{base_url}/{URL_DIR[model_variant]}/resolve/main/model.safetensors"
 
 
-# ===== Example usage =====
-# from your_model_file import GPTModel, BASE_CONFIG
-# model_variant = "gpt2-xl"
-# model_class = GPTModel
-# config = BASE_CONFIG  # or your config object
+# ===========================
+# Example usage:
+# ===========================
+# ===========================
+# Example usage:
+# ===========================
+if __name__ == "__main__":
+    MODEL_NAME = "model.safetensors"
+    MODEL_DIR = "./models/gpt2-small"
+    MODEL_VARIANT = "gpt2-small"
 
-# model_file = download_safetensors(f"{model_variant}.safetensors", "models", get_gpt2_safetensors_url(model_variant))
-# params = load_safetensors(model_file)
-# model = load_gpt2_weights_meta(model_class, config, params, device="cuda", efficient=True)
+    try:
+        url = get_gpt2_safetensors_url(MODEL_VARIANT)
+
+        safetensors_path = download_safetensors(
+            model_name=MODEL_NAME,
+            model_dir=MODEL_DIR,
+            url=url,
+            expected_size=500 * 1024 * 1024  # ~500MB
+        )
+
+        weights_dict = load_safetensors(safetensors_path)
+
+        config = Config.from_name("gpt2-small")   # Create config instance
+        model = GPT(config)                        # Instantiate model with config instance
+        print(model)
+
+
+        # Pass model instance, config instance, and weights dict to loader
+        model = load_gpt2_weights_meta(model, config, weights_dict, device="cuda")
+
+        print("✅ Model weights downloaded and loaded successfully!")
+
+    except Exception as err:
+        print(f"❌ Fatal error: {err}")
+

@@ -6,7 +6,7 @@ from config import Config
 from utils.download_weight import (
     download_safetensors,
     load_safetensors,
-    load_gpt2_weights_meta,  # Updated import
+    load_gpt2_weights_meta,
     get_gpt2_safetensors_url,
     Spinner
 )
@@ -28,10 +28,14 @@ class LLM(nn.Module):
         else:
             self.model.eval()
 
-    def load(self, model_variant, model_family="gpt2", cache_dir="./models", efficient=True):
-
+    def load(self, model_variant: str, model_family: str = "gpt2", cache_dir: str = "./models"):
         if model_family != "gpt2":
             raise NotImplementedError(f"Loading weights for {model_family} not implemented.")
+
+        if self.model is None:
+            if self.config is None:
+                raise RuntimeError("Config must be set before loading weights.")
+            self.model = GPT(self.config).to(self.device)
 
         filename = f"model-{model_variant}.safetensors"
         url = get_gpt2_safetensors_url(model_variant)
@@ -40,8 +44,8 @@ class LLM(nn.Module):
         params = load_safetensors(filepath)
 
         with Spinner("Assigning weights to model"):
-            # Use memory-efficient loading which returns the loaded model
-            self.model = load_gpt2_weights_meta(GPT, self.config, params, device=self.device, efficient=efficient)
+            # Load weights into existing model instance
+            self.model = load_gpt2_weights_meta(self.model, self.config, params, device=self.device)
 
     def save(self, save_path: str):
         if self.model is None:
