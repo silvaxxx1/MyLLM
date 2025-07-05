@@ -1,3 +1,4 @@
 inference/gpt_infrence/checkpoints/models--openai-community--gpt2/snapshots/607a30d783dfa663caf39e06633721c8d4cfcd7e/model.safetensors filter=lfs diff=lfs merge=lfs -text
 inference/gpt_infrence/checkpoints/models/gpt2-small[[:space:]](124M)_model.pt filter=lfs diff=lfs merge=lfs -text
 inference/gpt_infrence/checkpoints/models/gpt2-small[[:space:]](124M)_state_dict.pt filter=lfs diff=lfs merge=lfs -text
+models/*.safetensors filter=lfs diff=lfs merge=lfs -text
