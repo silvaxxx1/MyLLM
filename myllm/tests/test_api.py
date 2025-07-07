@@ -2,6 +2,7 @@ import sys
 import os
 import torch
 import pytest
+import tiktoken  # ✅ ADD THIS
 
 # Add the parent directory to the sys.path so we can import api, config, etc.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -21,10 +22,12 @@ def test_llm_generate(use_kv_cache):
     llm = LLM(config=config, device=device)
     llm.load(model_variant=model_variant, model_family="gpt2")
 
-    # Encode a basic prompt
-    tokenizer = config.tokenizer
+    # ✅ Use tiktoken tokenizer
+    tokenizer = tiktoken.get_encoding("gpt2")
     prompt = "Hello"
     input_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long).to(device)
+
+    eos_token = tokenizer.eot_token  # ✅ Use tiktoken's EOS token ID
 
     # Generation config
     generation_config = GenerationConfig(
@@ -35,8 +38,8 @@ def test_llm_generate(use_kv_cache):
         do_sample=True,
         use_kv_cache=use_kv_cache,
         repetition_penalty=1.0,
-        eos_token_id=tokenizer.eos_token_id,
-        pad_token_id=tokenizer.eos_token_id
+        eos_token_id=eos_token,
+        pad_token_id=eos_token
     )
 
     # Generate output

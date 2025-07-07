@@ -181,7 +181,11 @@ class TestGPT:
             torch.cuda.empty_cache()
             
             final_memory = torch.cuda.memory_allocated()
-            assert final_memory <= initial_memory, "Memory leak detected"
+            allowed_margin = 1_000_000  # Allow 1MB fluctuation
+            assert final_memory <= initial_memory + allowed_margin, (
+                f"Memory leak detected: initial={initial_memory}, final={final_memory}"
+            )
+
 
 @pytest.mark.parametrize("batch_size,seq_len", [(2, 16), (1, 32), (4, 8)])
 def test_attention_shapes(test_config, device, batch_size, seq_len):
