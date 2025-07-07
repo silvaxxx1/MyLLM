@@ -170,33 +170,37 @@ Methods:
         
         self.kv_cache_initialized = True
 
-    def forward(self, x: torch.Tensor, use_cache: bool = False) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, use_cache: bool = False, pos_offset: int = 0) -> torch.Tensor:
         """
-Forward pass through the GPT model.
+        Forward pass through the GPT model.
 
-Parameters:
-    x (torch.Tensor): 
-        Input tensor of shape (batch_size, seq_len) containing token indices
-    use_cache (bool):
-        Whether to use KV caching for autoregressive generation
+        Parameters:
+            x (torch.Tensor): 
+                Input tensor of shape (batch_size, seq_len) containing token indices
+            use_cache (bool):
+                Whether to use KV caching for autoregressive generation
+            pos_offset (int):
+                Positional offset to be added when computing position embeddings,
+                useful for generating tokens with cached KV pairs
 
-Returns:
-    torch.Tensor: 
-        Logits of shape (batch_size, seq_len, vocab_size) representing
-        unnormalized probabilities for each token in the vocabulary
+        Returns:
+            torch.Tensor: 
+                Logits of shape (batch_size, seq_len, vocab_size) representing
+                unnormalized probabilities for each token in the vocabulary
 
-Processing Steps:
-1. Input validation (sequence length check)
-2. Token embedding lookup
-3. Position embedding addition (if configured)
-4. Sequential processing through transformer blocks
-5. Final layer normalization
-6. Projection to vocabulary space
+        Processing Steps:
+        1. Input validation (sequence length check)
+        2. Token embedding lookup
+        3. Position embedding addition (if configured)
+        4. Sequential processing through transformer blocks
+        5. Final layer normalization
+        6. Projection to vocabulary space
 
-Notes:
-- When use_cache=True, expects to be called sequentially with increasing positions
-- Input sequences longer than config.block_size will raise an error
-"""
+        Notes:
+        - When use_cache=True, expects to be called sequentially with increasing positions
+        - Input sequences longer than config.block_size will raise an error
+        - pos_offset should match the current length of the KV cache
+        """
         B, T = x.size()  # B = batch size, T = sequence length
 
         # Check if input sequence length is within the allowed block size
@@ -208,23 +212,25 @@ Notes:
         # Token embeddings
         token_embeddings = self.wte(x)
 
-        # Add position embeddings if they exist
+        # Add position embeddings if enabled (e.g., learned position embeddings)
         if hasattr(self, 'wpe'):
-            pos = torch.arange(0, T, dtype=torch.long, device=x.device).unsqueeze(0)
+            # Use pos_offset to align positions with cached sequence length
+            pos = torch.arange(pos_offset, pos_offset + T, dtype=torch.long, device=x.device).unsqueeze(0)
             position_embeddings = self.wpe(pos)
             x = token_embeddings + position_embeddings
         else:
-            x = token_embeddings
+            x = token_embeddings  # No position encoding (e.g., rotary)
 
-        # Pass through each transformer block
+        # Pass input through transformer blocks
         for block in self.transformer.values():
             x = block(x, use_cache=use_cache)
 
-        # Final layer normalization
+        # Final normalization
         x = self.ln_f(x)
 
-        # Output logits
+        # Project to vocabulary logits
         return self.lm_head(x)
+
         
     def reset_cache(self) -> None:
         """Reset the KV cache for all transformer blocks."""
@@ -409,63 +415,61 @@ Configuration Options:
             )
 
     def initialize_kv_cache(self, batch_size: int, max_seq_len: int, num_kv_heads: int, head_dim: int, dtype: torch.dtype) -> None:
-        """Initialize the key-value cache for this attention layer."""
         self.kv_cache = KVCache(batch_size, max_seq_len, num_kv_heads, head_dim, dtype)
+        # Move the kv_cache buffers to the same device as this module's parameters (usually cuda)
+        self.kv_cache.to(next(self.parameters()).device)
+
 
     def forward(self,
-                x: torch.Tensor,
-                mask: Optional[torch.Tensor] = None,
-                use_cache: bool = False
-    ) -> torch.Tensor:
-        B, T, C = x.size()  # B = batch size, T = sequence length, C = embedding dimension
+            x: torch.Tensor,
+            mask: Optional[torch.Tensor] = None,
+            use_cache: bool = False
+            ) -> torch.Tensor:
+        
+        B, T, C = x.size()
 
-        # Compute queries, keys, and values
+        # Compute qkv
         qkv = self.qkv(x)
         q_size = self.config.n_head * self.config.head_size
         k_size = v_size = self.config.n_query_groups * self.config.head_size
         q, k, v = qkv.split([q_size, k_size, v_size], dim=-1)
 
-        # Normalize queries and keys if specified
         if self.norm_q is not None:
             q = self.norm_q(q)
             k = self.norm_k(k)
 
-        # Reshape for multi-head attention
+        # Reshape
         q = q.view(B, T, self.config.n_head, self.config.head_size).transpose(1, 2)
         k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
         v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
 
-        # Apply RoPE to queries and keys
+        # RoPE
         if self.config.use_rope:
             if self.freqs_complex.device != q.device:
                 self.freqs_complex = self.freqs_complex.to(q.device)
             q = apply_rope(q, self.freqs_complex)
             k = apply_rope(k, self.freqs_complex)
 
-        # Handle KV caching for autoregressive generation
         if use_cache and self.kv_cache is not None:
-            if self.kv_cache.size > 0:
-                k_cache, v_cache = self.kv_cache.update(k, v)
-                cache_size = self.kv_cache.size
-                if mask is None and self.config.causal_attention:
-                    mask = torch.zeros(1, 1, 1, cache_size, dtype=torch.bool, device=q.device)
-                y = self.scaled_dot_product_attention(q, k_cache[:, :, :cache_size], v_cache[:, :, :cache_size], mask)
-            else:
-                self.kv_cache.update(k, v)
-                if mask is None and self.config.causal_attention:
-                    mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
-                    mask = mask.unsqueeze(0).unsqueeze(0)
-                y = self.scaled_dot_product_attention(q, k, v, mask)
+            # Always update cache once per call
+            k_cache, v_cache = self.kv_cache.update(k, v)
+            cache_size = self.kv_cache.size
+
+            if self.config.causal_attention:
+                # No mask needed when using cache (full past attention allowed)
+                mask = None
+
+            # Attention with cached keys/values sliced up to current size
+            y = self.scaled_dot_product_attention(q, k_cache[:, :, :cache_size], v_cache[:, :, :cache_size], mask)
         else:
+            # No cache: build causal mask if needed
             if mask is None and self.config.causal_attention:
                 mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=q.device), diagonal=1)
                 mask = mask.unsqueeze(0).unsqueeze(0)
+
             y = self.scaled_dot_product_attention(q, k, v, mask)
 
-        # Reassemble all head outputs
         y = y.transpose(1, 2).contiguous().view(B, T, -1)
-
-        # Output projection
         return self.proj(y)
 
     def scaled_dot_product_attention(self,
@@ -652,67 +656,39 @@ Usage Pattern:
 3. Reset cache when starting new sequence
 """
 
-    def __init__(
-        self,
-        batch_size: int,
-        max_seq_len: int,
-        num_kv_heads: int,
-        head_dim: int,
-        dtype: torch.dtype,
-    ) -> None:
+    
+    def __init__(self, batch_size: int, max_seq_len: int, num_kv_heads: int, head_dim: int, dtype: torch.dtype):
         super().__init__()
-
-        # Shape: (B, H, S, D)
         cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
-
-        # Buffers to hold cached keys and values
         self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
         self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
-
-        # Tracks positions in the sequence [0, 1, ..., max_seq_len - 1]
-        self.register_buffer("cache_pos", torch.arange(0, cache_shape[2]), persistent=False)
-
+        self.cache_pos = 0  # simple int instead of tensor
+        self.max_seq_len = max_seq_len
         self.batch_size = batch_size
 
     def reset(self) -> None:
-        """Clears the cache and resets the position to the start."""
         self.k_cache.zero_()
         self.v_cache.zero_()
-        self.cache_pos -= self.size  # Resets to 0
+        self.cache_pos = 0
 
     @property
     def size(self) -> int:
-        """Returns the number of tokens currently stored in the cache."""
-        return self.cache_pos[0].item()
+        return self.cache_pos
 
-    def update(
-        self, k_val: torch.Tensor, v_val: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Appends new key and value tensors to the cache."""
+    def update(self, k_val: torch.Tensor, v_val: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         bsz, _, seq_len, _ = k_val.shape
 
-        # Ensure incoming batch size fits the allocated cache
         if bsz > self.k_cache.shape[0]:
-            raise ValueError(
-                f"The current cache has a batch size of {self.k_cache.shape[0]}, "
-                f"but received input with batch size {k_val.shape[0]}"
-            )
+            raise ValueError(f"KVCache batch mismatch: expected {self.k_cache.shape[0]}, got {bsz}")
+        if self.cache_pos + seq_len > self.max_seq_len:
+            raise ValueError("KVCache overflow")
 
-        # Ensure there's enough room in the cache for the new entries
-        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
+        self.k_cache[:bsz, :, self.cache_pos:self.cache_pos + seq_len] = k_val
+        self.v_cache[:bsz, :, self.cache_pos:self.cache_pos + seq_len] = v_val
+        self.cache_pos += seq_len
 
-        # Reference to the current key and value caches
-        k_out = self.k_cache
-        v_out = self.v_cache
+        return self.k_cache, self.v_cache
 
-        # Write new keys and values at the current cache position
-        k_out[:bsz, :, self.cache_pos[:seq_len]] = k_val
-        v_out[:bsz, :, self.cache_pos[:seq_len]] = v_val
-
-        # Advance the cache position by the number of new tokens
-        self.cache_pos.add_(seq_len)
-
-        return k_out, v_out
 
 
 class RMSNorm(nn.Module):
@@ -1044,39 +1020,4 @@ class GemmaMLP(LLaMAMLP):
         x = F.gelu(x_fc_1, approximate=self.config.gelu_approximate) * x_fc_2
         return self.proj(x) 
     
-
-if __name__ == '__main__':
-    import torch
-    from config import Config
-
-    # Load config
-    config = Config.from_name("gpt2-small")  # or your custom model name
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
-    # clean up the gpu memory 
-    import gc
-
-    # Clear CUDA cache and collect garbage
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
-
-    # Build and move model to device in half precision
-    model = GPT(config).to(device).half()
-    model.eval()
-
-    # Create dummy input in half precision
-    inputs = torch.randint(0, config.vocab_size, (1, 10)).to(device)
-    inputs = inputs.to(device)
-
-    # Only convert input to half if it's floating point
-
-
-    with torch.no_grad():
-        outputs = model(inputs)
-
-    print("Output shape:", outputs.shape)  # Expected: (1, 10, vocab_size)
-    print(model)
-
 

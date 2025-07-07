@@ -8,8 +8,7 @@ import time
 import gc
 import requests
 from threading import Thread
-from model import GPT 
-from config import Config 
+
 
 # Spinner for UI feedback
 class Spinner:
@@ -211,39 +210,4 @@ def get_gpt2_safetensors_url(model_variant: str) -> str:
     return f"{base_url}/{URL_DIR[model_variant]}/resolve/main/model.safetensors"
 
 
-# ===========================
-# Example usage:
-# ===========================
-# ===========================
-# Example usage:
-# ===========================
-if __name__ == "__main__":
-    MODEL_NAME = "model.safetensors"
-    MODEL_DIR = "./models/gpt2-small"
-    MODEL_VARIANT = "gpt2-small"
-
-    try:
-        url = get_gpt2_safetensors_url(MODEL_VARIANT)
-
-        safetensors_path = download_safetensors(
-            model_name=MODEL_NAME,
-            model_dir=MODEL_DIR,
-            url=url,
-            expected_size=500 * 1024 * 1024  # ~500MB
-        )
-
-        weights_dict = load_safetensors(safetensors_path)
-
-        config = Config.from_name("gpt2-small")   # Create config instance
-        model = GPT(config)                        # Instantiate model with config instance
-        print(model)
-
-
-        # Pass model instance, config instance, and weights dict to loader
-        model = load_gpt2_weights_meta(model, config, weights_dict, device="cuda")
-
-        print("✅ Model weights downloaded and loaded successfully!")
-
-    except Exception as err:
-        print(f"❌ Fatal error: {err}")
 
