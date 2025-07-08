@@ -1,6 +1,8 @@
 import os
 import torch
 import torch.nn as nn
+from dataclasses import dataclass
+from typing import Optional, List, Union
 from model import GPT
 from config import Config
 from utils.download_weight import (
@@ -11,22 +13,27 @@ from utils.download_weight import (
     Spinner
 )
 
-# generation_config.py
-from dataclasses import dataclass
-from typing import Optional
-
 @dataclass
 class GenerationConfig:
     max_length: int = 20
+    max_new_tokens: Optional[int] = None
+    min_length: Optional[int] = None
     temperature: float = 1.0
     top_k: Optional[int] = None
     top_p: Optional[float] = None
+    typical_p: Optional[float] = None
     do_sample: bool = True
     use_kv_cache: bool = True
     repetition_penalty: float = 1.0
-    eos_token_id: Optional[int] = None
+    no_repeat_ngram_size: Optional[int] = None
+    early_stopping: bool = True
+    eos_token_ids: Optional[List[int]] = None
     pad_token_id: Optional[int] = None
-
+    return_tokens: bool = True
+    return_logprobs: bool = False
+    output_scores: bool = False
+    output_attentions: bool = False
+    output_hidden_states: bool = False
 
 class LLM(nn.Module):
     def __init__(self, config: Config = None, device: str = "cpu"):
@@ -40,10 +47,7 @@ class LLM(nn.Module):
     def init_from_config(self, config: Config, train_mode: bool = True):
         self.config = config
         self.model = GPT(config).to(self.device)
-        if train_mode:
-            self.model.train()
-        else:
-            self.model.eval()
+        self.model.train() if train_mode else self.model.eval()
 
     def load(self, model_variant: str, model_family: str = "gpt2", cache_dir: str = "./models"):
         if model_family != "gpt2":
@@ -56,12 +60,10 @@ class LLM(nn.Module):
 
         filename = f"model-{model_variant}.safetensors"
         url = get_gpt2_safetensors_url(model_variant)
-
         filepath = download_safetensors(filename, cache_dir, url)
         params = load_safetensors(filepath)
 
         with Spinner("Assigning weights to model"):
-            # Load weights into existing model instance
             self.model = load_gpt2_weights_meta(self.model, self.config, params, device=self.device)
 
     def save(self, save_path: str):
@@ -72,30 +74,16 @@ class LLM(nn.Module):
         print(f"Model weights saved to {save_path}")
 
     @torch.no_grad()
-    def generate(self, input_ids: torch.Tensor, generation_config: GenerationConfig, verbose: bool = False):
-        max_length = generation_config.max_length
-        temperature = generation_config.temperature
-        top_k = generation_config.top_k
-        top_p = generation_config.top_p
-        do_sample = generation_config.do_sample
-        use_cache = generation_config.use_kv_cache
-        repetition_penalty = generation_config.repetition_penalty
-        eos_token_id = generation_config.eos_token_id
-
-        self.model.eval()
-        batch_size = input_ids.size(0)
+    def generate(self, input_ids: torch.Tensor, generation_config: GenerationConfig):
+        model = self.model.eval()
+        B, T = input_ids.shape
         device = input_ids.device
+        generated = input_ids.clone()
 
-        self.model.reset_cache()
-
-        if use_cache:
-            max_seq_len = input_ids.size(1) + max_length
-            self.model.initialize_kv_cache(batch_size=batch_size, max_seq_len=max_seq_len, dtype=torch.float32)
-
-        generated = input_ids.to(device)
-
-        if use_cache:
-            _ = self.model(generated, use_cache=False, pos_offset=0)
+        if generation_config.use_kv_cache:
+            model.reset_cache()
+            model.initialize_kv_cache(batch_size=B, max_seq_len=T + generation_config.max_length)
+            _ = model(input_ids, use_cache=False, pos_offset=0)
 
         def _top_k_logits(logits, k):
             if k == 0:
@@ -112,45 +100,55 @@ class LLM(nn.Module):
             indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
             return logits.masked_fill(indices_to_remove, float('-inf'))
 
-        for step in range(max_length - input_ids.size(1)):
-            if use_cache:
-                input_tokens = generated[:, -1:].to(device)
-                pos_offset = self.model.transformer["block_0"].attn.kv_cache.size
+        logprobs = []
+        for step in range(generation_config.max_length):
+            if generation_config.use_kv_cache:
+                input_token = generated[:, -1:]
+                pos_offset = model.transformer["block_0"].attn.kv_cache.size
             else:
-                input_tokens = generated.to(device)
+                input_token = generated
                 pos_offset = 0
 
-            logits = self.model(input_tokens, use_cache=use_cache, pos_offset=pos_offset)
-            logits = logits[:, -1, :] / temperature
+            logits = model(input_token, use_cache=generation_config.use_kv_cache, pos_offset=pos_offset)
+            logits = logits[:, -1, :] / generation_config.temperature
 
-            if repetition_penalty != 1.0:
-                for i in range(logits.size(0)):
+            if generation_config.repetition_penalty != 1.0:
+                for i in range(B):
                     for prev_token in set(generated[i].tolist()):
-                        logits[i, prev_token] /= repetition_penalty
+                        logits[i, prev_token] /= generation_config.repetition_penalty
 
-            if top_k is not None:
-                logits = _top_k_logits(logits, top_k)
-            if top_p is not None:
-                logits = _top_p_logits(logits, top_p)
+            if generation_config.top_k is not None:
+                logits = _top_k_logits(logits, generation_config.top_k)
+            if generation_config.top_p is not None:
+                logits = _top_p_logits(logits, generation_config.top_p)
 
-            if do_sample:
-                probs = torch.softmax(logits, dim=-1)
+            probs = torch.softmax(logits, dim=-1)
+            if generation_config.do_sample:
                 next_token = torch.multinomial(probs, num_samples=1)
             else:
-                next_token = torch.argmax(logits, dim=-1, keepdim=True)
+                next_token = torch.argmax(probs, dim=-1, keepdim=True)
 
-            generated = torch.cat((generated, next_token), dim=1)
+            if generation_config.return_logprobs:
+                logprob = torch.log(probs.gather(1, next_token))
+                logprobs.append(logprob)
 
-            if verbose:
-                print(f"[Step {step+1}] Token ID: {next_token.squeeze().tolist()}")
-                if use_cache:
-                    cache_size = self.model.transformer["block_0"].attn.kv_cache.size
-                    print(f"[Step {step+1}] KV Cache Size: {cache_size}")
-                if eos_token_id is not None and (next_token == eos_token_id).all():
-                    print(f"[Step {step+1}] EOS token generated.")
-            
-            if eos_token_id is not None and (next_token == eos_token_id).all():
+            generated = torch.cat([generated, next_token], dim=1)
+
+            if generation_config.eos_token_ids and all((next_token == eos).all() for eos in generation_config.eos_token_ids):
                 break
 
-        return generated
+        output = {"tokens": generated}
+        if generation_config.return_logprobs:
+            output["logprobs"] = torch.cat(logprobs, dim=1)
+        return output
 
+    def generate_text(self, prompt: str, tokenizer, generation_config: GenerationConfig):
+        input_ids = tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+        output = self.generate(input_ids, generation_config)
+        tokens = output["tokens"][0]
+        text = tokenizer.decode(tokens, skip_special_tokens=True)
+        return {
+            "text": text,
+            "tokens": tokens.tolist() if generation_config.return_tokens else None,
+            "logprobs": output.get("logprobs", None)
+        }

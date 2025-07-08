@@ -1,0 +1,13 @@
+test_type,prompt,prompt_length,use_kv_cache,max_length,time
+prompt_length,Hi,1,False,5,1.089475393295288
+prompt_length,Hi,1,True,5,0.6179752349853516
+prompt_length,Everything moves you forward.,5,False,5,1.0578317642211914
+prompt_length,Everything moves you forward.,5,True,5,0.732323169708252
+generation_length,Everything moves you forward.,5,False,5,1.2088663578033447
+generation_length,Everything moves you forward.,5,True,5,0.8868021965026855
+generation_length,Everything moves you forward.,5,False,10,3.131239414215088
+generation_length,Everything moves you forward.,5,True,10,1.254002571105957
+generation_length,Everything moves you forward.,5,False,20,4.653130292892456
+generation_length,Everything moves you forward.,5,True,20,2.340510129928589
+batch_generation,batch,5,False,10,2.445242404937744
+batch_generation,batch,5,True,10,1.759326457977295

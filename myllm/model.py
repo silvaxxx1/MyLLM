@@ -170,7 +170,11 @@ Methods:
         
         self.kv_cache_initialized = True
 
-    def forward(self, x: torch.Tensor, use_cache: bool = False, pos_offset: int = 0) -> torch.Tensor:
+    def forward(self, x: torch.Tensor,
+                use_cache: bool = False,
+                pos_offset: int = 0
+                ) -> torch.Tensor:
+        
         """
         Forward pass through the GPT model.
 
@@ -210,25 +214,32 @@ Methods:
             )
 
         # Token embeddings
+        # x: (B, T) -> (B, T, C) 
         token_embeddings = self.wte(x)
 
         # Add position embeddings if enabled (e.g., learned position embeddings)
         if hasattr(self, 'wpe'):
             # Use pos_offset to align positions with cached sequence length
+            # pos: (T) -> (1, T) 
             pos = torch.arange(pos_offset, pos_offset + T, dtype=torch.long, device=x.device).unsqueeze(0)
+            # pos: (1, T) -> (1, T, C)
             position_embeddings = self.wpe(pos)
+            # position_embeddings: (B, T, C) + (B, T, C) -> (B, T, C) 
             x = token_embeddings + position_embeddings
         else:
             x = token_embeddings  # No position encoding (e.g., rotary)
 
         # Pass input through transformer blocks
+        # x: (B, T, C) > (B, T, C)
         for block in self.transformer.values():
             x = block(x, use_cache=use_cache)
 
         # Final normalization
+        # x: (B, T, C) -> (B, T, C)
         x = self.ln_f(x)
 
         # Project to vocabulary logits
+        # x: (B, T, C) * (C, V) -> (B, T, V)
         return self.lm_head(x)
 
         
@@ -316,10 +327,12 @@ Configuration Options:
         self.config = config
 
     def forward(self, x: torch.Tensor, use_cache: bool = False) -> torch.Tensor:
-        # Apply the first normalization
+        # Apply the first normalization 
+        # x: (B, T, C) -> (B, T, C)
         x_normed = self.norm1(x)
 
         # Apply self-attention with optional KV cache
+        # attn_out: (B, T, C) 
         attn_out = self.attn(x_normed, use_cache=use_cache)
 
         # Apply post-attention normalization
@@ -429,18 +442,31 @@ Configuration Options:
         B, T, C = x.size()
 
         # Compute qkv
+        
+        # MHA : n_head = n_query_groups
+        # MQA : n_query_groups = 1 
+        # GQA : n_query_groups < n_head 
+
+        # qkv : (B, T, (n_head + 2 * n_query_groups) * head_size) 
         qkv = self.qkv(x)
+        # qkv : (B, T, n_head * head_size), (B, T, n_query_groups * head_size), (B, T, n_query_groups * head_size)
         q_size = self.config.n_head * self.config.head_size
         k_size = v_size = self.config.n_query_groups * self.config.head_size
+        # q : (B, T, n_head, head_size)
+        # k : (B, T, n_query_groups, head_size)
+        # v : (B, T, n_query_groups, head_size)
         q, k, v = qkv.split([q_size, k_size, v_size], dim=-1)
 
         if self.norm_q is not None:
             q = self.norm_q(q)
             k = self.norm_k(k)
 
-        # Reshape
+        # Reshape 
+        # q : (B, T, n_head, head_size) -> (B, n_head, T, head_size)
         q = q.view(B, T, self.config.n_head, self.config.head_size).transpose(1, 2)
+        # k : (B, T, n_query_groups, head_size) -> (B, n_query_groups, T, head_size)
         k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
+        # v : (B, T, n_query_groups, head_size) -> (B, n_query_groups, T, head_size)
         v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
 
         # RoPE
