@@ -65,7 +65,7 @@ import math
 from typing import Optional, Tuple
 
 # Import the configuration class from the config module
-from config import Config 
+from Configs.ModelConfig import ModelConfig 
 
 class GPT(nn.Module):
     """
@@ -121,7 +121,7 @@ Methods:
 - reset_cache: Clear the KV cache
 """
     
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.config = config
 
@@ -293,7 +293,7 @@ Configuration Options:
 - Post-MLP norm
 """
 
-    def __init__(self, config: Config, block_idx: int) -> None:
+    def __init__(self, config: ModelConfig, block_idx: int) -> None:
         super().__init__()
 
         # Check for unsupported configurations
@@ -400,7 +400,7 @@ Configuration Options:
 - Attention bias
 """
 
-    def __init__(self, config: Config, block_idx: int) -> None:
+    def __init__(self, config: ModelConfig, block_idx: int) -> None:
         super().__init__()
         self.qkv = nn.Linear(config.n_embd, 
                            (config.n_head + 2 * config.n_query_groups) * config.head_size,
@@ -902,7 +902,7 @@ class GptNeoxMLP(nn.Module):
     (Black et al., 2022)
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: ModelConfig) -> None:
         """
         Initialize the GPT-NeoX MLP block.
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from transformers import GPT2Tokenizer
-from config import Config
+from Configs.ModelConfig import ModelConfig
 from legacy_api import LLM as BasicLLM
 from api import LLM as OptimizedLLM, GenerationConfig
 from datetime import datetime
@@ -40,7 +40,7 @@ class EnhancedBenchmark:
     def load_models(self):
         """Load both basic and optimized models"""
         print("🚀 Loading models...")
-        preset_config = Config.from_name("gpt2-small")
+        preset_config = ModelConfig.from_name("gpt2-small")
         
         self.basic_llm = BasicLLM(config=preset_config, device=self.device)
         self.optimized_llm = OptimizedLLM(config=preset_config, device=self.device)
@@ -515,6 +515,7 @@ class EnhancedBenchmark:
         return df
 import argparse
 
+ 
 # Usage CLI entrypoint
 def main():
     parser = argparse.ArgumentParser(description="Run Enhanced GPT Benchmarking Suite")

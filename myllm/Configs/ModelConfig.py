@@ -88,7 +88,7 @@ import logging
 logging.basicConfig(level=logging.WARNING)  # This suppresses info level messages
 
 @dataclass
-class Config:
+class ModelConfig:
     name: str = ""
     block_size: int = 1024
     vocab_size: int = 50257

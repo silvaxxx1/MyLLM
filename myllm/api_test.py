@@ -1,6 +1,6 @@
 import torch
 from transformers import GPT2Tokenizer
-from config import Config
+from Configs.ModelConfig import ModelConfig
 from api import LLM, GenerationConfig
 
 def test_basic_generation():
@@ -9,7 +9,7 @@ def test_basic_generation():
 
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     tokenizer.pad_token = tokenizer.eos_token
-    config = Config.from_name(model_variant)
+    config = ModelConfig.from_name(model_variant)
 
     llm = LLM(config=config, device=device)
     llm.load(model_variant=model_variant, model_family="gpt2")
@@ -51,7 +51,7 @@ def test_batch_generation():
 
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     tokenizer.pad_token = tokenizer.eos_token
-    config = Config.from_name(model_variant)
+    config = ModelConfig.from_name(model_variant)
 
     llm = LLM(config=config, device=device)
     llm.load(model_variant=model_variant, model_family="gpt2")

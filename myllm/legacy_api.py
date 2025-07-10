@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 from model import GPT
-from config import Config
+from Configs.ModelConfig import ModelConfig
+from Configs.GenConfig import GenerationConfig
 from utils.download_weight import (
     download_safetensors,
     load_safetensors,
@@ -15,37 +16,12 @@ from utils.download_weight import (
 )
 
 
-@dataclass
-class GenerationConfig:
-    """
-    Configuration for text generation using language models.
-    """
-    max_length: int = 20
-    max_new_tokens: Optional[int] = None
-    min_length: Optional[int] = None
-    temperature: float = 1.0
-    top_k: Optional[int] = None
-    top_p: Optional[float] = None
-    typical_p: Optional[float] = None
-    do_sample: bool = True
-    use_kv_cache: bool = True
-    repetition_penalty: float = 1.0
-    no_repeat_ngram_size: Optional[int] = None
-    early_stopping: bool = True
-    eos_token_ids: Optional[List[int]] = None
-    pad_token_id: Optional[int] = None
-    return_tokens: bool = True
-    return_logprobs: bool = False
-    output_scores: bool = False
-    output_attentions: bool = False
-    output_hidden_states: bool = False
-
 
 class LLM(nn.Module):
     """
     A wrapper around the GPT model that includes generation and model management utilities.
     """
-    def __init__(self, config: Config = None, device: str = "cpu"):
+    def __init__(self, config: ModelConfig = None, device: str = "cpu"):
         super().__init__()
         self.device = device
         self.config = config
@@ -53,7 +29,7 @@ class LLM(nn.Module):
         if config is not None:
             self.init_from_config(config)
 
-    def init_from_config(self, config: Config, train_mode: bool = True):
+    def init_from_config(self, config: ModelConfig, train_mode: bool = True):
         """
         Initialize GPT model from configuration.
         """

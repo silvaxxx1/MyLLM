@@ -1,37 +1,39 @@
-from dataclasses import dataclass
+from dataclasses import dataclass 
 from typing import Optional, List
+
+
+# ===============================
+# Configuration for Text Generation
+# ===============================
 
 @dataclass
 class GenerationConfig:
-    # === Length Control ===
-    max_length: int = 20  # Total maximum length (input + generated). Used when max_new_tokens is None.
-    max_new_tokens: Optional[int] = None  # Max number of new tokens to generate (preferred over max_length).
-    min_length: Optional[int] = None  # Minimum number of new tokens to generate before considering stopping.
-
-    # === Sampling Strategies ===
-    temperature: float = 1.0  # Controls randomness in sampling. Lower = more deterministic.
-    top_k: Optional[int] = None  # Limit sampling to top-k most likely tokens (nucleus sampling).
-    top_p: Optional[float] = None  # Limit sampling to top-p cumulative probability mass.
-    typical_p: Optional[float] = None  # Typical decoding: favors tokens close to conditional median.
-
-    do_sample: bool = True  # Whether to sample (True) or use greedy/beam search (False).
-
-    # === KV Caching ===
-    use_kv_cache: bool = True  # Enables use of key/value cache for faster generation during autoregressive decoding.
-
-    # === Repetition Control ===
-    repetition_penalty: float = 1.0  # >1 penalizes repeated tokens. Set >1.0 to reduce repetition.
-    no_repeat_ngram_size: Optional[int] = None  # Prevents repeating any n-gram of given size in output.
-
-    # === Stopping Criteria ===
-    early_stopping: bool = True  # Stop generation when all beams reach EOS or constraints.
-
-    eos_token_ids: Optional[List[int]] = None  # List of token IDs that indicate end-of-sequence.
-    pad_token_id: Optional[int] = None  # Token ID used for padding sequences to equal length.
-
-    # === Output Controls ===
-    return_tokens: bool = True  # Whether to return generated token IDs.
-    return_logprobs: bool = False  # Whether to return log probabilities of generated tokens.
-    output_scores: bool = False  # Whether to return scores for generated sequences.
-    output_attentions: bool = False  # Whether to return attention weights for each layer.
-    output_hidden_states: bool = False  # Whether to return hidden states for each layer.
+    """
+    Configuration dataclass for controlling the generation behavior of LLMs.
+    """
+    max_length: int = 20  # Total number of tokens to generate
+    max_new_tokens: Optional[int] = None  # Alias for max_length override
+    min_length: Optional[int] = None  # Minimum number of tokens to generate
+    temperature: float = 1.0  # Softmax temperature (higher = more random)
+    top_k: Optional[int] = None  # Top-k sampling
+    top_p: Optional[float] = None  # Top-p (nucleus) sampling
+    typical_p: Optional[float] = None  # Typical sampling (not used here)
+    do_sample: bool = True  # Whether to sample or do greedy decoding
+    use_kv_cache: bool = True  # Whether to use KV caching
+    repetition_penalty: float = 1.0  # Penalize repeated tokens
+    apply_repetition_penalty: bool = True  # Toggle repetition penalty on/off
+    apply_top_k_sampling: bool = True  # Toggle top-k sampling on/off
+    apply_top_p_sampling: bool = True  # Toggle top-p sampling on/off
+    no_repeat_ngram_size: Optional[int] = None  # Prevent n-gram repetitions (not used)
+    early_stopping: bool = True  # Stop generation on EOS
+    eos_token_ids: Optional[List[int]] = None  # End-of-sequence token(s)
+    pad_token_id: Optional[int] = None  # Padding token
+    return_tokens: bool = True  # Return token IDs in output
+    return_logprobs: bool = False  # Return log-probabilities
+    output_scores: bool = False  # Output scores (not used)
+    output_attentions: bool = False  # Output attentions (not used)
+    output_hidden_states: bool = False  # Output hidden states (not used)
+    use_mixed_precision: bool = True  # Use FP16 inference if possible
+    max_logprob_history: int = 100  # Keep last N logprobs
+    batch_size: int = 1  # For batched generation
+    use_optimized_sampler: bool = True  # Whether to apply optimized sampling
