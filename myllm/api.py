@@ -96,9 +96,12 @@ class LLM(nn.Module):
         """
         Generate tokens based on input and configuration.
         """
-        model = self.model.eval()
-        B, T = input_ids.shape
-        device = input_ids.device
+        # Set model to evaluation mode to disable dropout and batch normalization (inference mode)
+        model = self.model.eval() 
+        # prompt = input_ids : (batch_size, seq_len)
+        B, T = input_ids.shape 
+        # move to device (cpu or cuda)
+        device = input_ids.device 
         generated = input_ids.clone()
 
         if generation_config.use_kv_cache:

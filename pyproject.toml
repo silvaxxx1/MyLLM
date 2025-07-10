@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.3",
+    "memory-profiler>=0.61.0",
     "numpy>=2.3.1",
+    "psutil>=7.0.0",
     "pytest>=8.4.1",
     "seaborn>=0.13.2",
     "sentencepiece>=0.2.0",
