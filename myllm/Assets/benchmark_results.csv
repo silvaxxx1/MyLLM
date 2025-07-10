@@ -1,10 +1,32 @@
 Variant,Time (s),Tokens/sec
-Basic LLM (Single Input),2.637,9.48
-Optimized LLM - No Optimizations,4.878,5.13
-Optimized LLM - KV Cache Only,2.444,10.23
-Optimized LLM - Repetition Penalty Only,4.848,5.16
-Optimized LLM - Top-K Sampling Only,4.911,5.09
-Optimized LLM - Top-P Sampling Only,5.013,4.99
-Optimized LLM - KV Cache + Repetition Penalty,2.428,10.30
-Optimized LLM - KV Cache + Top-K + Top-P,2.584,9.68
-Optimized LLM - All Optimizations,2.441,10.24
+Basic LLM (Single Input),1.093,22.87
+Optimized LLM - No Optimizations (Batch size 1),2.471,10.12
+Optimized LLM - No Optimizations (Batch size 2),3.022,16.54
+Optimized LLM - No Optimizations (Batch size 4),5.332,18.76
+Optimized LLM - No Optimizations (Batch size 8),9.050,22.10
+Optimized LLM - No Optimizations (Batch size 16),16.122,24.81
+Optimized LLM - KV Cache Only (Batch size 1),1.112,22.47
+Optimized LLM - KV Cache Only (Batch size 2),1.266,39.48
+Optimized LLM - KV Cache Only (Batch size 4),2.006,49.85
+Optimized LLM - KV Cache Only (Batch size 8),2.321,86.18
+Optimized LLM - KV Cache Only (Batch size 16),3.491,114.57
+Optimized LLM - Repetition Penalty Only (Batch size 1),2.570,9.73
+Optimized LLM - Repetition Penalty Only (Batch size 2),3.058,16.35
+Optimized LLM - Repetition Penalty Only (Batch size 4),5.251,19.05
+Optimized LLM - Repetition Penalty Only (Batch size 8),9.197,21.75
+Optimized LLM - Repetition Penalty Only (Batch size 16),18.255,21.91
+Optimized LLM - Top-K Sampling Only (Batch size 1),2.702,9.25
+Optimized LLM - Top-K Sampling Only (Batch size 2),3.232,15.47
+Optimized LLM - Top-K Sampling Only (Batch size 4),5.726,17.46
+Optimized LLM - Top-K Sampling Only (Batch size 8),9.608,20.82
+Optimized LLM - Top-K Sampling Only (Batch size 16),18.252,21.92
+Optimized LLM - Top-P Sampling Only (Batch size 1),2.673,9.35
+Optimized LLM - Top-P Sampling Only (Batch size 2),3.487,14.34
+Optimized LLM - Top-P Sampling Only (Batch size 4),5.561,17.98
+Optimized LLM - Top-P Sampling Only (Batch size 8),10.419,19.20
+Optimized LLM - Top-P Sampling Only (Batch size 16),18.361,21.78
+Optimized LLM - All Optimizations (Batch size 1),1.099,22.75
+Optimized LLM - All Optimizations (Batch size 2),1.273,39.27
+Optimized LLM - All Optimizations (Batch size 4),2.018,49.55
+Optimized LLM - All Optimizations (Batch size 8),2.515,79.53
+Optimized LLM - All Optimizations (Batch size 16),3.603,111.01

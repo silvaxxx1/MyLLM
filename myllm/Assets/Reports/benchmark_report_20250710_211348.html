@@ -1,0 +1,243 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>LLM Benchmark Report - 20250710_211348</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+                .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+                .header { text-align: center; color: #333; margin-bottom: 30px; }
+                .metric-card { display: inline-block; margin: 10px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center; }
+                .metric-value { font-size: 2em; font-weight: bold; color: #2c3e50; }
+                .metric-label { color: #7f8c8d; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #3498db; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+                .best { background-color: #2ecc71; color: white; }
+                .worst { background-color: #e74c3c; color: white; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🚀 LLM Performance Benchmark Report</h1>
+                    <p>Generated on 2025-07-10 21:14:19</p>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">18</div>
+                        <div class="metric-label">Configurations Tested</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">668.4</div>
+                        <div class="metric-label">Max Speed (tok/s)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">154.5</div>
+                        <div class="metric-label">Average Speed (tok/s)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1271%</div>
+                        <div class="metric-label">Max Improvement</div>
+                    </div>
+                </div>
+                
+                <h2>📊 Detailed Results</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Configuration</th>
+                            <th>Tokens/sec</th>
+                            <th>Time (s)</th>
+                            <th>Memory (MB)</th>
+                            <th>Batch Size</th>
+                            <th>Relative Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        
+                        <tr class="best">
+                            <td>All Optimizations (Batch 16)</td>
+                            <td>668.39</td>
+                            <td>0.598</td>
+                            <td>0.0</td>
+                            <td>16</td>
+                            <td>100.0%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>All Optimizations (Batch 8)</td>
+                            <td>393.77</td>
+                            <td>0.508</td>
+                            <td>0.0</td>
+                            <td>8</td>
+                            <td>58.9%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>All Optimizations (Batch 4)</td>
+                            <td>214.68</td>
+                            <td>0.466</td>
+                            <td>0.0</td>
+                            <td>4</td>
+                            <td>32.1%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Basic LLM - The future of AI is...</td>
+                            <td>194.76</td>
+                            <td>0.128</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>29.1%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Basic LLM - In a world where tec...</td>
+                            <td>188.86</td>
+                            <td>0.143</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>28.3%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Basic LLM - Machine learning alg...</td>
+                            <td>182.82</td>
+                            <td>0.142</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>27.4%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>All Optimizations (Batch 2)</td>
+                            <td>112.11</td>
+                            <td>0.446</td>
+                            <td>0.0</td>
+                            <td>2</td>
+                            <td>16.8%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Length 10 tokens</td>
+                            <td>99.17</td>
+                            <td>0.151</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>14.8%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Optimized - KV Cache Only</td>
+                            <td>97.68</td>
+                            <td>0.256</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>14.6%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>All Optimizations (Batch 1)</td>
+                            <td>89.03</td>
+                            <td>0.281</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>13.3%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Optimized - All Optimizations</td>
+                            <td>88.86</td>
+                            <td>0.281</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>13.3%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Length 20 tokens</td>
+                            <td>88.81</td>
+                            <td>0.282</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>13.3%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Length 50 tokens</td>
+                            <td>80.48</td>
+                            <td>0.683</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>12.0%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Length 100 tokens</td>
+                            <td>78.83</td>
+                            <td>1.332</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>11.8%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Optimized - No Optimizations</td>
+                            <td>51.28</td>
+                            <td>0.488</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>7.7%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Optimized - Top-K Sampling Only</td>
+                            <td>51.20</td>
+                            <td>0.488</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>7.7%</td>
+                        </tr>
+            
+                        <tr class="">
+                            <td>Optimized - Top-P Sampling Only</td>
+                            <td>51.01</td>
+                            <td>0.490</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>7.6%</td>
+                        </tr>
+            
+                        <tr class="worst">
+                            <td>Optimized - Repetition Penalty Only</td>
+                            <td>48.76</td>
+                            <td>0.513</td>
+                            <td>0.0</td>
+                            <td>1</td>
+                            <td>7.3%</td>
+                        </tr>
+            
+                    </tbody>
+                </table>
+                
+                <h2>🎯 Key Insights</h2>
+                <ul>
+                    <li><strong>Best Overall Performance:</strong> Look for configurations with highest tokens/sec</li>
+                    <li><strong>Memory Efficiency:</strong> Balance performance with memory usage for your hardware</li>
+                    <li><strong>Batch Processing:</strong> Larger batches improve throughput but require more memory</li>
+                    <li><strong>Optimization Impact:</strong> KV caching provides the most significant speed improvement</li>
+                </ul>
+                
+                <h2>🔧 Recommendations</h2>
+                <ul>
+                    <li>For maximum speed: Use all optimizations with appropriate batch size</li>
+                    <li>For memory-constrained systems: Use KV cache only with batch size 1</li>
+                    <li>For production: Monitor memory usage and adjust batch size accordingly</li>
+                </ul>
+            </div>
+        </body>
+        </html>
+        
