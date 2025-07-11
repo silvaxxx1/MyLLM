@@ -9,6 +9,7 @@ from Configs.GenConfig import GenerationConfig
 # Local modules
 from model import GPT
 from Configs.ModelConfig import ModelConfig
+
 from utils.download_weight import (
     download_safetensors,
     load_safetensors,
