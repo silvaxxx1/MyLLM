@@ -38,7 +38,7 @@ class OptimizedSampler:
         if penalty == 1.0:
             return logits
 
-        batch_size, vocab_size = logits.shape
+        batch_size, _ = logits.shape
         penalty_mask = torch.ones_like(logits)
 
         # Penalize previously generated tokens per batch

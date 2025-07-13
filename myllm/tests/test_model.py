@@ -7,6 +7,10 @@ import sys
 # Add parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import warnings
+warnings.filterwarnings("ignore", message="CUDA initialization: CUDA unknown error")
+
 from model import (
     GPT,
     Block,
@@ -18,7 +22,7 @@ from model import (
     apply_rope,
     pre_compute_freq
 )
-from config import Config
+from Configs.ModelConfig import ModelConfig
 
 @pytest.fixture(autouse=True)
 def cleanup():
@@ -31,7 +35,7 @@ def cleanup():
 @pytest.fixture
 def test_config():
     """Create a minimal test configuration"""
-    return Config(
+    return ModelConfig(
         block_size=32,
         vocab_size=1000,
         n_layer=2,
@@ -202,7 +206,7 @@ def test_attention_shapes(test_config, device, batch_size, seq_len):
     (16, 2, 32)
 ])
 def test_rope(block_size, n_head, n_embd):
-    config = Config(
+    config = ModelConfig(
         block_size=block_size,
         n_head=n_head,
         n_embd=n_embd,
