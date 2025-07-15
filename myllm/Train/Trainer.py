@@ -87,7 +87,7 @@ class RandomTextDataset(Dataset):
         return x, y
 
 dataset = RandomTextDataset()
-train_loader = DataLoader(dataset, batch_size=2, shuffle=True)
+train_loader = DataLoader(dataset, batch_size=4, shuffle=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_epochs = 3
