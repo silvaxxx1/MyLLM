@@ -45,8 +45,8 @@ class EnhancedBenchmark:
         self.basic_llm = BasicLLM(config=preset_config, device=self.device)
         self.optimized_llm = OptimizedLLM(config=preset_config, device=self.device)
         
-        self.basic_llm.load("gpt2-small", "gpt2")
-        self.optimized_llm.load("gpt2-small", "gpt2")
+        self.basic_llm.load("gpt2-medium", "gpt2")
+        self.optimized_llm.load("gpt2-medium", "gpt2")
         
     def benchmark_configuration(self, llm, gen_config, name, batch_size=1, test_prompt="The future of AI is"):
         """Benchmark a specific configuration"""

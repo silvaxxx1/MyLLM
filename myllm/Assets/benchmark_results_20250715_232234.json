@@ -1,0 +1,194 @@
+{
+  "timestamp": "20250715_232234",
+  "summary": {
+    "total_configs": 18,
+    "fastest_config": "All Optimizations (Batch 16)",
+    "fastest_speed": 65.2844889561212,
+    "slowest_config": "Optimized - Top-P Sampling Only",
+    "slowest_speed": 5.062712980043542,
+    "average_speed": 15.2330917037893,
+    "max_improvement": 1189.5159021153854
+  },
+  "detailed_results": [
+    {
+      "name": "Basic LLM - The future of AI is...",
+      "batch_size": 1,
+      "tokens_per_second": 10.995586879026376,
+      "elapsed_time": 2.273639440536499,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:22:46.120933",
+      "sample_output": "The future of AI is others in industrial, has frustrating may also originally coming to provides not..."
+    },
+    {
+      "name": "Basic LLM - In a world where tec...",
+      "batch_size": 1,
+      "tokens_per_second": 11.611883707474089,
+      "elapsed_time": 2.3252041339874268,
+      "total_tokens": 27,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:22:50.977839",
+      "sample_output": "In a world where technology advances rapidly barring a your giving arier defaultcheck administration..."
+    },
+    {
+      "name": "Basic LLM - Machine learning alg...",
+      "batch_size": 1,
+      "tokens_per_second": 11.436061524831917,
+      "elapsed_time": 2.273509979248047,
+      "total_tokens": 26,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:22:55.610297",
+      "sample_output": "Machine learning algorithms can help us Via way from only a global only almost much substandestine S..."
+    },
+    {
+      "name": "Optimized - No Optimizations",
+      "batch_size": 1,
+      "tokens_per_second": 5.327318260799586,
+      "elapsed_time": 4.692792654037476,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:05.025219",
+      "sample_output": "The future of AI is contact of those at can is doinge underlying degreeists pursue E is ore prohibit..."
+    },
+    {
+      "name": "Optimized - KV Cache Only",
+      "batch_size": 1,
+      "tokens_per_second": 10.576488289493764,
+      "elapsed_time": 2.3637335300445557,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:09.896148",
+      "sample_output": "The future of AI is them had\ufffdmakersing of old more based't more surprised, or making more like sure ..."
+    },
+    {
+      "name": "Optimized - Repetition Penalty Only",
+      "batch_size": 1,
+      "tokens_per_second": 5.471015891666606,
+      "elapsed_time": 4.569535255432129,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:19.201265",
+      "sample_output": "The future of AI is of is of is of is of is of is of is of is is of is is is of..."
+    },
+    {
+      "name": "Optimized - Top-K Sampling Only",
+      "batch_size": 1,
+      "tokens_per_second": 5.461962596940856,
+      "elapsed_time": 4.577109336853027,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:28.470689",
+      "sample_output": "The future of AI is being know of more\n\nLast Next All\n\nI/ i\n\n about this all\n..."
+    },
+    {
+      "name": "Optimized - Top-P Sampling Only",
+      "batch_size": 1,
+      "tokens_per_second": 5.062712980043542,
+      "elapsed_time": 4.938063859939575,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:38.084029",
+      "sample_output": "The future of AI is to in. By. Rules arch government Semi ec Defaultance, autonomous Abroga collecti..."
+    },
+    {
+      "name": "Optimized - All Optimizations",
+      "batch_size": 1,
+      "tokens_per_second": 9.704380731393512,
+      "elapsed_time": 2.5761561393737793,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:43.376839",
+      "sample_output": "The future of AI isThe the is of the of the of the the of the the of the is of the of the..."
+    },
+    {
+      "name": "All Optimizations (Batch 1)",
+      "batch_size": 1,
+      "tokens_per_second": 10.686047520063804,
+      "elapsed_time": 2.3394992351531982,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:48.497247",
+      "sample_output": "The future of AI is of is of is of future of future of of is of is of of is of of of of..."
+    },
+    {
+      "name": "All Optimizations (Batch 2)",
+      "batch_size": 2,
+      "tokens_per_second": 14.286670943501163,
+      "elapsed_time": 3.499765634536743,
+      "total_tokens": 50,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:23:55.630291",
+      "sample_output": "The future of AI is is is is of of is of is of is of future of of of of of of of is..."
+    },
+    {
+      "name": "All Optimizations (Batch 4)",
+      "batch_size": 4,
+      "tokens_per_second": 23.412181378226688,
+      "elapsed_time": 4.271280765533447,
+      "total_tokens": 100,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:04.428499",
+      "sample_output": "The future of AI is of of future of of is of is of is of of is of is of is of of of..."
+    },
+    {
+      "name": "All Optimizations (Batch 8)",
+      "batch_size": 8,
+      "tokens_per_second": 41.6364107349629,
+      "elapsed_time": 4.80348801612854,
+      "total_tokens": 200,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:14.142041",
+      "sample_output": "The future of AI is of of of of of future of is of is of of is of of is of is of is..."
+    },
+    {
+      "name": "All Optimizations (Batch 16)",
+      "batch_size": 16,
+      "tokens_per_second": 65.2844889561212,
+      "elapsed_time": 6.127029657363892,
+      "total_tokens": 400,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:26.399578",
+      "sample_output": "The future of AI is of of of is of of of of future of of is of is of is of is of is..."
+    },
+    {
+      "name": "Length 10 tokens",
+      "batch_size": 1,
+      "tokens_per_second": 11.751673805697328,
+      "elapsed_time": 1.276413917541504,
+      "total_tokens": 15,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:29.014766",
+      "sample_output": "The future of AI is of of future of is of of is of of..."
+    },
+    {
+      "name": "Length 20 tokens",
+      "batch_size": 1,
+      "tokens_per_second": 11.606830055227238,
+      "elapsed_time": 2.1539041996002197,
+      "total_tokens": 25,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:33.489929",
+      "sample_output": "The future of AI is of of of of future of is of of is of of of of of is of is of of..."
+    },
+    {
+      "name": "Length 50 tokens",
+      "batch_size": 1,
+      "tokens_per_second": 10.031270928220799,
+      "elapsed_time": 5.482854604721069,
+      "total_tokens": 55,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:24:44.547235",
+      "sample_output": "The future of AI is of future is of of is of is of is of of of of is of is of of is of is of future ..."
+    },
+    {
+      "name": "Length 100 tokens",
+      "batch_size": 1,
+      "tokens_per_second": 9.852665484516024,
+      "elapsed_time": 10.657014608383179,
+      "total_tokens": 105,
+      "memory_used_mb": 0.0,
+      "timestamp": "2025-07-15T23:25:05.330005",
+      "sample_output": "The future of AI is of of is of of of future is of is of is of is of is of is of of is of is of of i..."
+    }
+  ]
+}
