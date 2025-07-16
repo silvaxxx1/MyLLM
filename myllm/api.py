@@ -312,3 +312,32 @@ def create_optimized_llm(model_variant: str = "gpt2",
     # You can load pretrained weights here if needed:
     # llm.load(model_variant, cache_dir=cache_dir)
     return llm
+
+import torch
+from transformers import GPT2Tokenizer
+from Configs.ModelConfig import ModelConfig
+from Configs.GenConfig import GenerationConfig
+
+# Load tokenizer (you can train your own or use pre-trained)
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+tokenizer.pad_token = tokenizer.eos_token
+
+# 1. Set up the model configuration (matches GPT2-small)
+config = ModelConfig.from_name("gpt2-small")  # or customize it manually
+
+# 2. Create LLM instance and load weights
+llm = LLM(config=config, device="cuda" if torch.cuda.is_available() else "cpu")
+llm.load(model_variant="gpt2-small", model_family="gpt2" )  # will download and load safetensors
+
+# 3. Define generation configuration
+gen_config = GenerationConfig()
+
+# 4. Provide a prompt
+prompt = "Once upon a time in a land far away"
+
+# 5. Generate text
+result = llm.generate_text(prompt, tokenizer, gen_config)
+
+# 6. Print the result
+print("Generated Text:\n", result["text"])
+print("\nToken IDs:", result["tokens"])
