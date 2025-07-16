@@ -1,5 +1,47 @@
-# Ignore large model files
-inference/gpt_infrence/checkpoints/models--openai-community--gpt2/snapshots/607a30d783dfa663caf39e06633721c8d4cfcd7e/model.safetensors
-inference/gpt_infrence/checkpoints/models/gpt2-small (124M)_model.pt
-inference/gpt_infrence/checkpoints/models/gpt2-small (124M)_state_dict.pt
+# =====================
+# Ignore all model weights and checkpoints
+# =====================
 models/
+inference/gpt_infrence/checkpoints/
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+*.pb
+*.onnx
+*.h5
+
+# =====================
+# General Python/AI ignores
+# =====================
+__pycache__/
+*.py[cod]
+*.log
+*.zip
+*.tar.gz
+*.npy
+*.npz
+*.pkl
+*.joblib
+.ipynb_checkpoints/
+.env
+.venv/
+.envrc
+
+# =====================
+# Cache, coverage, and build
+# =====================
+.cache/
+coverage.xml
+.coverage
+*.cover
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# =====================
+# VS Code and PyCharm
+# =====================
+.vscode/
+.idea/
