@@ -7,9 +7,9 @@ from tqdm import tqdm
 from accelerate import Accelerator
 import wandb
 
-from myllm.Train.config.train_config import TrainConfig
-from myllm.Train.utils.checkpoint import save_checkpoint, load_checkpoint
-from myllm.Train.utils.logger import init_wandb, log_metrics
+from config.train_config import TrainConfig
+from utils.checkpoint import save_checkpoint, load_checkpoint
+from utils.logger import init_wandb, log_metrics
 
 
 class Trainer(ABC):
