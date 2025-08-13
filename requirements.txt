@@ -5,3 +5,5 @@ pytest
 numpy
 matplotlib
 sentencepiece 
+pandas 
+seaborn
