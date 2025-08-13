@@ -1,6 +1,5 @@
 import os
 import shutil
-import urllib.request
 import torch
 from safetensors.torch import load_file
 from tqdm import tqdm

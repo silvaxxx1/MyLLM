@@ -1,7 +1,7 @@
 import torch
 from transformers import GPT2Tokenizer
-from Configs.ModelConfig import ModelConfig
-from api import LLM, GenerationConfig
+from api import LLM 
+from Configs import ModelConfig , GenerationConfig
 
 def test_basic_generation():
     device = "cuda" if torch.cuda.is_available() else "cpu"

@@ -45,3 +45,15 @@ build/
 # =====================
 .vscode/
 .idea/
+
+# =====================
+# Extra AI/ML data ignores
+# =====================
+data/
+datasets/
+*.csv
+*.tsv
+*.parquet
+
+# HuggingFace cache
+huggingface_hub/
