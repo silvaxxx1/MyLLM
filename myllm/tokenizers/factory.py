@@ -10,10 +10,10 @@ from typing import Dict, Type, List, Any, Optional, Union
 import logging
 from pathlib import Path
 
-from base import BaseTokenizer
-from GPT2TOK import GPT2Tokenizer
-from LLAMA2TOK import LLaMA2Tokenizer
-from LLAMA3TOK import LLaMA3Tokenizer
+from .base import BaseTokenizer
+from .gpt2_tokenizer import GPT2Tokenizer
+from .llama2_tokenizer import LLaMA2Tokenizer
+from .llama3_tokenizer import LLaMA3Tokenizer
 
 logger = logging.getLogger(__name__)
 

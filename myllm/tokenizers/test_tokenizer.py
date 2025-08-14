@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-Comprehensive test script for MyLLM tokenizer system.
-
-This script tests all implemented tokenizers, validates functionality,
-and provides performance benchmarks.
-"""
-
 import sys
 import time
 import traceback
@@ -14,8 +6,13 @@ from pathlib import Path
 import tempfile
 import json
 
-# Add myllm to path (adjust as needed for your setup)
-sys.path.insert(0, str(Path(__file__).parent))
+# ---------------------------
+# Ensure project root is in sys.path
+# ---------------------------
+# __file__ is: /home/silva/SILVA.AI/Projects/MyLLM/myllm/tokenizers/test_tokenizer.py
+# We want: /home/silva/SILVA.AI/Projects/MyLLM
+project_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(project_root))
 
 try:
     from myllm.tokenizers import (
@@ -24,14 +21,17 @@ try:
         list_available_models,
         get_model_info,
         BaseTokenizer,
-        GPT2Tokenizer,
-        LLaMA2Tokenizer,
-        LLaMA3Tokenizer
     )
+    
 except ImportError as e:
     print(f"❌ Failed to import MyLLM tokenizers: {e}")
     print("Make sure the myllm package is in your Python path")
     sys.exit(1)
+
+# ---------------------------
+# Your existing test logic here
+# ---------------------------
+
 
 # Test data
 TEST_TEXTS = [
@@ -420,10 +420,10 @@ def test_llama2_tokenizer():
         tokenizer = get_tokenizer('llama2', model_path=model_path)
         
         results = {}
-        results['basic'] = test_basic_functionality(tokenizer, 'llama2')
-        results['special_tokens'] = test_special_tokens(tokenizer, 'llama2')
-        results['properties'] = test_tokenizer_properties(tokenizer, 'llama2')
-        results['error_handling'] = test_error_handling(tokenizer, 'llama2')
+        results['basic'] = test_basic_functionality(tokenizer, 'llama2') or {}
+        results['special_tokens'] = test_special_tokens(tokenizer, 'llama2') or {}
+        results['properties'] = test_tokenizer_properties(tokenizer, 'llama2') or {}
+        results['error_handling'] = test_error_handling(tokenizer, 'llama2') or {}
         
         # Test SentencePiece-specific methods
         if hasattr(tokenizer, 'encode_as_pieces'):
@@ -431,8 +431,12 @@ def test_llama2_tokenizer():
             pieces = tokenizer.encode_as_pieces("Hello world")
             print_info(f"Subword pieces: {pieces}")
             print_success("encode_as_pieces works ✓")
+            results['sentencepiece'] = {
+                "pieces": pieces,
+                "decoded": tokenizer.decode_pieces(pieces)
+            }
         
-        results['benchmark'] = benchmark_tokenizer(tokenizer, 'llama2')
+        results['benchmark'] = benchmark_tokenizer(tokenizer, 'llama2') or {}
         
         print_success("Completed LLaMA2 tokenizer tests")
         return {'llama2': results}
@@ -440,11 +444,12 @@ def test_llama2_tokenizer():
     except Exception as e:
         print_error(f"LLaMA2 tokenizer test failed: {e}")
         traceback.print_exc()
-        return {}
+        return {'llama2': {}}  # always return a dict
     finally:
         # Cleanup
         if Path(model_path).exists():
             Path(model_path).unlink()
+
 
 def test_llama3_tokenizer():
     """Test LLaMA3 tokenizer specifically."""
