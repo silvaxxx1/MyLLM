@@ -15,7 +15,7 @@ project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 try:
-    from myllm.tokenizers import (
+    from myllm.Tokenizers import (
         get_tokenizer, 
         register_tokenizer, 
         list_available_models,

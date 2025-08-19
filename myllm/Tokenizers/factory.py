@@ -6,7 +6,7 @@
 Tokenizer factory for creating and managing tokenizer instances.
 """
 
-from typing import Dict, Type, List, Any, Optional, Union
+from typing import Dict, Type, List, Any
 import logging
 from pathlib import Path
 
