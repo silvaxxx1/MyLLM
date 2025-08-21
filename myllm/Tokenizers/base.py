@@ -5,7 +5,7 @@ Abstract base class for all tokenizers in the MyLLM system.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -99,3 +99,4 @@ class BaseTokenizer(ABC):
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(vocab_size={self._vocab_size}, model='{self._model_name}')"
+    

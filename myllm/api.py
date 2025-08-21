@@ -219,34 +219,42 @@ class LLM(nn.Module):
 # ===============================
 # Example Usage
 # ===============================
-# lets comment this for now
-'''
 import torch
-from transformers import GPT2Tokenizer
+from Tokenizers.factory import get_tokenizer, list_available_models
+from Tokenizers.wrapper import TokenizerWrapper
 from Configs.ModelConfig import ModelConfig
 from Configs.GenConfig import GenerationConfig
+from api import LLM   # import your LLM class
 
-# Load tokenizer (you can train your own or use pre-trained)
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-tokenizer.pad_token = tokenizer.eos_token
+# 1. Pick tokenizer model
+print("Available tokenizers:", list_available_models())
 
-# 1. Set up the model configuration (matches GPT2-small)
-config = ModelConfig.from_name("gpt2-small")  # or customize it manually
+# Load tokenizer from factory
+tokenizer_raw = get_tokenizer("gpt2")  # or "trainable", "llama2", etc.
+tokenizer = TokenizerWrapper(tokenizer_raw)
 
-# 2. Create LLM instance and load weights
-llm = LLM(config=config, device="cuda" if torch.cuda.is_available() else "cpu")
-llm.load(model_variant="gpt2-small", model_family="gpt2" )  # will download and load safetensors
+# Set pad token (important for batching)
+if not hasattr(tokenizer, "pad_token") or tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token_id if hasattr(tokenizer, "eos_token_id") else 0
 
-# 3. Define generation configuration
+# 2. Model configuration
+config = ModelConfig.from_name("gpt2-small")
+
+# 3. Create LLM instance and load weights
+device = "cuda" if torch.cuda.is_available() else "cpu"
+llm = LLM(config=config, device=device)
+llm.load(model_variant="gpt2-small", model_family="gpt2")
+
+# 4. Generation config
 gen_config = GenerationConfig()
 
-# 4. Provide a prompt
+# 5. Prompt
 prompt = "Once upon a time in a land far away"
 
-# 5. Generate text
+# 6. Generate text
 result = llm.generate_text(prompt, tokenizer, gen_config)
 
-# 6. Print the result
+# 7. Print result
 print("Generated Text:\n", result["text"])
 print("\nToken IDs:", result["tokens"])
-'''
+

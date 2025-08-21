@@ -12,7 +12,8 @@ from .base import BaseTokenizer
 from .gpt2_tokenizer import GPT2Tokenizer
 from .llama2_tokenizer import LLaMA2Tokenizer
 from .llama3_tokenizer import LLaMA3Tokenizer
-from .trainable_tok import TrainableTokenizer  # <- custom trainable tokenizer
+from .trainable_tok import TrainableTokenizer
+from .wrapper import TokenizerWrapper   # ✅ <-- import wrapper
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +41,23 @@ def unregister_tokenizer(model_name: str) -> bool:
     return False
 
 
-def get_tokenizer(model_name: str, **kwargs) -> BaseTokenizer:
+def get_tokenizer(model_name: str, **kwargs) -> TokenizerWrapper:
     """
     Factory function to create tokenizer instances based on model name.
+    Always returns a TokenizerWrapper for unified interface.
     """
     model_key = model_name.lower().strip()
 
     # Check registry first
     if model_key in _TOKENIZER_REGISTRY:
         tokenizer_class = _TOKENIZER_REGISTRY[model_key]
-        return tokenizer_class(**kwargs)
+        tokenizer = tokenizer_class(**kwargs)
+        return TokenizerWrapper(tokenizer)
 
     # Built-in tokenizers
     if model_key in ['gpt2', 'gpt-2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']:
-        return GPT2Tokenizer(model_name=model_key, **kwargs)
+        tokenizer = GPT2Tokenizer(model_name=model_key, **kwargs)
+        return TokenizerWrapper(tokenizer)
 
     elif model_key in ['llama2', 'llama-2', 'llama2-7b', 'llama2-13b', 'llama2-70b']:
         if 'model_path' not in kwargs:
@@ -61,19 +65,23 @@ def get_tokenizer(model_name: str, **kwargs) -> BaseTokenizer:
         model_path = kwargs['model_path']
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"SentencePiece model file not found: {model_path}")
-        return LLaMA2Tokenizer(**kwargs)
+        tokenizer = LLaMA2Tokenizer(**kwargs)
+        return TokenizerWrapper(tokenizer)
 
     elif model_key in ['llama3', 'llama-3', 'llama3-8b', 'llama3-70b']:
         tokenizer_json_path = kwargs.get('tokenizer_json_path', None)
         if tokenizer_json_path and not os.path.exists(tokenizer_json_path):
             logger.warning(f"{tokenizer_json_path} not found, using default LLaMA3 config")
             kwargs.pop('tokenizer_json_path')
-        return LLaMA3Tokenizer(**kwargs)
+        tokenizer = LLaMA3Tokenizer(**kwargs)
+        return TokenizerWrapper(tokenizer)
 
     elif model_key == 'trainable':
         # Only pass kwargs that TrainableTokenizer expects to avoid conflicts
-        valid_kwargs = {k: v for k, v in kwargs.items() if k in ['vocab_size', 'min_frequency', 'special_tokens', 'model_name']}
-        return TrainableTokenizer(**valid_kwargs)
+        valid_kwargs = {k: v for k, v in kwargs.items()
+                        if k in ['vocab_size', 'min_frequency', 'special_tokens', 'model_name']}
+        tokenizer = TrainableTokenizer(**valid_kwargs)
+        return TokenizerWrapper(tokenizer)
 
     else:
         available_models = list_available_models()
@@ -98,9 +106,9 @@ def get_model_info(model_name: str) -> dict:
     try:
         tokenizer = get_tokenizer(model_name)
         return {
-            "model_name": tokenizer.model_name,
+            "model_name": getattr(tokenizer.tokenizer, "model_name", model_name),
             "vocab_size": tokenizer.vocab_size,
-            "special_tokens": tokenizer.special_tokens,
+            "special_tokens": getattr(tokenizer.tokenizer, "special_tokens", None),
         }
     except Exception as e:
         return {"error": str(e)}
