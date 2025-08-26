@@ -5,7 +5,7 @@
 GPT-2 tokenizer implementation using tiktoken BPE.
 """
 
-from typing import List, Optional, Set
+from typing import List
 import logging
 
 try:
