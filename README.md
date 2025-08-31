@@ -6,11 +6,10 @@
 
 ---
 
-<div align="center">
-  <img src="./PIP.png" alt="Framework Architecture" width="800"/>
-  <br>
-  <em>From prototype to production — an end-to-end ecosystem for building & fine-tuning production-grade LLMs</em>
-</div>
+<p align="center">
+  <img src="myllm.png" alt="Quantization Overview">
+</p>
+
 
 ---
 
