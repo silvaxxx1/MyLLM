@@ -1,4 +1,4 @@
-# **MyLLM_Recipes** 🧠⚙️  
+# **MyLLM_Core** 🧠⚙️  
 ### *A Scalable Framework for Building & Fine-Tuning Production-Grade LLMs*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
@@ -7,7 +7,7 @@
 [![Project Status](https://img.shields.io/badge/Status-Active_Development-orange)]()
 
 <div align="center">
-  <img src="./PIP.png" alt="Framework Architecture" width="800"/>
+  <img src="./myllm.png" alt="Framework Architecture" width="800"/>
   <br>
   <em>From prototype to production - An end-to-end LLM development ecosystem</em>
 </div>

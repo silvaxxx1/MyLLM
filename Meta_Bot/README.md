@@ -6,7 +6,7 @@
 [![Demo](https://img.shields.io/badge/Live_Demo-Available-blue)](https://your-demo-link.com)  
 
 <div align="center">
-  <img src="./META_LOGO.png" alt="Meta_Bot Architecture" width="800"/>
+  <img src="./meta_bot2.png" alt="Meta_Bot Architecture" width="800"/>
   <br>
   <em>"An AI that teaches its own construction - The ultimate meta-learning experience"</em>
 </div>
