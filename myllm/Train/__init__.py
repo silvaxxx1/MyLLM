@@ -1,1 +1,19 @@
-# __init__.py
+# trainer/__init__.py
+"""
+Comprehensive ML Training Framework
+Supports multiple training paradigms with extensive logging and monitoring
+"""
+
+from .configs import (
+    BaseTrainerConfig, TrainerConfig, SFTTrainerConfig, 
+    PPOTrainerConfig, DPOTrainerConfig, LoggingBackend, 
+    OptimizerType, SchedulerType
+)
+from .base_trainer import BaseTrainer
+from .trainer import Trainer
+from .sft_trainer import SFTTrainer
+from .ppo_trainer import PPOTrainer
+from .dpo_trainer import DPOTrainer
+from .utils import ConfigManager, LoggingManager
+
+__version__ = "1.0.0"

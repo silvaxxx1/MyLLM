@@ -1,0 +1,18 @@
+[
+  {
+    "system/cpu_percent": 9.2,
+    "system/memory_used_gb": 9.668651580810547,
+    "system/memory_percent": 74.8,
+    "system/gpu_0_memory_used": 0.0,
+    "system/gpu_0_memory_cached": 0.0,
+    "timestamp": 1758126634.7603972,
+    "step": 0
+  },
+  {
+    "model/total_parameters": 124439808,
+    "model/trainable_parameters": 124439808,
+    "model/non_trainable_parameters": 0,
+    "timestamp": 1758126642.0082905,
+    "step": 0
+  }
+]
