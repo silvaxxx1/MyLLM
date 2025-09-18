@@ -27,7 +27,6 @@ if __name__ == "__main__":
             "attention_mask": attention_mask,
             "labels": labels
         }
-
     # -------------------------
     # Dataset
     # -------------------------
@@ -91,14 +90,28 @@ if __name__ == "__main__":
     # -------------------------
     # Sample training texts
     # -------------------------
-    texts = [
-        "Hello world!",
-        "This is a test sentence.",
-        "Another one.",
-        "Variable length sequences are tricky.",
-        "We are testing GPT training in MyLLM framework.",
-        "Padding and attention masks must work correctly."
-    ]
+    texts = texts = [
+    "Hello world!",
+    "This is a test sentence.",
+    "Another one.",
+    "Variable length sequences are tricky.",
+    "We are testing GPT training in MyLLM framework.",
+    "Padding and attention masks must work correctly.",
+    "Deep learning models require careful batching.",
+    "Transformers handle sequences efficiently, but still need proper preparation.",
+    "Training on small datasets is fast but not representative.",
+    "Adding more text allows us to see memory and gradient behavior.",
+    "GPT models can overfit quickly on tiny datasets.",
+    "We want to ensure the collate function works for mixed lengths.",
+    "Sometimes sequences are very long, stretching hundreds of tokens.",
+    "Other sequences might be extremely short.",
+    "This ensures padding logic is robust.",
+    "Let’s simulate a mini-corpus of sentences of varying lengths.",
+    "Testing gradient accumulation over multiple steps is also important.",
+    "Monitoring loss and learning rate behavior becomes visible with more data.",
+    "This sentence is intentionally long to simulate longer contexts in training.",
+    "Finally, we add a few more sentences to make the dataset slightly larger."
+] 
 
     # -------------------------
     # Create dataset & DataLoader
