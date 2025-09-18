@@ -1,12 +1,11 @@
-from dataclasses import dataclass 
-from .BaseConfig import BaseTrainerConfig
-from typing import Optional , Dict , Any 
-
 # trainer/configs/sft_config.py
+from dataclasses import dataclass
+from .TrainerConfig import TrainerConfig
+from typing import Optional, Dict, Any
+
 @dataclass
-class SFTTrainerConfig(BaseTrainerConfig):
-    """Configuration for Supervised Fine-Tuning"""
-    max_seq_length: int = 512
+class SFTTrainerConfig(TrainerConfig):
+    """Supervised Fine-Tuning configuration"""
     packing: bool = False
     dataset_text_field: str = "text"
     instruction_template: Optional[str] = None

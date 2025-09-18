@@ -1,37 +1,44 @@
-# dpo_trainer.py 
-from .base_trainer import BaseTrainer
-from typing import Optional, Dict, Any
-import torch
-import torch.nn as nn 
+from .base_trainer import BaseTrainer 
+from typing import Dict, Any 
+import torch.nn as nn
+
+
+import logging 
+
+logger = logging.getLogger(__name__)
 
 # trainer/dpo_trainer.py
 class DPOTrainer(BaseTrainer):
-    """Direct Preference Optimization Trainer"""
+    """DPO trainer (placeholder for future implementation)"""
     
-    def __init__(self, config, model: Optional[nn.Module] = None):
-        super().__init__(config, model)
+    def __init__(self, config, model_config=None, model=None):
+        super().__init__(config, model_config, model)
         self.reference_model = None
     
     def setup_model(self) -> nn.Module:
-        # TODO: Implement DPO model setup with reference model
-        pass
+        """Setup DPO model with reference model"""
+        logger.info("DPO trainer not fully implemented yet")
+        return self.model
     
     def setup_data(self):
-        # TODO: Implement DPO data setup with preference pairs
+        """Setup DPO preference datasets"""
+        logger.info("DPO data setup - to be implemented")
         pass
     
     def setup_optimizer(self):
-        # TODO: Implement DPO optimizer setup
+        """Setup DPO optimizer"""
+        logger.info("DPO optimizer setup - to be implemented")
         pass
     
     def train_step(self, batch) -> Dict[str, Any]:
-        # TODO: Implement DPO training step with preference loss
-        pass
+        """DPO training step"""
+        return {"loss": 0.0}
     
     def evaluate(self) -> Dict[str, float]:
-        # TODO: Implement DPO evaluation
-        pass
+        """DPO evaluation"""
+        return {}
     
     def _train_loop(self):
-        # TODO: Implement DPO training loop
+        """DPO training loop"""
+        logger.info("DPO training loop - to be implemented")
         pass

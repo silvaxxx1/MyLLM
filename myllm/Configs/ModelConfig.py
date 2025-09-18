@@ -226,7 +226,7 @@ class ModelConfig:
 
     @property
     def mlp_class(self) -> Type:
-        import model
+        import myllm.model as model
         return getattr(model, self.mlp_class_name)
 
     @property

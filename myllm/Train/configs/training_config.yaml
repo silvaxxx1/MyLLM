@@ -1,0 +1,85 @@
+# config/training_config.yaml
+# ----------------------------
+# Example YAML configuration file for training
+# Compatible with new TrainerConfig structure
+# ----------------------------
+
+# ----------------------------
+# Model Configuration
+# ----------------------------
+model_config_name: "gpt2-small"      # Use existing ModelConfig
+model_config_path: null               # Optional path to saved ModelConfig
+tokenizer_name: "gpt2"
+max_seq_length: 512                   # Optional, overrides ModelConfig block_size
+
+# ----------------------------
+# Data / Dataset
+# ----------------------------
+dataset_name: "my_dataset"           # Optional
+data_path: "./data/train"            # Optional
+preprocessing_num_workers: 4
+
+# ----------------------------
+# Training Hyperparameters
+# ----------------------------
+num_epochs: 3
+batch_size: 8
+gradient_accumulation_steps: 2
+max_grad_norm: 1.0
+warmup_steps: 100
+
+# ----------------------------
+# Optimizer / Scheduler
+# ----------------------------
+optimizer_type: "adamw"
+scheduler_type: "linear"
+learning_rate: 5e-5
+weight_decay: 0.1
+beta1: 0.9
+beta2: 0.999
+
+# ----------------------------
+# Logging / Monitoring
+# ----------------------------
+logging_steps: 50
+eval_steps: 500
+save_steps: 1000
+save_total_limit: 3
+report_to: ["wandb", "tensorboard"]
+log_model: true
+log_predictions: false
+metric_for_best_model: "eval_loss"
+greater_is_better: false
+load_best_model_at_end: true
+
+# WandB specific
+wandb_project: "my-ml-project"
+wandb_entity: null
+wandb_run_name: "gpt2-training-v1"
+wandb_tags: ["pretraining", "gpt2"]
+wandb_notes: null
+wandb_resume: false
+
+# TensorBoard
+tensorboard_log_dir: "./output/tensorboard_logs"
+
+# ----------------------------
+# Hardware / System
+# ----------------------------
+device: "auto"
+mixed_precision: true
+dataloader_num_workers: 4
+seed: 42
+
+# ----------------------------
+# Multi-GPU / DeepSpeed
+# ----------------------------
+use_deepspeed: false
+deepspeed_config_path: null
+distributed_backend: "nccl"
+local_rank: -1
+
+# ----------------------------
+# Checkpoint / Resume
+# ----------------------------
+resume_from_checkpoint: null

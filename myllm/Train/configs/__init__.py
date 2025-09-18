@@ -1,12 +1,11 @@
+
 # trainer/configs/__init__.py
-from .BaseConfig import BaseTrainerConfig, LoggingBackend, OptimizerType, SchedulerType
-from .TrainerConfig import TrainerConfig
+from .TrainerConfig import TrainerConfig, LoggingBackend, OptimizerType, SchedulerType
 from .SFTConfig import SFTTrainerConfig
 from .PPOConfig import PPOTrainerConfig
 from .DPOConfig import DPOTrainerConfig
 
 __all__ = [
-    "BaseTrainerConfig", "TrainerConfig", "SFTTrainerConfig",
-    "PPOTrainerConfig", "DPOTrainerConfig", "LoggingBackend",
-    "OptimizerType", "SchedulerType"
+    "TrainerConfig", "SFTTrainerConfig", "PPOTrainerConfig", "DPOTrainerConfig",
+    "LoggingBackend", "OptimizerType", "SchedulerType"
 ]

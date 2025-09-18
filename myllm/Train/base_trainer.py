@@ -1,4 +1,5 @@
 
+
 # trainer/base_trainer.py
 import torch
 import torch.nn as nn
@@ -10,10 +11,14 @@ import os
 logger = logging.getLogger(__name__)
 
 class BaseTrainer(ABC):
-    """Abstract base class for all trainers"""
+    """
+    Base trainer class integrated with existing project architecture
+    Compatible with model.py, ModelConfig, and api.py
+    """
     
-    def __init__(self, config, model: Optional[nn.Module] = None):
+    def __init__(self, config, model_config=None, model=None):
         self.config = config
+        self.model_config = model_config
         self.model = model
         self.optimizer = None
         self.scheduler = None
@@ -26,12 +31,13 @@ class BaseTrainer(ABC):
         self.best_model_path = None
         
         # Logging
-        from utils.logging_utils import LoggingManager
+        from .utils.logging_utils import LoggingManager
         self.logging_manager = LoggingManager(config)
         
         self._setup_logging()
         self._setup_device()
         self._setup_seed()
+        self._setup_model_config()
     
     def _setup_logging(self):
         """Setup logging configuration"""
@@ -47,18 +53,44 @@ class BaseTrainer(ABC):
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device(self.config.device)
-        
         logger.info(f"Using device: {self.device}")
     
     def _setup_seed(self):
-        """Setup random seed for reproducibility"""
+        """Setup random seed"""
         torch.manual_seed(self.config.seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(self.config.seed)
     
+    def _setup_model_config(self):
+        """Setup model configuration using existing ModelConfig"""
+        if self.model_config is None:
+            # Import your existing ModelConfig
+            from Configs import ModelConfig
+            
+            if self.config.model_config_path:
+                self.model_config = ModelConfig.load(self.config.model_config_path)
+            else:
+                self.model_config = ModelConfig.from_name(self.config.model_config_name)
+            
+            # Override with trainer config if specified
+            if self.config.learning_rate is not None:
+                self.model_config.learning_rate = self.config.learning_rate
+            if self.config.weight_decay is not None:
+                self.model_config.weight_decay = self.config.weight_decay
+            if self.config.beta1 is not None:
+                self.model_config.beta1 = self.config.beta1
+            if self.config.beta2 is not None:
+                self.model_config.beta2 = self.config.beta2
+            
+            logger.info(f"Using model config: {self.model_config.name}")
+    
+    def _get_sequence_length(self):
+        """Get sequence length from config"""
+        return self.config.max_seq_length or self.model_config.block_size
+    
     @abstractmethod
     def setup_model(self) -> nn.Module:
-        """Setup and return the model"""
+        """Setup model using existing architecture"""
         pass
     
     @abstractmethod
@@ -82,21 +114,11 @@ class BaseTrainer(ABC):
         pass
     
     def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
-        """Log metrics using the logging manager"""
+        """Log metrics"""
         self.logging_manager.log_metrics(metrics, step)
     
-    def log_predictions(self, predictions: List[Dict[str, Any]], step: int):
-        """Log prediction samples"""
-        self.logging_manager.log_predictions(predictions, step)
-    
-    def log_learning_rate(self):
-        """Log current learning rate"""
-        if self.optimizer and hasattr(self.optimizer, 'param_groups'):
-            lr = self.optimizer.param_groups[0]['lr']
-            self.log_metrics({"learning_rate": lr}, self.global_step)
-    
     def save_checkpoint(self, checkpoint_dir: Optional[str] = None, is_best: bool = False):
-        """Save model checkpoint"""
+        """Save checkpoint using your existing save format"""
         if checkpoint_dir is None:
             checkpoint_dir = os.path.join(
                 self.config.output_dir, 
@@ -106,17 +128,19 @@ class BaseTrainer(ABC):
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         if self.model:
+            # Save model state dict (compatible with your api.py save method)
             model_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
             torch.save(self.model.state_dict(), model_path)
             
-            if hasattr(self, 'tokenizer') and self.tokenizer:
-                self.tokenizer.save_pretrained(checkpoint_dir)
+            # Save model config
+            config_path = os.path.join(checkpoint_dir, "model_config.json")
+            self.model_config.save(config_path)
         
+        # Save training state
         training_state = {
             "global_step": self.global_step,
             "current_epoch": self.current_epoch,
             "best_metric": self.best_metric,
-            "config": self.config.__dict__ if hasattr(self.config, '__dict__') else str(self.config)
         }
         
         if self.optimizer:
@@ -127,10 +151,6 @@ class BaseTrainer(ABC):
         torch.save(training_state, 
                   os.path.join(checkpoint_dir, "training_state.bin"))
         
-        if self.config.log_model:
-            model_name = "best_model" if is_best else f"checkpoint_{self.global_step}"
-            self.logging_manager.log_model_artifacts(checkpoint_dir, model_name)
-        
         logger.info(f"Checkpoint saved to {checkpoint_dir}")
         
         if is_best:
@@ -139,11 +159,19 @@ class BaseTrainer(ABC):
         return checkpoint_dir
     
     def load_checkpoint(self, checkpoint_dir: str):
-        """Load model checkpoint"""
+        """Load checkpoint"""
+        # Load model
         model_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
         if os.path.exists(model_path) and self.model:
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         
+        # Load model config
+        config_path = os.path.join(checkpoint_dir, "model_config.json")
+        if os.path.exists(config_path):
+            from Configs import ModelConfig
+            self.model_config = ModelConfig.load(config_path)
+        
+        # Load training state
         training_state_path = os.path.join(checkpoint_dir, "training_state.bin")
         if os.path.exists(training_state_path):
             training_state = torch.load(training_state_path, map_location=self.device)
@@ -170,7 +198,7 @@ class BaseTrainer(ABC):
         return self.global_step % self.config.logging_steps == 0
     
     def update_best_metric(self, current_metrics: Dict[str, float]) -> bool:
-        """Update best metric and return True if improved"""
+        """Update best metric tracking"""
         if not self.config.metric_for_best_model:
             return False
         
@@ -200,8 +228,6 @@ class BaseTrainer(ABC):
         """Main training loop"""
         logger.info("Starting training...")
         
-        self.logging_manager.log_system_metrics()
-        
         try:
             self.model = self.setup_model()
             self.setup_data()
@@ -210,23 +236,26 @@ class BaseTrainer(ABC):
             if self.model:
                 self.model = self.model.to(self.device)
                 
+                # Log model info
                 total_params = sum(p.numel() for p in self.model.parameters())
                 trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
                 
                 self.log_metrics({
                     "model/total_parameters": total_params,
                     "model/trainable_parameters": trainable_params,
-                    "model/non_trainable_parameters": total_params - trainable_params
+                    "model/model_config": self.model_config.name
                 }, step=0)
             
-            logger.info(f"Training for {self.config.num_epochs} epochs")
+            logger.info(f"Training {self.model_config.name} for {self.config.num_epochs} epochs")
             
             self._train_loop()
             
+            # Final evaluation
             final_metrics = self.evaluate()
             if final_metrics:
                 self.log_metrics({"final/" + k: v for k, v in final_metrics.items()})
             
+            # Load best model if requested
             if self.config.load_best_model_at_end and self.best_model_path:
                 logger.info("Loading best model for final evaluation")
                 self.load_checkpoint(self.best_model_path)
@@ -243,5 +272,14 @@ class BaseTrainer(ABC):
     
     @abstractmethod
     def _train_loop(self):
-        """Actual training loop implementation"""
+        """Training loop implementation"""
         pass
+
+# trainer/trainer.py
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)

@@ -5,11 +5,11 @@ import torch.nn as nn
 from typing import  List, Dict, Any
 
 # Local modules
-from model import GPT
-from Configs import ModelConfig, GenerationConfig
-from utils import OptimizedSampler
+from myllm.model import GPT
+from .Configs import ModelConfig, GenerationConfig
+from .utils import OptimizedSampler
 
-from utils.download_weight import (
+from .utils.download_weight import (
 
     download_safetensors,
     load_safetensors,
@@ -214,47 +214,4 @@ class LLM(nn.Module):
             results.append(result)
 
         return results
-
-
-# ===============================
-# Example Usage
-# ===============================
-import torch
-from Tokenizers.factory import get_tokenizer, list_available_models
-from Tokenizers.wrapper import TokenizerWrapper
-from Configs.ModelConfig import ModelConfig
-from Configs.GenConfig import GenerationConfig
-from api import LLM   # import your LLM class
-
-# 1. Pick tokenizer model
-print("Available tokenizers:", list_available_models())
-
-# Load tokenizer from factory
-tokenizer_raw = get_tokenizer("gpt2")  # or "trainable", "llama2", etc.
-tokenizer = TokenizerWrapper(tokenizer_raw)
-
-# Set pad token (important for batching)
-if not hasattr(tokenizer, "pad_token") or tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token_id if hasattr(tokenizer, "eos_token_id") else 0
-
-# 2. Model configuration
-config = ModelConfig.from_name("gpt2-small")
-
-# 3. Create LLM instance and load weights
-device = "cuda" if torch.cuda.is_available() else "cpu"
-llm = LLM(config=config, device=device)
-llm.load(model_variant="gpt2-small", model_family="gpt2")
-
-# 4. Generation config
-gen_config = GenerationConfig()
-
-# 5. Prompt
-prompt = "Once upon a time in a land far away"
-
-# 6. Generate text
-result = llm.generate_text(prompt, tokenizer, gen_config)
-
-# 7. Print result
-print("Generated Text:\n", result["text"])
-print("\nToken IDs:", result["tokens"])
 

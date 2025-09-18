@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader , Dataset
 from UTILS.model import GPTModel
 from UTILS.load_weights import download_and_load_gpt2, load_weights_into_gpt 
 
-
 ############################ GPU CLEANUP ####################
 def cleanup(model=None, optimizer=None):
     """
@@ -29,7 +28,6 @@ def cleanup(model=None, optimizer=None):
     gc.collect()
     print("Cleanup done. GPU memory cleared.")
 
-
 ############################CONFIG####################
 LOCAL_FRIENDLY_CONFIG = {
     "vocab_size": 50257,        # The total size of the vocabulary (remains unchanged to match tokenizer output)
@@ -41,13 +39,11 @@ LOCAL_FRIENDLY_CONFIG = {
     "qkv_bias" : False,         # Keeps the bias configuration for the query, key, and value projections
 } 
 
-
 ###################LOAD DATA####################
 # Define parameters for DataLoader
 batch_size = 8 # Number of samples in each batch. A lower batch size helps fit the data into memory when working with large models.
 num_workers = 0  # Disable multiprocessing for data loading, which is recommended when using a CPU only.
 pin_memory = True  # This option is useful for GPU training, so we disable it for CPU-only training.
-
 
 # Dataset class
 class GPT2Dataset(Dataset):
@@ -104,7 +100,6 @@ else:
     print("Simulated data already exists. Skipping generation.")
 print(f"Simulated data saved to: {data_dir}")
 
-
 ################### CREATE DATASETS & LOADERS ####################
 train_dataset = GPT2Dataset(train_path, LOCAL_FRIENDLY_CONFIG["context_length"], LOCAL_FRIENDLY_CONFIG["context_length"])
 val_dataset = GPT2Dataset(val_path, LOCAL_FRIENDLY_CONFIG["context_length"], LOCAL_FRIENDLY_CONFIG["context_length"])
@@ -121,14 +116,12 @@ for batch in train_loader:
     print("Output sequence shape:", output_seq.shape)
     break
 
-
 ################### TRAINING SETUP ####################
 # Clear previous memory before starting
 cleanup()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = GPTModel(LOCAL_FRIENDLY_CONFIG).to(device)
-
 
 ################### LOSS FUNCTIONS ####################
 def cross_entropy_loss_from_scratch(logits, target):
@@ -146,7 +139,6 @@ def cross_entropy_loss_from_scratch(logits, target):
     # Negative log-likelihood
     loss = -torch.mean(torch.log(true_probs))
     return loss
-
     
 def calculate_loss_on_batch(model: GPTModel,
                             input_batch: torch.Tensor,

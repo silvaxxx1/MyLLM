@@ -1,40 +1,47 @@
-# ppo_trainer.py
 from .base_trainer import BaseTrainer 
-from typing import Dict, Any, Optional 
+from typing import Dict, Any 
 import torch.nn as nn
+
+
+import logging 
+
+logger = logging.getLogger(__name__)
 
 # trainer/ppo_trainer.py
 class PPOTrainer(BaseTrainer):
-    """PPO Trainer for RLHF"""
+    """PPO trainer for RLHF (placeholder for future implementation)"""
     
-    def __init__(self, config, model: Optional[nn.Module] = None):
-        super().__init__(config, model)
-        # PPO-specific initialization
+    def __init__(self, config, model_config=None, model=None):
+        super().__init__(config, model_config, model)
         self.actor_model = None
         self.critic_model = None
         self.reference_model = None
-        self.reward_model = None
     
     def setup_model(self) -> nn.Module:
-        # TODO: Implement PPO model setup (actor, critic, reference, reward models)
-        pass
+        """Setup PPO models (actor, critic, reference)"""
+        logger.info("PPO trainer not fully implemented yet")
+        return self.model
     
     def setup_data(self):
-        # TODO: Implement PPO data setup for prompts
+        """Setup PPO datasets"""
+        logger.info("PPO data setup - to be implemented")
         pass
     
     def setup_optimizer(self):
-        # TODO: Implement PPO optimizer setup for actor and critic
+        """Setup PPO optimizers"""
+        logger.info("PPO optimizer setup - to be implemented")
         pass
     
     def train_step(self, batch) -> Dict[str, Any]:
-        # TODO: Implement PPO training step with policy gradient
-        pass
+        """PPO training step"""
+        return {"loss": 0.0}
     
     def evaluate(self) -> Dict[str, float]:
-        # TODO: Implement PPO evaluation with reward metrics
-        pass
+        """PPO evaluation"""
+        return {}
     
     def _train_loop(self):
-        # TODO: Implement PPO training loop with rollout collection
+        """PPO training loop"""
+        logger.info("PPO training loop - to be implemented")
         pass
+

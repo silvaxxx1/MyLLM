@@ -65,7 +65,7 @@ import math
 from typing import Optional, Tuple
 
 # Import the configuration class from the config module
-from Configs import ModelConfig 
+from .Configs import ModelConfig 
 
 class GPT(nn.Module):
     """
