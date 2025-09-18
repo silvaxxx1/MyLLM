@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     from myllm.Configs.ModelConfig import ModelConfig
     from myllm.Configs.GenConfig import GenerationConfig
-    from myllm.Train.configs.TrainerConfig import TrainerConfig
+    from myllm.Train.configs.TempConfig import TrainerConfig
     from myllm.Train.trainer import Trainer
 
     # -------------------------
@@ -122,3 +122,6 @@ if __name__ == "__main__":
     print("\nTraining completed!")
     print(f"Output directory: {trainer_config.output_dir}")
     print(f"Best model saved at: {trainer.best_model_path}")
+
+    # Run Inference on the trained model
+    
