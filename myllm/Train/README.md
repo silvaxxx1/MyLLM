@@ -1,5 +1,3 @@
-Here is the updated README with an illustration of the workflow.
-
 # 🏋️ MyLLM Train — The Training Engine of MyLLM Core (with PEFT Support)
 
 Welcome to **MyLLM Train**, the **heart of the MyLLM project**, where **models are built, optimized, and fine-tuned**.

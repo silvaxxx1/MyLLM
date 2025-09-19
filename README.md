@@ -56,12 +56,26 @@ The `notebooks/` directory is where your journey begins. Each notebook is a step
 ```
 MyLLM/
  └── notebooks/
-      ├── 1.DATA.ipynb            # Text preprocessing & tokenization
-      ├── 2.ATTENTION.ipynb       # Building the core attention mechanism
-      ├── 3.TRAINING.ipynb        # Basic training loop
-      ├── 4.FINETUNING.ipynb      # LoRA, QLoRA, and SFT
-      ├── 5.RLHF.ipynb            # PPO and DPO algorithms
-      └── 6.INFERENCE.ipynb       # KV caching and quantization
+                ├── 0.0.WELCOME.ipynb
+                ├── 1.1.DATA.ipynb
+                ├── 1.2.Tokenizer.ipynb
+                ├── 2.1.ATTENTION.ipynb
+                ├── 2.2.More_ATTENTION.ipynb
+                ├── 2.3.GPT.ipynb
+                ├── 2.4.Llama3.ipynb
+                ├── 3.1.TRAIN.ipynb
+                ├── 3.2.TRAIN_Pro.ipynb
+                ├── 4.1.SFT_Text_Classification.ipynb
+                ├── 4.2..SFT_Instruction_Following.ipynb
+                ├── 4.3.SFT_PEFT.ipynb
+                ├── 5.1.RLHF_PPO.ipynb
+                ├── 5.2.RL_DPO.ipynb
+                ├── 6.1.INFERENCE_Text_Generation.ipynb
+                ├── 6.2.KV_Cache.ipynb
+                ├── 6.3.Quantization_1.ipynb
+                ├── 6.4.Quantization_2.ipynb
+                ├── Appandix_A_GPT_2_Llama2.ipynb
+                ├── Appandix_B_Gradio.ipynb 
 ```
 
 💡 *Modify the attention mask in a notebook and see how the output changes — that's hands-on learning at its best.*
