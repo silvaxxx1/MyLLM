@@ -1,22 +1,20 @@
 # engine/__init__.py
 """
 Training Engine Package
-Handles device management, optimizer/scheduler setup,
-training loops, checkpointing, and utility functions.
 """
-
-from .accelerator import Accelerator
+from .trainer_engine import TrainerEngine
 from .optimizer import OptimizerManager
 from .lr_scheduler import SchedulerManager
-from .trainer_engine import TrainerEngine
 from .checkpoint_manager import CheckpointManager
+from .callbacks import Callback
 from .utils import EngineUtils
+# accelerate backends are created via accelerators factory
 
 __all__ = [
-    "Accelerator",
+    "TrainerEngine",
     "OptimizerManager",
     "SchedulerManager",
-    "TrainerEngine",
     "CheckpointManager",
+    "Callback",
     "EngineUtils"
 ]
