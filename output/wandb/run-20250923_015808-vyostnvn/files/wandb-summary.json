@@ -1,0 +1,1 @@
+{"_timestamp":1.758581894159584e+09,"_step":0,"_wandb":{"runtime":4},"_runtime":4.765761357,"model/total_parameters":162954240,"model/trainable_parameters":162954240,"model/model_config":"gpt2-small"}

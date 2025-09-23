@@ -248,7 +248,7 @@ class BaseTrainer(ABC):
             
             logger.info(f"Training {self.model_config.name} for {self.config.num_epochs} epochs")
             
-            self._train_loop()
+            self.train()
             
             # Final evaluation
             final_metrics = self.evaluate()
@@ -271,15 +271,7 @@ class BaseTrainer(ABC):
             raise
     
     @abstractmethod
-    def _train_loop(self):
+    def train(self):
         """Training loop implementation"""
         pass
 
-# trainer/trainer.py
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-from typing import Dict, Any, Optional
-import logging
-
-logger = logging.getLogger(__name__)

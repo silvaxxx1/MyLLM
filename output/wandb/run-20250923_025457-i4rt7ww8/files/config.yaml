@@ -1,0 +1,129 @@
+_wandb:
+    value:
+        cli_version: 0.21.4
+        e:
+            ao7xtumnyugeueh2ue4m5xxdabgkixx2:
+                cpu_count: 4
+                cpu_count_logical: 8
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "982238978048"
+                        used: "230013120512"
+                email: silvapi1994@gmail.com
+                executable: /home/silva/SILVA.AI/Projects/MyLLM/.venv/bin/python
+                git:
+                    commit: ff11b8f7a66b18b2e99f301007886cd507ec48a5
+                    remote: git@github.com:silvaxxx1/MyLLM.git
+                gpu: NVIDIA GeForce GTX 1650
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 1024
+                      memoryTotal: "4294967296"
+                      name: NVIDIA GeForce GTX 1650
+                      uuid: GPU-605b6ad0-c95a-c7a0-f428-928e6885f80f
+                host: SilvaLAB
+                memory:
+                    total: "14521053184"
+                os: Linux-6.14.0-29-generic-x86_64-with-glibc2.39
+                program: -m myllm.Train.train_test
+                python: CPython 3.12.3
+                root: ./output
+                startedAt: "2025-09-22T23:54:57.140257Z"
+                writerId: ao7xtumnyugeueh2ue4m5xxdabgkixx2
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 2
+                - 3
+                - 49
+            "2":
+                - 1
+                - 2
+                - 3
+                - 49
+            "3":
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.12.3
+            "5": 0.21.4
+            "10":
+                - 21
+            "12": 0.21.4
+            "13": linux-x86_64
+batch_size:
+    value: 2
+beta1:
+    value: null
+beta2:
+    value: null
+data_path:
+    value: null
+dataloader_num_workers:
+    value: 4
+dataset_name:
+    value: null
+device:
+    value: auto
+eval_steps:
+    value: 50
+gradient_accumulation_steps:
+    value: 1
+greater_is_better:
+    value: false
+learning_rate:
+    value: 5e-05
+load_best_model_at_end:
+    value: true
+log_model:
+    value: true
+log_predictions:
+    value: false
+logging_steps:
+    value: 10
+max_grad_norm:
+    value: 1
+max_seq_length:
+    value: null
+metric_for_best_model:
+    value: eval_loss
+mixed_precision:
+    value: true
+model_config_name:
+    value: gpt2-small
+model_config_path:
+    value: null
+num_epochs:
+    value: 3
+optimizer_type:
+    value: ADAMW
+output_dir:
+    value: ./output
+preprocessing_num_workers:
+    value: 4
+report_to:
+    value:
+        - wandb
+resume_from_checkpoint:
+    value: null
+save_steps:
+    value: 100
+save_total_limit:
+    value: 3
+scheduler_type:
+    value: LINEAR
+seed:
+    value: 42
+tensorboard_log_dir:
+    value: null
+tokenizer_name:
+    value: gpt2
+warmup_steps:
+    value: 0
+weight_decay:
+    value: null
