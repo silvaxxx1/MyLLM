@@ -1,0 +1,17 @@
+{"eval/eval_loss": 3.8930012629582333, "eval/perplexity": 49.05790328979492, "eval/epoch": 0, "timestamp": 1759100779.8451672, "step": 0}
+{"eval/eval_loss": 1.2705384767972505, "eval/perplexity": 3.562770366668701, "eval/epoch": 1, "timestamp": 1759100796.600977, "step": 1}
+{"train/loss": 1.3282012939453125, "train/epoch_avg_loss": 1.9556992053985596, "train/epoch": 2, "train/step": 10, "eval/loss": 1.2705384767972505, "timestamp": 1759100817.7340744, "step": 2}
+{"eval/eval_loss": 0.942287540435791, "eval/perplexity": 2.5658442974090576, "eval/epoch": 2, "timestamp": 1759100818.3352594, "step": 3}
+{"eval/eval_loss": 3.893038823054387, "eval/perplexity": 49.05974197387695, "eval/epoch": 0, "timestamp": 1759139319.1340117, "step": 0}
+{"eval/eval_loss": 1.2705709017240083, "eval/perplexity": 3.5628859996795654, "eval/epoch": 1, "timestamp": 1759139350.6210933, "step": 1}
+{"train/loss": 1.3282026052474976, "train/epoch_avg_loss": 1.9556346535682678, "train/epoch": 2, "train/step": 10, "eval/loss": 1.2705709017240083, "timestamp": 1759139379.1332004, "step": 2}
+{"eval/eval_loss": 0.9420152187347413, "eval/perplexity": 2.565145492553711, "eval/epoch": 2, "timestamp": 1759139379.8216028, "step": 3}
+{"eval/eval_loss": 8.999171401515152, "eval/perplexity": 8096.37109375, "eval/epoch": 0, "timestamp": 1759139709.900801, "step": 0}
+{"eval/eval_loss": 7.322413589015151, "eval/perplexity": 1513.8531494140625, "eval/epoch": 1, "timestamp": 1759139737.5293493, "step": 1}
+{"train/loss": 6.704833984375, "train/epoch_avg_loss": 6.987905979156494, "train/epoch": 2, "train/step": 10, "eval/loss": 7.322413589015151, "timestamp": 1759139765.2358172, "step": 2}
+{"eval/eval_loss": 6.067190459280303, "eval/perplexity": 431.4668273925781, "eval/epoch": 2, "timestamp": 1759139765.9346483, "step": 3}
+{"eval/eval_loss": 8.999171401515152, "eval/perplexity": 8096.37109375, "eval/epoch": 0, "timestamp": 1759148773.6999626, "step": 0}
+{"eval/eval_loss": 8.999171401515152, "eval/perplexity": 8096.37109375, "eval/epoch": 0, "timestamp": 1759148900.3184075, "step": 0}
+{"eval/eval_loss": 7.322413589015151, "eval/perplexity": 1513.8531494140625, "eval/epoch": 1, "timestamp": 1759148924.5230863, "step": 1}
+{"train/loss": 6.704833984375, "train/epoch_avg_loss": 6.987905979156494, "train/epoch": 2, "train/step": 10, "eval/loss": 7.322413589015151, "timestamp": 1759148950.9689841, "step": 2}
+{"eval/eval_loss": 6.067190459280303, "eval/perplexity": 431.4668273925781, "eval/epoch": 2, "timestamp": 1759148951.5795362, "step": 3}

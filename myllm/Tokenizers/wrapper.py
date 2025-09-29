@@ -46,20 +46,25 @@ class TokenizerWrapper:
     # ------------------------
     # Batch encoding with padding and attention masks
     # ------------------------
-    def batch_encode(self, texts, padding=True, return_tensors="pt"):
+    def batch_encode(self, texts, padding=True, return_tensors="pt", max_length=None, truncation=True):
         """
         Encode a list of sentences into token IDs with optional padding.
         Returns a dict: {"input_ids": Tensor, "attention_mask": Tensor}
         """
         # Encode each sentence individually
         encoded = [self.encode(t) for t in texts]
+        
+        # Apply truncation if needed
+        if max_length and truncation:
+            encoded = [seq[:max_length] for seq in encoded]
+        
         max_len = max(len(seq) for seq in encoded) if padding else None
 
         input_ids = []
         attention_mask = []
 
         for seq in encoded:
-            if padding:
+            if padding and max_len:
                 pad_len = max_len - len(seq)
                 input_ids.append(seq + [self.pad_token_id] * pad_len)
                 attention_mask.append([1] * len(seq) + [0] * pad_len)
@@ -89,8 +94,14 @@ class TokenizerWrapper:
         return getattr(self.tokenizer, "special_tokens", None)
 
     # ------------------------
+    # Make it callable
+    # ------------------------
+    def __call__(self, text, **kwargs):
+        """Make wrapper callable like original tokenizer"""
+        return self.encode(text, **kwargs)
+
+    # ------------------------
     # Readable Representation
     # ------------------------
     def __repr__(self):
         return f"TokenizerWrapper(model={self.model_name}, vocab_size={self.vocab_size}, pad_token={self.pad_token})"
-

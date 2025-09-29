@@ -1,0 +1,125 @@
+_wandb:
+    value:
+        cli_version: 0.21.4
+        e:
+            l9f1497dlxruwg44lgogzcgrec0iad7b:
+                email: silvapi1994@gmail.com
+                executable: /home/silva/SILVA.AI/Projects/MyLLM/.venv/bin/python
+                git:
+                    commit: 33dd9335cf87566e7c81c46b1e3d5ce4235a2817
+                    remote: git@github.com:silvaxxx1/MyLLM.git
+                host: SilvaLAB
+                os: Linux-6.14.0-32-generic-x86_64-with-glibc2.39
+                program: -m myllm.Train.sft_test
+                python: CPython 3.12.3
+                root: /home/silva/SILVA.AI/Projects/MyLLM
+                startedAt: "2025-09-29T11:39:06.151680Z"
+                writerId: l9f1497dlxruwg44lgogzcgrec0iad7b
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 2
+                - 3
+                - 49
+            "2":
+                - 1
+                - 2
+                - 3
+                - 49
+            "3":
+                - 13
+                - 16
+            "4": 3.12.3
+            "5": 0.21.4
+            "12": 0.21.4
+            "13": linux-x86_64
+batch_size:
+    value: 2
+beta1:
+    value: null
+beta2:
+    value: null
+data_path:
+    value: null
+dataloader_num_workers:
+    value: 4
+dataset_name:
+    value: null
+deepspeed_config_path:
+    value: null
+device:
+    value: AUTO
+eval_steps:
+    value: 5
+gradient_accumulation_steps:
+    value: 1
+greater_is_better:
+    value: true
+instruction_template:
+    value: |-
+        ### Instruction:
+        {instruction}
+
+        ### Response:
+        {response}
+learning_rate:
+    value: 5e-05
+load_best_model_at_end:
+    value: true
+logging_steps:
+    value: 50
+max_grad_norm:
+    value: 1
+max_seq_length:
+    value: null
+metric_for_best_model:
+    value: eval_loss
+mixed_precision:
+    value: true
+model_config_name:
+    value: gpt2-small
+model_config_path:
+    value: null
+num_epochs:
+    value: 2
+optimizer_type:
+    value: ADAMW
+output_dir:
+    value: ./sft_output
+preprocessing_num_workers:
+    value: 4
+report_to:
+    value:
+        - wandb
+response_template:
+    value: '### Response:'
+resume_from_checkpoint:
+    value: null
+save_steps:
+    value: 5
+save_total_limit:
+    value: 3
+scheduler_type:
+    value: LINEAR
+seed:
+    value: 42
+tokenizer_name:
+    value: gpt2
+use_compile:
+    value: false
+use_deepspeed:
+    value: false
+wandb_entity:
+    value: null
+wandb_project:
+    value: null
+wandb_run_name:
+    value: null
+wandb_tags:
+    value: null
+warmup_steps:
+    value: 0
+weight_decay:
+    value: null

@@ -1,0 +1,10 @@
+{"train/loss": 8.684943199157715, "train/epoch_avg_loss": 10.081357192993163, "train/epoch": 0, "train/step": 5, "train/perplexity": 23893.38671875, "train/grad_norm": 8.378031730651855, "model/param_count": 162954240, "timestamp": 1759100467.0630274, "step": 0}
+{"eval/eval_loss": 9.041600404520752, "eval/perplexity": 8447.2841796875, "eval/epoch": 0, "timestamp": 1759100488.75536, "step": 1}
+{"train/loss": 6.551764965057373, "train/epoch_avg_loss": 7.411920070648193, "train/epoch": 1, "train/step": 10, "train/perplexity": 1655.6021728515625, "train/grad_norm": 3.3878133296966553, "model/param_count": 162954240, "eval/loss": 9.041600404520752, "eval/perplexity": 8447.2841796875, "timestamp": 1759100505.7220483, "step": 2}
+{"eval/eval_loss": 7.65937102242802, "eval/perplexity": 2120.423095703125, "eval/epoch": 1, "timestamp": 1759100506.309059, "step": 3}
+{"train/loss": 8.270651817321777, "train/epoch_avg_loss": 6.898481845855713, "train/epoch": 2, "train/step": 15, "train/perplexity": 990.7694091796875, "train/grad_norm": 5.360148906707764, "model/param_count": 162954240, "eval/loss": 7.65937102242802, "eval/perplexity": 2120.423095703125, "timestamp": 1759100522.497015, "step": 4}
+{"eval/eval_loss": 6.2527076102591845, "eval/perplexity": 519.417236328125, "eval/epoch": 2, "timestamp": 1759100523.2357671, "step": 5}
+{"eval/eval_loss": 6.197135925292969, "eval/perplexity": 491.33978271484375, "eval/epoch": 0, "timestamp": 1759144425.7928562, "step": 0}
+{"eval/eval_loss": 4.512409274860964, "eval/perplexity": 91.14112854003906, "eval/epoch": 1, "timestamp": 1759144426.6128647, "step": 1}
+{"eval/eval_loss": 6.307490596064815, "eval/perplexity": 548.66650390625, "eval/epoch": 0, "timestamp": 1759144529.7143335, "step": 0}
+{"eval/eval_loss": 4.18476032760908, "eval/perplexity": 65.67774200439453, "eval/epoch": 1, "timestamp": 1759144548.5721216, "step": 1}

@@ -1,0 +1,15 @@
+{
+  "os":  "Linux-6.14.0-32-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.12.3",
+  "startedAt":  "2025-09-29T11:10:25.048756Z",
+  "program":  "-m myllm.Train.sft_test",
+  "git":  {
+    "remote":  "git@github.com:silvaxxx1/MyLLM.git",
+    "commit":  "33dd9335cf87566e7c81c46b1e3d5ce4235a2817"
+  },
+  "email":  "silvapi1994@gmail.com",
+  "root":  "./sft_output",
+  "host":  "SilvaLAB",
+  "executable":  "/home/silva/SILVA.AI/Projects/MyLLM/.venv/bin/python",
+  "writerId":  "kj6396cfousxe1carcggi4jmxgcopydv"
+}

@@ -1,82 +1,87 @@
-# examples/train_with_existing_project.py
+# examples/train_with_existing_project_fixed.py
 """
-Example of how to train a GPT-style model using the MyLLM framework
-with proper dataset handling, batching, and variable-length sequences.
-Includes torch.compile() for performance optimization.
+Fixed example for training using the MyLLM Trainer.
+Key fixes:
+ - set device in TrainerConfig before Trainer init
+ - create dataloaders before setup_optimizer so scheduler can be created
+ - proper next-token labels (shift + pad -> -100)
+ - safe tokenizer fallback if batch APIs differ
+ - pass attention_mask to model forward if present
+ - initialize global_step
 """
 
 if __name__ == "__main__":
+    import math
     import torch
     from torch.utils.data import DataLoader, Dataset
 
     from myllm.Configs.ModelConfig import ModelConfig
-    from myllm.Configs.GenConfig import GenerationConfig
     from myllm.Train.configs.TempConfig import TrainerConfig
     from myllm.Train.trainer import Trainer
 
-    # ============================================================
-    # Collate Function
-    # ============================================================
+    # -------------------------
+    # Collate function (robust)
+    # -------------------------
     def collate_fn(batch, tokenizer):
-        """
-        Combines multiple dataset items into a batch with proper padding.
+        texts = []
+        for item in batch:
+            if isinstance(item, dict) and "text" in item:
+                texts.append(item["text"])
+            else:
+                texts.append(item)
 
-        Args:
-            batch (list of dict): Each item has {"input_ids", "labels", "text"}
-            tokenizer: Tokenizer for handling padding.
+        if hasattr(tokenizer, "batch_encode"):
+            encoded = tokenizer.batch_encode(texts, padding=True, return_tensors="pt")
+            input_ids = encoded["input_ids"]
+            attention_mask = encoded.get("attention_mask", None)
+        else:
+            encs = [tokenizer.encode(t, return_tensors="pt").squeeze(0) for t in texts]
+            max_len = max([e.size(0) for e in encs])
+            padded = []
+            masks = []
+            for e in encs:
+                pad_len = max_len - e.size(0)
+                if pad_len > 0:
+                    pad_val = tokenizer.pad_token or tokenizer.eos_token_id
+                    padded_e = torch.cat([e, torch.full((pad_len,), pad_val, dtype=torch.long)], dim=0)
+                    mask = torch.cat([torch.ones(e.size(0), dtype=torch.long), torch.zeros(pad_len, dtype=torch.long)])
+                else:
+                    padded_e = e
+                    mask = torch.ones(e.size(0), dtype=torch.long)
+                padded.append(padded_e)
+                masks.append(mask)
+            input_ids = torch.stack(padded, dim=0)
+            attention_mask = torch.stack(masks, dim=0)
 
-        Returns:
-            dict: A batch dictionary containing:
-                - input_ids
-                - attention_mask
-                - labels
-        """
-        texts = [item["text"] for item in batch]
-
-        # Tokenize and pad to the longest sequence in the batch
-        encoded = tokenizer.batch_encode(texts, padding=True, return_tensors="pt")
-
-        input_ids = encoded["input_ids"]
-        attention_mask = encoded["attention_mask"]
-
-        # Labels are copies of the input for language modeling
+        # Build next-token labels (shift left)
         labels = input_ids.clone()
+        if labels.size(1) > 1:
+            labels[:, :-1] = input_ids[:, 1:].clone()
+            labels[:, -1] = -100
+        else:
+            labels[:] = -100
 
-        return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "labels": labels
-        }
+        if attention_mask is not None:
+            labels = labels.masked_fill(attention_mask == 0, -100)
 
-    # ============================================================
-    # Custom Dataset
-    # ============================================================
+        return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
+
+    # -------------------------
+    # Simple text-only dataset
+    # -------------------------
     class TextDataset(Dataset):
-        """
-        A simple dataset that wraps a list of raw texts.
-        """
-        def __init__(self, texts, tokenizer):
+        def __init__(self, texts):
             self.texts = texts
-            self.tokenizer = tokenizer
 
         def __len__(self):
             return len(self.texts)
 
         def __getitem__(self, idx):
-            """
-            Return:
-                dict with:
-                - "input_ids": tokenized text tensor
-                - "labels": same as input_ids (for LM)
-                - "text": original text string
-            """
-            text = self.texts[idx]
-            enc = self.tokenizer.encode(text, return_tensors="pt").squeeze(0)
-            return {"input_ids": enc, "labels": enc, "text": text}
+            return {"text": self.texts[idx]}
 
-    # ============================================================
-    # Trainer Configuration
-    # ============================================================
+    # -------------------------
+    # Trainer configuration
+    # -------------------------
     trainer_config = TrainerConfig(
         model_config_name="gpt2-small",
         tokenizer_name="gpt2",
@@ -95,40 +100,40 @@ if __name__ == "__main__":
         metric_for_best_model="eval_loss",
         greater_is_better=False,
         load_best_model_at_end=True,
-        max_grad_norm=1.0
+        max_grad_norm=1.0,
     )
 
-    # ============================================================
-    # Load Model Config
-    # ============================================================
+    # ✅ Set device correctly before Trainer initialization
+    trainer_config.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # -------------------------
+    # Model config
+    # -------------------------
     model_config = ModelConfig.from_name("gpt2-small")
     model_config.learning_rate = 3e-4
     model_config.dropout = 0.1
 
-    # ============================================================
-    # Initialize Trainer
-    # ============================================================
+    # -------------------------
+    # Initialize trainer
+    # -------------------------
     trainer = Trainer(trainer_config, model_config=model_config)
+    trainer.global_step = 0  # ensure exists before training
 
-    # Setup model & tokenizer
+    # Setup model and tokenizer
     trainer.setup_model()
-
-    # Move model to device
-    trainer.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     trainer.model.to(trainer.device)
 
-    # ============================================================
-    # ✅ Apply torch.compile for performance optimization
-    # ============================================================
-    print("Compiling model with torch.compile() for optimized performance...")
-    trainer.model = torch.compile(trainer.model, backend="inductor", mode="default")
+    # Optional: compile model
+    try:
+        if getattr(torch, "compile", None) is not None and torch.cuda.is_available():
+            print("Compiling model with torch.compile() ...")
+            trainer.model = torch.compile(trainer.model, backend="inductor", mode="default")
+    except Exception as e:
+        print(f"torch.compile() failed (continuing without compile): {e}")
 
-    # Setup optimizer (must be after moving model to device and compiling)
-    trainer.setup_optimizer()
-
-    # ============================================================
-    # Sample Training Texts
-    # ============================================================
+    # -------------------------
+    # Sample texts
+    # -------------------------
     texts = [
         "Hello world!",
         "This is a test sentence.",
@@ -140,11 +145,10 @@ if __name__ == "__main__":
         "Finally, we add a few more sentences to make the dataset slightly larger."
     ]
 
-    # ============================================================
-    # Create Dataset & DataLoader
-    # ============================================================
-    dataset = TextDataset(texts, tokenizer=trainer.tokenizer)
-
+    # -------------------------
+    # Dataset & DataLoader
+    # -------------------------
+    dataset = TextDataset(texts)
     train_loader = DataLoader(
         dataset,
         batch_size=trainer_config.batch_size,
@@ -152,21 +156,21 @@ if __name__ == "__main__":
         collate_fn=lambda batch: collate_fn(batch, tokenizer=trainer.tokenizer)
     )
 
-    # Use same data for evaluation in this example
     trainer.train_dataloader = train_loader
     trainer.eval_dataloader = train_loader
 
-    # ============================================================
-    # Run Training
-    # ============================================================
+    # Setup optimizer/scheduler
+    trainer.setup_optimizer()
+
+    # -------------------------
+    # Run training
+    # -------------------------
     print("Starting training...")
     trainer.train()
 
-    # ============================================================
-    # Final Output
-    # ============================================================
+    # -------------------------
+    # Final output
+    # -------------------------
     print("\nTraining completed!")
     print(f"Output directory: {trainer_config.output_dir}")
-    print(f"Best model saved at: {trainer.best_model_path}")
-
- 
+    print(f"Best checkpoint saved at: {trainer.best_checkpoint_path if getattr(trainer, 'best_checkpoint_path', None) else 'N/A'}")

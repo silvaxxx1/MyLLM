@@ -1,19 +1,18 @@
-
-
-# trainer/base_trainer.py
+# trainer/base_trainer.py (FIXED - remove duplicate)
 import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 import logging
 import os
+from torch.amp import autocast, GradScaler
+import wandb
 
 logger = logging.getLogger(__name__)
 
 class BaseTrainer(ABC):
     """
-    Base trainer class integrated with existing project architecture
-    Compatible with model.py, ModelConfig, and api.py
+    Unified base trainer with AMP, gradient accumulation, and multi-GPU readiness
     """
     
     def __init__(self, config, model_config=None, model=None):
@@ -30,9 +29,17 @@ class BaseTrainer(ABC):
         self.best_metric = None
         self.best_model_path = None
         
-        # Logging
-        from .utils.logging_utils import LoggingManager
-        self.logging_manager = LoggingManager(config)
+        # Data
+        self.train_dataloader = None
+        self.eval_dataloader = None
+        
+        # Metrics
+        self.latest_eval_loss = None
+        self.best_checkpoint_path = None
+        self.wandb_url = None
+        
+        # AMP
+        self.scaler = GradScaler(device="cuda" if torch.cuda.is_available() else "cpu")
         
         self._setup_logging()
         self._setup_device()
@@ -48,77 +55,309 @@ class BaseTrainer(ABC):
         os.makedirs(self.config.output_dir, exist_ok=True)
     
     def _setup_device(self):
-        """Setup training device"""
-        if self.config.device == "auto":
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        else:
-            self.device = torch.device(self.config.device)
+        """Setup training device with multi-GPU readiness"""
+        device_str = getattr(self.config.device, 'value', str(self.config.device))
+        if device_str == "auto":
+            device_str = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        self.device = torch.device(device_str)
         logger.info(f"Using device: {self.device}")
+        
+        # Multi-GPU setup placeholder
+        self.local_rank = getattr(self.config, 'local_rank', 0)
+        self.world_size = getattr(self.config, 'world_size', 1)
+        self.distributed = self.world_size > 1
     
     def _setup_seed(self):
-        """Setup random seed"""
-        torch.manual_seed(self.config.seed)
+        """Setup random seed for reproducibility"""
+        seed = getattr(self.config, 'seed', 42)
+        torch.manual_seed(seed)
         if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(self.config.seed)
+            torch.cuda.manual_seed_all(seed)
     
     def _setup_model_config(self):
-        """Setup model configuration using existing ModelConfig"""
-        if self.model_config is None:
-            # Import your existing ModelConfig
-            from Configs import ModelConfig
+        """Setup model configuration"""
+        if self.model_config is None and hasattr(self.config, 'model_config_name'):
+            from myllm.Configs.ModelConfig import ModelConfig
             
-            if self.config.model_config_path:
+            if getattr(self.config, 'model_config_path', None):
                 self.model_config = ModelConfig.load(self.config.model_config_path)
             else:
                 self.model_config = ModelConfig.from_name(self.config.model_config_name)
             
-            # Override with trainer config if specified
-            if self.config.learning_rate is not None:
-                self.model_config.learning_rate = self.config.learning_rate
-            if self.config.weight_decay is not None:
-                self.model_config.weight_decay = self.config.weight_decay
-            if self.config.beta1 is not None:
-                self.model_config.beta1 = self.config.beta1
-            if self.config.beta2 is not None:
-                self.model_config.beta2 = self.config.beta2
-            
-            logger.info(f"Using model config: {self.model_config.name}")
+            # Override with trainer config values
+            config_overrides = ['learning_rate', 'weight_decay', 'beta1', 'beta2']
+            for attr in config_overrides:
+                if hasattr(self.config, attr) and getattr(self.config, attr) is not None:
+                    setattr(self.model_config, attr, getattr(self.config, attr))
     
-    def _get_sequence_length(self):
-        """Get sequence length from config"""
-        return self.config.max_seq_length or self.model_config.block_size
-    
-    @abstractmethod
     def setup_model(self) -> nn.Module:
-        """Setup model using existing architecture"""
-        pass
+        """Default model setup that can be overridden"""
+        if self.model is not None:
+            self.model.to(self.device)
+            return self.model
+        
+        # Basic model creation - subclasses should override this
+        from myllm.model import GPT
+        self.model = GPT(self.model_config)
+        self.model.to(self.device)
+        
+        # Optional compilation
+        if getattr(self.config, "use_compile", False):
+            try:
+                logger.info("Compiling model with torch.compile()")
+                self.model = torch.compile(self.model)
+            except Exception as e:
+                logger.error(f"torch.compile() failed: {e}")
+        
+        return self.model
     
-    @abstractmethod
-    def setup_data(self):
-        """Setup training and validation datasets"""
-        pass
+    def setup_tokenizer(self):
+        """Setup tokenizer - common for both trainers - KEEP ONLY THIS ONE"""
+        from myllm.Tokenizers.factory import get_tokenizer
+        from myllm.Tokenizers.wrapper import TokenizerWrapper
+        
+        tokenizer_name = getattr(self.config, "tokenizer_name", "gpt2")
+        tokenizer_raw = get_tokenizer(tokenizer_name)
+        self.tokenizer = TokenizerWrapper(tokenizer_raw)
+        
+        # Handle pad token
+        if not hasattr(self.tokenizer, "pad_token") or self.tokenizer.pad_token is None:
+            pad_id = getattr(self.tokenizer, "eos_token_id", 0)
+            self.tokenizer.pad_token = pad_id
+            self.tokenizer.pad_token_id = pad_id  # Also set pad_token_id
+            logger.warning(f"Pad token not found, defaulting to eos_token_id={pad_id}")
+        
+        logger.info(f"Tokenizer setup: {self.tokenizer}")
     
-    @abstractmethod
     def setup_optimizer(self):
-        """Setup optimizer and scheduler"""
-        pass
+        """Common optimizer setup"""
+        if self.model is None:
+            raise ValueError("Model must be setup before optimizer")
+        
+        # AdamW is standard for both
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(),
+            lr=self.model_config.learning_rate,
+            weight_decay=self.model_config.weight_decay,
+            betas=(self.model_config.beta1, self.model_config.beta2)
+        )
+        
+        # Scheduler setup
+        if (hasattr(self.config, 'scheduler_type') and 
+            self.config.scheduler_type.value == "linear" and 
+            hasattr(self.config, "warmup_steps")):
+            from torch.optim.lr_scheduler import LinearLR
+            self.scheduler = LinearLR(
+                self.optimizer,
+                start_factor=0.1,
+                total_iters=self.config.warmup_steps
+            )
+        else:
+            self.scheduler = None
+        
+        logger.info("Optimizer and scheduler setup complete")
     
-    @abstractmethod
-    def train_step(self, batch) -> Dict[str, Any]:
-        """Execute a single training step"""
-        pass
+    def compute_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        """Common loss computation"""
+        return nn.functional.cross_entropy(
+            logits.view(-1, logits.size(-1)),
+            labels.view(-1),
+            ignore_index=-100
+        )
     
-    @abstractmethod
+    def align_sequence_lengths(self, logits: torch.Tensor, labels: torch.Tensor) -> tuple:
+        """Align sequence lengths for loss computation"""
+        if logits.size(1) != labels.size(1):
+            min_len = min(logits.size(1), labels.size(1))
+            logits = logits[:, :min_len].contiguous()
+            labels = labels[:, :min_len].contiguous()
+        return logits, labels
+    
+    # REMOVED DUPLICATE setup_tokenizer METHOD HERE
+    
+    def training_step(self, batch) -> Dict[str, Any]:
+        """Standard training step with AMP and gradient accumulation"""
+        self.model.train()
+        batch = self._prepare_batch(batch)
+        
+        with autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
+            logits = self.model(batch["input_ids"])
+            labels = self._get_labels(batch)
+            logits, labels = self.align_sequence_lengths(logits, labels)
+            
+            loss = self.compute_loss(logits, labels)
+            loss = loss / max(1, self.config.gradient_accumulation_steps)
+        
+        self.scaler.scale(loss).backward()
+        
+        if (self.global_step + 1) % self.config.gradient_accumulation_steps == 0:
+            if self.config.max_grad_norm > 0:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
+            
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+            self.optimizer.zero_grad()
+            
+            if self.scheduler:
+                self.scheduler.step()
+        
+        return {"loss": float(loss.item())}
+    
+    def setup_wandb(self):
+        """Setup WandB logging if enabled"""
+        if (hasattr(self.config, 'report_to') and 
+            "wandb" in self.config.report_to and 
+            wandb is not None):
+            
+            try:
+                # Check if wandb is already initialized
+                if wandb.run is None:
+                    wandb_config = {
+                        "model_config_name": self.config.model_config_name,
+                        "tokenizer_name": self.config.tokenizer_name,
+                        "num_epochs": self.config.num_epochs,
+                        "batch_size": self.config.batch_size,
+                        "learning_rate": self.model_config.learning_rate,
+                        "max_grad_norm": self.config.max_grad_norm,
+                        "warmup_steps": self.config.warmup_steps,
+                        "gradient_accumulation_steps": self.config.gradient_accumulation_steps,
+                    }
+                    
+                    wandb.init(
+                        project=getattr(self.config, 'wandb_project', 'myllm-training'),
+                        name=getattr(self.config, 'wandb_run_name', None),
+                        notes=getattr(self.config, 'wandb_notes', None),
+                        tags=getattr(self.config, 'wandb_tags', None),
+                        config=wandb_config
+                    )
+                
+                # Store the URL for later use
+                self.wandb_url = wandb.run.url if wandb.run else "N/A"
+                logger.info(f"WandB initialized: {self.wandb_url}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to initialize WandB: {e}")
+                self.wandb_url = "N/A"
+        else:
+            self.wandb_url = "N/A"
+    
+    def evaluation_step(self, batch) -> Dict[str, float]:
+        """Standard evaluation step"""
+        self.model.eval()
+        batch = self._prepare_batch(batch)
+        
+        with torch.inference_mode(), autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
+            logits = self.model(batch["input_ids"])
+            labels = self._get_labels(batch)
+            logits, labels = self.align_sequence_lengths(logits, labels)
+            
+            loss = nn.functional.cross_entropy(
+                logits.view(-1, logits.size(-1)),
+                labels.view(-1),
+                ignore_index=-100,
+                reduction='sum'
+            )
+            
+            return {
+                "loss": loss.item(),
+                "tokens": (labels != -100).sum().item()
+            }
+    
     def evaluate(self) -> Dict[str, float]:
-        """Evaluate the model"""
+        """Standard evaluation loop"""
+        if self.eval_dataloader is None:
+            return {}
+        
+        total_loss = 0.0
+        total_tokens = 0
+        
+        for batch in self.eval_dataloader:
+            step_results = self.evaluation_step(batch)
+            total_loss += step_results["loss"]
+            total_tokens += step_results["tokens"]
+        
+        avg_loss = total_loss / max(1, total_tokens)
+        self.latest_eval_loss = avg_loss
+        perplexity = torch.exp(torch.tensor(avg_loss)).item()
+        
+        return {"eval_loss": avg_loss, "perplexity": perplexity}
+    
+    # Abstract methods for subclass implementation
+    @abstractmethod
+    def _prepare_batch(self, batch):
+        """Prepare batch for training/evaluation"""
         pass
+    
+    @abstractmethod
+    def _get_labels(self, batch):
+        """Get labels from batch (different for pretraining vs SFT)"""
+        pass
+    
+    @abstractmethod
+    def setup_data(self, train_dataloader=None, eval_dataloader=None):
+        """Setup training and validation data"""
+        pass
+    
+    # Training control methods
+    def should_log(self) -> bool:
+        return self.global_step % self.config.logging_steps == 0
+    
+    def should_evaluate(self) -> bool:
+        return (hasattr(self.config, 'eval_steps') and 
+                self.config.eval_steps > 0 and 
+                self.eval_dataloader is not None)
+    
+    def should_save_checkpoint(self) -> bool:
+        return hasattr(self.config, 'save_steps') and self.config.save_steps > 0
+    
+    def update_best_metric(self, metrics: dict, key: str = "eval_loss") -> bool:
+        """Update best metric tracking"""
+        current_value = metrics.get(key)
+        if current_value is None:
+            return False
+        
+        greater_is_better = getattr(self.config, "greater_is_better", False)
+        is_best = False
+        
+        if self.best_metric is None:
+            self.best_metric = current_value
+            is_best = True
+        else:
+            if greater_is_better:
+                is_best = current_value > self.best_metric
+            else:
+                is_best = current_value < self.best_metric
+            
+            if is_best:
+                self.best_metric = current_value
+        
+        if is_best:
+            logger.info(f"New best {key}: {self.best_metric:.4f}")
+        
+        return is_best
     
     def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
-        """Log metrics"""
-        self.logging_manager.log_metrics(metrics, step)
+        """Log metrics to WandB and console"""
+        if step is None:
+            step = self.global_step
+        
+        # WandB logging
+        if wandb.run is not None:
+            try:
+                wandb.log(metrics, step=step)
+            except Exception as e:
+                logger.warning(f"WandB logging failed: {e}")
+        
+        # Console logging for key metrics
+        if "eval_loss" in metrics:
+            logger.info(f"Step {step}: Eval Loss: {metrics['eval_loss']:.4f}")
+        elif "train/loss" in metrics:
+            logger.info(f"Step {step}: Train Loss: {metrics['train/loss']:.4f}")
     
     def save_checkpoint(self, checkpoint_dir: Optional[str] = None, is_best: bool = False):
-        """Save checkpoint using your existing save format"""
+        """Save checkpoint with training state"""
         if checkpoint_dir is None:
             checkpoint_dir = os.path.join(
                 self.config.output_dir, 
@@ -127,49 +366,36 @@ class BaseTrainer(ABC):
         
         os.makedirs(checkpoint_dir, exist_ok=True)
         
+        # Save model
         if self.model:
-            # Save model state dict (compatible with your api.py save method)
             model_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
             torch.save(self.model.state_dict(), model_path)
-            
-            # Save model config
-            config_path = os.path.join(checkpoint_dir, "model_config.json")
-            self.model_config.save(config_path)
         
         # Save training state
         training_state = {
             "global_step": self.global_step,
             "current_epoch": self.current_epoch,
             "best_metric": self.best_metric,
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "scaler": self.scaler.state_dict() if self.scaler else None,
         }
         
-        if self.optimizer:
-            training_state["optimizer"] = self.optimizer.state_dict()
-        if self.scheduler:
-            training_state["scheduler"] = self.scheduler.state_dict()
-            
-        torch.save(training_state, 
-                  os.path.join(checkpoint_dir, "training_state.bin"))
+        torch.save(training_state, os.path.join(checkpoint_dir, "training_state.bin"))
         
         logger.info(f"Checkpoint saved to {checkpoint_dir}")
         
         if is_best:
-            self.best_model_path = checkpoint_dir
+            self.best_checkpoint_path = checkpoint_dir
         
         return checkpoint_dir
     
     def load_checkpoint(self, checkpoint_dir: str):
-        """Load checkpoint"""
+        """Load checkpoint and restore training state"""
         # Load model
         model_path = os.path.join(checkpoint_dir, "pytorch_model.bin")
         if os.path.exists(model_path) and self.model:
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        
-        # Load model config
-        config_path = os.path.join(checkpoint_dir, "model_config.json")
-        if os.path.exists(config_path):
-            from Configs import ModelConfig
-            self.model_config = ModelConfig.load(config_path)
         
         # Load training state
         training_state_path = os.path.join(checkpoint_dir, "training_state.bin")
@@ -183,95 +409,7 @@ class BaseTrainer(ABC):
                 self.optimizer.load_state_dict(training_state["optimizer"])
             if self.scheduler and "scheduler" in training_state:
                 self.scheduler.load_state_dict(training_state["scheduler"])
+            if self.scaler and "scaler" in training_state:
+                self.scaler.load_state_dict(training_state["scaler"])
         
         logger.info(f"Checkpoint loaded from {checkpoint_dir}")
-    
-    def should_save_checkpoint(self) -> bool:
-        return (self.config.save_steps > 0 and 
-                self.global_step % self.config.save_steps == 0)
-    
-    def should_evaluate(self) -> bool:
-        return (self.config.eval_steps > 0 and 
-                self.global_step % self.config.eval_steps == 0)
-    
-    def should_log(self) -> bool:
-        return self.global_step % self.config.logging_steps == 0
-    
-    def update_best_metric(self, current_metrics: Dict[str, float]) -> bool:
-        """Update best metric tracking"""
-        if not self.config.metric_for_best_model:
-            return False
-        
-        metric_key = self.config.metric_for_best_model
-        if metric_key not in current_metrics:
-            return False
-        
-        current_value = current_metrics[metric_key]
-        
-        if self.best_metric is None:
-            self.best_metric = current_value
-            return True
-        
-        if self.config.greater_is_better:
-            improved = current_value > self.best_metric
-        else:
-            improved = current_value < self.best_metric
-        
-        if improved:
-            self.best_metric = current_value
-            logger.info(f"New best {metric_key}: {current_value}")
-            return True
-        
-        return False
-    
-    def train(self):
-        """Main training loop"""
-        logger.info("Starting training...")
-        
-        try:
-            self.model = self.setup_model()
-            self.setup_data()
-            self.setup_optimizer()
-            
-            if self.model:
-                self.model = self.model.to(self.device)
-                
-                # Log model info
-                total_params = sum(p.numel() for p in self.model.parameters())
-                trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-                
-                self.log_metrics({
-                    "model/total_parameters": total_params,
-                    "model/trainable_parameters": trainable_params,
-                    "model/model_config": self.model_config.name
-                }, step=0)
-            
-            logger.info(f"Training {self.model_config.name} for {self.config.num_epochs} epochs")
-            
-            self.train()
-            
-            # Final evaluation
-            final_metrics = self.evaluate()
-            if final_metrics:
-                self.log_metrics({"final/" + k: v for k, v in final_metrics.items()})
-            
-            # Load best model if requested
-            if self.config.load_best_model_at_end and self.best_model_path:
-                logger.info("Loading best model for final evaluation")
-                self.load_checkpoint(self.best_model_path)
-                final_metrics = self.evaluate()
-                if final_metrics:
-                    self.log_metrics({"best/" + k: v for k, v in final_metrics.items()})
-            
-            self.logging_manager.finish(final_metrics)
-            
-        except Exception as e:
-            logger.error(f"Training failed: {e}")
-            self.logging_manager.finish({"error": str(e)})
-            raise
-    
-    @abstractmethod
-    def train(self):
-        """Training loop implementation"""
-        pass
-

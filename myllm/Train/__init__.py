@@ -9,7 +9,7 @@ from .configs import (
     LoggingBackend, OptimizerType, SchedulerType
 )
 from .base_trainer import BaseTrainer
-from .trainer import Trainer
+from .trainer import PretrainTrainer
 from .sft_trainer import SFTTrainer
 from .ppo_trainer import PPOTrainer
 from .dpo_trainer import DPOTrainer

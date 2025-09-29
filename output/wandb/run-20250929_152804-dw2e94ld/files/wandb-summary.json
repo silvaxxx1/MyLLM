@@ -1,0 +1,1 @@
+{"eval/epoch":2,"train/epoch_avg_loss":6.987905979156494,"train/epoch":2,"train/step":10,"eval/loss":7.322413589015151,"_runtime":91.372271178,"_wandb":{"runtime":91},"_timestamp":1.759148951579681e+09,"_step":3,"train/loss":6.704833984375,"eval/eval_loss":6.067190459280303,"eval/perplexity":431.4668273925781}

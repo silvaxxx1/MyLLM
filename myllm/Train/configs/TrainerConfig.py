@@ -32,35 +32,30 @@ class DeviceType(Enum):
 # ----------------------------
 @dataclass
 class TrainerConfig:
-    """
-    Base trainer configuration
-    Includes grouped sections: model, data, training, optimizer, logging, hardware
-    """
-
     # ----------------------------
-    # Model Configuration
+    # Model
     # ----------------------------
     model_config_name: str = "gpt2-small"
-    model_config_path: Optional[str] = None
     tokenizer_name: str = "gpt2"
-    max_seq_length: Optional[int] = None  # Uses ModelConfig.block_size if None
+    max_seq_length: Optional[int] = None
+    model_config_path: Optional[str] = None
 
     # ----------------------------
-    # Data / Dataset
+    # Data
     # ----------------------------
     dataset_name: Optional[str] = None
     data_path: Optional[str] = None
     preprocessing_num_workers: int = 4
 
     # ----------------------------
-    # Training Hyperparameters
+    # Training
     # ----------------------------
     num_epochs: int = 3
     batch_size: int = 8
     gradient_accumulation_steps: int = 1
     max_grad_norm: float = 1.0
     warmup_steps: int = 0
-    max_seq_length: Optional[int] = None  # Overrides model block_size if provided
+    seed: int = 42
 
     # ----------------------------
     # Optimizer / Scheduler
@@ -80,60 +75,82 @@ class TrainerConfig:
     save_steps: int = 1000
     save_total_limit: int = 3
     report_to: List[str] = field(default_factory=lambda: ["wandb"])
-    log_model: bool = True
-    log_predictions: bool = False
-    metric_for_best_model: Optional[str] = None
-    greater_is_better: bool = True
+    metric_for_best_model: str = "eval_loss"  # ✅ Changed from Optional to default
+    greater_is_better: bool = False  # ✅ Changed to False for loss metrics
     load_best_model_at_end: bool = False
+    output_dir: str = "./output"
 
-    # WandB specific
-    wandb_project: Optional[str] = None
-    wandb_entity: Optional[str] = None
+    # ----------------------------
+    # WandB Specific Settings (ADD THESE)
+    # ----------------------------
+    wandb_project: Optional[str] = "myllm-training"
     wandb_run_name: Optional[str] = None
-    wandb_tags: List[str] = field(default_factory=list)
     wandb_notes: Optional[str] = None
-    wandb_resume: Union[bool, str] = False
-
-    # TensorBoard
-    tensorboard_log_dir: Optional[str] = None
+    wandb_tags: Optional[List[str]] = None
+    wandb_entity: Optional[str] = None  # Your wandb username/team
 
     # ----------------------------
     # Hardware / System
     # ----------------------------
-    device: DeviceType = DeviceType.AUTO
+    device: Union[DeviceType, str] = DeviceType.AUTO  # ✅ Allow string or enum
     mixed_precision: bool = True
     dataloader_num_workers: int = 4
-    seed: int = 42
-
-    # ----------------------------
-    # Multi-GPU / DeepSpeed
-    # ----------------------------
+    use_compile: bool = False
     use_deepspeed: bool = False
     deepspeed_config_path: Optional[str] = None
-    distributed_backend: str = "nccl"
-    local_rank: int = -1  # For DDP
-    
+
     # ----------------------------
     # Checkpoint / Resume
     # ----------------------------
     resume_from_checkpoint: Optional[str] = None
 
     # ----------------------------
-    # Validation Method
+    # Validation
     # ----------------------------
     def validate(self):
-        if self.device not in DeviceType:
-            raise ValueError(f"Invalid device: {self.device}")
+        # Handle device conversion if it's a string
+        if isinstance(self.device, str):
+            try:
+                self.device = DeviceType(self.device.lower())
+            except ValueError:
+                raise ValueError(f"Invalid device: {self.device}. Must be one of: {[e.value for e in DeviceType]}")
+        
         if self.batch_size <= 0:
             raise ValueError("batch_size must be > 0")
         if self.num_epochs <= 0:
             raise ValueError("num_epochs must be > 0")
         if self.gradient_accumulation_steps <= 0:
             raise ValueError("gradient_accumulation_steps must be > 0")
-        if self.use_deepspeed and (self.deepspeed_config_path is None or not os.path.exists(self.deepspeed_config_path)):
+        if self.use_deepspeed and (not self.deepspeed_config_path or not os.path.exists(self.deepspeed_config_path)):
             raise ValueError("use_deepspeed is True but deepspeed_config_path is invalid")
-        # Add more checks as needed
+        
+        # Validate WandB settings
+        if "wandb" in self.report_to and not self.wandb_project:
+            raise ValueError("wandb_project must be set when using wandb logging")
 
-    # Optional: convert to dict safely for logging or saving
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        """Convert config to dictionary, handling enums properly"""
+        config_dict = {}
+        for key, value in self.__dict__.items():
+            if isinstance(value, Enum):
+                config_dict[key] = value.value
+            elif hasattr(value, '__dict__'):
+                config_dict[key] = asdict(value)
+            else:
+                config_dict[key] = value
+        return config_dict
+
+    def get_wandb_config(self) -> Dict[str, Any]:
+        """Get config specifically for WandB initialization"""
+        return {
+            "model_config_name": self.model_config_name,
+            "tokenizer_name": self.tokenizer_name,
+            "num_epochs": self.num_epochs,
+            "batch_size": self.batch_size,
+            "learning_rate": self.learning_rate,
+            "max_grad_norm": self.max_grad_norm,
+            "warmup_steps": self.warmup_steps,
+            "gradient_accumulation_steps": self.gradient_accumulation_steps,
+            "optimizer_type": self.optimizer_type.value if isinstance(self.optimizer_type, Enum) else self.optimizer_type,
+            "scheduler_type": self.scheduler_type.value if isinstance(self.scheduler_type, Enum) else self.scheduler_type,
+        }
