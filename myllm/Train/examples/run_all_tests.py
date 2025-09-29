@@ -1,6 +1,6 @@
-# examples/run_all_tests_fixed_final.py
+# examples/run_all_tests_fixed_final.py (REFACTORED)
 """
-Final fixed test script with proper error handling
+Final fixed test script with proper error handling using unified architecture
 """
 
 import torch
@@ -9,14 +9,8 @@ from myllm.Configs.ModelConfig import ModelConfig
 from myllm.Train.configs.TrainerConfig import TrainerConfig
 from myllm.Train.configs.SFTConfig import SFTTrainerConfig
 from myllm.Train.factory import create_trainer
-from myllm.Train.datasets.toy_dataset import get_toy_dataloader  
-
-def cleanup_memory():
-    """Clean up GPU memory"""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-    gc.collect()
+from myllm.Train.datasets.toy_dataset import get_toy_dataloader 
+from myllm.Train.utils.memory_utils import cleanup_memory  # ✅ Use memory utility
 
 def test_pretrain():
     """Test pretraining trainer with FIXED sequence lengths"""
@@ -42,7 +36,7 @@ def test_pretrain():
             device="cpu",  # Use CPU for consistency
             use_compile=False,
             max_seq_length=32,  # Fixed sequence length
-            # ✅ Added WandB settings
+            # ✅ WandB settings
             wandb_project="myllm-test",
             wandb_run_name="pretrain-fixed-test",
             report_to=["wandb"],
@@ -54,6 +48,7 @@ def test_pretrain():
         # Create and setup trainer
         trainer = create_trainer("pretrain", trainer_config, model_config)
         trainer.setup_model()
+        print("✅ Model setup complete")
 
         # Toy data with FIXED sequence lengths
         train_loader = get_toy_dataloader(
@@ -87,6 +82,7 @@ def test_pretrain():
 
         trainer.setup_data(train_loader, eval_loader)
         trainer.setup_optimizer()
+        print("✅ Optimizer setup complete")
 
         # Run training
         trainer.train()
@@ -129,7 +125,7 @@ def test_sft_simple():
             use_compile=False,
             instruction_template="Instruction: {instruction}\nResponse: {response}",  # Simple template
             max_seq_length=32,
-            # ✅ Added WandB settings
+            # ✅ WandB settings
             wandb_project="myllm-test",
             wandb_run_name="sft-simple-test",
             report_to=["wandb"],
@@ -141,6 +137,12 @@ def test_sft_simple():
         # Create and setup trainer
         trainer = create_trainer("sft", trainer_config, model_config)
         trainer.setup_model()
+        print("✅ Model setup complete")
+
+        # Test tokenizer
+        test_text = "Hello world"
+        encoded = trainer.tokenizer.encode(test_text)
+        print(f"✅ Tokenizer test: '{test_text}' -> {encoded}")
 
         # Very small toy data
         train_loader = get_toy_dataloader(
@@ -151,12 +153,16 @@ def test_sft_simple():
             max_length=32
         )
 
+        # Test batch
+        test_batch = next(iter(train_loader))
+        print(f"✅ Batch test: input_ids shape {test_batch['input_ids'].shape}")
+
         trainer.setup_data(train_loader, train_loader)  # Use same for eval
         trainer.setup_optimizer()
+        print("✅ Optimizer setup complete")
 
         # Test single training step
         print("✅ Testing single training step...")
-        test_batch = next(iter(train_loader))
         step_result = trainer.training_step(test_batch)
         print(f"✅ Single step loss: {step_result['loss']:.4f}")
 
@@ -171,6 +177,7 @@ def test_sft_simple():
         print(f"❌ SFT simple test FAILED: {e}")
         import traceback
         traceback.print_exc()
+        cleanup_memory()
         return False
 
 def test_basic_functionality():
@@ -188,7 +195,7 @@ def test_basic_functionality():
             num_epochs=0,  # No training
             batch_size=2,
             device="cpu",
-            # ✅ Added WandB settings (but won't initialize due to num_epochs=0)
+            # ✅ WandB settings (but won't initialize due to num_epochs=0)
             wandb_project="myllm-test",
             wandb_run_name="basic-functionality-test",
             report_to=["wandb"],
@@ -222,6 +229,16 @@ def test_basic_functionality():
         test_batch = next(iter(train_loader))
         print(f"✅ Batch creation: input_ids shape {test_batch['input_ids'].shape}")
 
+        # Test SFT-specific functionality
+        sft_train_loader = get_toy_dataloader(
+            "sft",
+            batch_size=2,
+            tokenizer=sft_trainer.tokenizer,
+            num_samples=2
+        )
+        sft_test_batch = next(iter(sft_train_loader))
+        print(f"✅ SFT batch creation: input_ids shape {sft_test_batch['input_ids'].shape}")
+
         # Cleanup
         del pretrain_trainer, sft_trainer
         cleanup_memory()
@@ -233,10 +250,11 @@ def test_basic_functionality():
         print(f"❌ Basic functionality test FAILED: {e}")
         import traceback
         traceback.print_exc()
+        cleanup_memory()
         return False
 
 if __name__ == "__main__":
-    print("🚀 Starting Final Fixed Trainer Tests...")
+    print("🚀 Starting Final Fixed Trainer Tests (Unified Architecture)...")
     print(f"🏠 Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
     
     # Initial cleanup

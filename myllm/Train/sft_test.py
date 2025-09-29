@@ -1,12 +1,6 @@
-# examples/train_sft_instruction.py
+# examples/train_sft_instruction.py (REFACTORED)
 """
-Example for training SFTInstructionTrainer with instruction-response data.
-Handles:
- - device setup before model
- - proper dataloader & collate_fn
- - response-masked labels
- - optional torch.compile
- - W&B logging
+Example for training SFTTrainer with instruction-response data using the new unified architecture.
 """
 
 if __name__ == "__main__":
@@ -15,77 +9,10 @@ if __name__ == "__main__":
 
     from myllm.Train.configs.SFTConfig import SFTTrainerConfig
     from myllm.Configs.ModelConfig import ModelConfig
-    from myllm.Train.sft_trainer import SFTInstructionTrainer
+    from myllm.Train.factory import create_trainer  # ✅ Use factory
+    from myllm.Train.datasets.toy_dataset import get_toy_dataloader  # ✅ Use toy datasets
 
-    # -------------------------
-    # Collate function (robust for SFT)
-    # -------------------------
-    def collate_fn(batch, tokenizer, instruction_template="### Instruction:\n{instruction}\n\n### Response:\n{response}"):
-        """
-        batch: list of dicts with {"instruction": str, "response": str}
-        tokenizer: TokenizerWrapper with batch_encode or encode
-        Returns dict with input_ids, attention_mask, labels (masked for instruction)
-        """
-        texts = []
-        for item in batch:
-            instr = item.get("instruction", "")
-            resp = item.get("response", "")
-            formatted = instruction_template.format(instruction=instr, response=resp)
-            texts.append(formatted)
-
-        # Use batch_encode if available
-        if hasattr(tokenizer, "batch_encode"):
-            encoded = tokenizer.batch_encode(texts, padding=True, return_tensors="pt")
-            input_ids = encoded["input_ids"]
-            attention_mask = encoded["attention_mask"]
-        else:
-            # fallback
-            encs = [tokenizer.encode(t, return_tensors="pt").squeeze(0) for t in texts]
-            max_len = max([e.size(0) for e in encs])
-            padded, masks = [], []
-            for e in encs:
-                pad_len = max_len - e.size(0)
-                padded.append(torch.cat([e, torch.full((pad_len,), tokenizer.pad_token_id, dtype=torch.long)], dim=0))
-                masks.append(torch.cat([torch.ones(e.size(0), dtype=torch.long), torch.zeros(pad_len, dtype=torch.long)], dim=0))
-            input_ids = torch.stack(padded, dim=0)
-            attention_mask = torch.stack(masks, dim=0)
-
-        # Create labels using response mask
-        labels = torch.full_like(input_ids, -100)
-        for i in range(input_ids.size(0)):
-            text = texts[i]
-            response_start = text.find("### Response:")
-            if response_start != -1:
-                prefix = text[:response_start + len("### Response:")]
-                prefix_ids = tokenizer.encode(prefix)
-                labels[i, len(prefix_ids):] = input_ids[i, len(prefix_ids):]
-
-        return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "labels": labels
-        }
-
-    # -------------------------
-    # Dummy instruction-response dataset
-    # -------------------------
-    class InstructionDataset(Dataset):
-        def __init__(self, data):
-            self.data = data
-        def __len__(self):
-            return len(self.data)
-        def __getitem__(self, idx):
-            return self.data[idx]
-
-    # -------------------------
-    # Example data
-    # -------------------------
-    sample_data = [
-        {"instruction": "Translate to French", "response": "Bonjour le monde"},
-        {"instruction": "Summarize the text", "response": "Short summary."},
-        {"instruction": "Answer the question", "response": "42"},
-        {"instruction": "Write a poem", "response": "Roses are red..."},
-    ]
+    print("🚀 Training SFT with Unified Architecture...")
 
     # -------------------------
     # Trainer & model config
@@ -93,71 +20,81 @@ if __name__ == "__main__":
     trainer_config = SFTTrainerConfig(
         model_config_name="gpt2-small",
         tokenizer_name="gpt2",
-        output_dir="./output_sft",
+        output_dir="./output_sft_unified",
         num_epochs=2,
         batch_size=2,
         gradient_accumulation_steps=1,
         learning_rate=5e-5,
-        wandb_project="sft-instruction",
-        wandb_run_name="gpt2-small-sft",
-        wandb_tags=["sft", "instruction"],
-        report_to=["wandb"],
+        warmup_steps=10,
+        max_grad_norm=1.0,
         eval_steps=5,
         save_steps=10,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        use_compile=False,  # Disable for testing
+        instruction_template="### Instruction:\n{instruction}\n\n### Response:\n{response}",
+        # ✅ WandB settings
+        wandb_project="sft-instruction-unified",
+        wandb_run_name="gpt2-small-sft-unified",
+        wandb_tags=["sft", "instruction", "unified"],
+        report_to=["wandb"],
         metric_for_best_model="eval_loss",
         greater_is_better=False,
         load_best_model_at_end=True,
-        max_grad_norm=1.0,
-        instruction_template="### Instruction:\n{instruction}\n\n### Response:\n{response}"
     )
 
     model_config = ModelConfig.from_name("gpt2-small")
 
     # -------------------------
-    # Init trainer
+    # Create trainer using factory
     # -------------------------
-    trainer = SFTInstructionTrainer(trainer_config, model_config=model_config)
-
-    # Set device BEFORE setup_model
-    trainer.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trainer.global_step = 0
-
-    # Setup model & tokenizer
+    trainer = create_trainer("sft", trainer_config, model_config)  # ✅ Use factory
+    
+    # Setup model and tokenizer (handles device internally)
     trainer.setup_model()
-    trainer.model.to(trainer.device)
+    print("✅ Model setup complete")
 
-    # Optional compile
-    try:
-        if getattr(torch, "compile", None) is not None and torch.cuda.is_available():
-            print("Compiling model...")
-            trainer.model = torch.compile(trainer.model)
-    except Exception as e:
-        print(f"torch.compile failed: {e}")
+    # Test tokenizer
+    test_text = "Hello world"
+    encoded = trainer.tokenizer.encode(test_text)
+    print(f"✅ Tokenizer test: '{test_text}' -> {encoded}")
 
     # -------------------------
-    # Dataloader
+    # Create dataloaders using toy datasets
     # -------------------------
-    dataset = InstructionDataset(sample_data)
-    train_loader = DataLoader(
-        dataset,
+    train_loader = get_toy_dataloader(
+        "sft", 
         batch_size=trainer_config.batch_size,
-        shuffle=True,
-        collate_fn=lambda b: collate_fn(b, tokenizer=trainer.tokenizer, instruction_template=trainer_config.instruction_template)
+        tokenizer=trainer.tokenizer,
+        num_samples=50,
+        max_length=64
+    )
+    
+    eval_loader = get_toy_dataloader(
+        "sft",
+        batch_size=trainer_config.batch_size,
+        tokenizer=trainer.tokenizer,
+        num_samples=10,
+        max_length=64
     )
 
-    trainer.train_dataloader = train_loader
-    trainer.eval_dataloader = train_loader  # for example purposes
+    # Test batch
+    test_batch = next(iter(train_loader))
+    print(f"✅ Batch test: input_ids shape {test_batch['input_ids'].shape}")
 
-    # -------------------------
-    # Optimizer & scheduler
-    # -------------------------
+    # Setup data
+    trainer.setup_data(train_loader, eval_loader)
+    print("✅ Data setup complete")
+
+    # Setup optimizer
     trainer.setup_optimizer()
+    print("✅ Optimizer setup complete")
 
     # -------------------------
     # Start training
     # -------------------------
-    print("Starting SFT training...")
+    print("🎯 Starting SFT training...")
     trainer.train()
 
-    print("Training complete!")
-    print(f"Best checkpoint: {trainer.best_checkpoint_path if trainer.best_checkpoint_path else 'N/A'}")
+    print("✅ SFT training completed!")
+    print(f"📁 Output directory: {trainer_config.output_dir}")
+    print(f"🏆 Best checkpoint: {trainer.best_checkpoint_path}")

@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional
 import logging
 import os
 from torch.amp import autocast, GradScaler
@@ -113,7 +113,7 @@ class BaseTrainer(ABC):
         return self.model
     
     def setup_tokenizer(self):
-        """Setup tokenizer - common for both trainers - KEEP ONLY THIS ONE"""
+        """Setup tokenizer - common for both trainers"""
         from myllm.Tokenizers.factory import get_tokenizer
         from myllm.Tokenizers.wrapper import TokenizerWrapper
         
@@ -174,7 +174,6 @@ class BaseTrainer(ABC):
             labels = labels[:, :min_len].contiguous()
         return logits, labels
     
-    # REMOVED DUPLICATE setup_tokenizer METHOD HERE
     
     def training_step(self, batch) -> Dict[str, Any]:
         """Standard training step with AMP and gradient accumulation"""
