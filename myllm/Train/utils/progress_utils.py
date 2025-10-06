@@ -1,4 +1,4 @@
-# trainer/utils/progress_utils.py
+# trainer/utils/progress_utils.py (FIXED)
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn, MofNCompleteColumn
 from rich.console import Console
 from typing import Dict, Any
@@ -19,13 +19,11 @@ def create_progress_bar(description: str) -> Progress:
         TextColumn("[bold blue]{task.description}"),
         BarColumn(),
         MofNCompleteColumn(),
-        TextColumn("[yellow]LR: {task.fields[lr]:.2e}"),
-        TextColumn("[red]Train Loss: {task.fields[train_loss]:.4f}"),
-        TextColumn("[cyan]Avg Loss: {task.fields[avg_loss]:.4f}"),
-        TextColumn("[magenta]Eval Loss: {task.fields[eval_loss]:.4f}"),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         TimeElapsedColumn(),
         TimeRemainingColumn(),
         console=console,
+        refresh_per_second=2,
     )
 
 def update_progress_bar(progress, task, step_results: Dict[str, Any], epoch_loss: float, num_steps: int, 
@@ -42,15 +40,16 @@ def update_progress_bar(progress, task, step_results: Dict[str, Any], epoch_loss
         optimizer: Optimizer instance to get learning rate
         latest_eval_loss: Latest evaluation loss for display
     """
+    # Calculate metrics
     avg_loss = epoch_loss / max(1, num_steps)
     lr = optimizer.param_groups[0]['lr'] if optimizer else 0.0
-    eval_loss = latest_eval_loss or 0.0
-
+    train_loss = step_results.get('loss', 0.0)
+    
+    # Update task description with metrics (safer than using fields)
+    description = f"{progress.tasks[task].description.split('[')[0]} [Loss: {train_loss:.4f}, Avg: {avg_loss:.4f}, LR: {lr:.2e}]"
+    
     progress.update(
         task,
         advance=1,
-        train_loss=step_results.get('loss', 0.0),
-        avg_loss=avg_loss,
-        eval_loss=eval_loss,
-        lr=lr
+        description=description
     )

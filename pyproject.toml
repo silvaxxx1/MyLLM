@@ -13,6 +13,7 @@ dependencies = [
     "pandas>=2.3.1",
     "psutil>=7.0.0",
     "pytest>=8.4.1",
+    "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
     "sentencepiece>=0.2.1",
     "tensorflow>=2.20.0",

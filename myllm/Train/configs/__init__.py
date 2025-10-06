@@ -4,6 +4,7 @@ from .TrainerConfig import TrainerConfig, LoggingBackend, OptimizerType, Schedul
 from .SFTConfig import SFTTrainerConfig
 from .PPOConfig import PPOTrainerConfig
 from .DPOConfig import DPOTrainerConfig
+from .ClassiferConfig import *
 
 __all__ = [
     "TrainerConfig", "SFTTrainerConfig", "PPOTrainerConfig", "DPOTrainerConfig",

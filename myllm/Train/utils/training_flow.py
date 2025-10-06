@@ -1,4 +1,4 @@
-# trainer/utils/training_flow.py
+# trainer/utils/training_flow.py (FIXED)
 import wandb
 from typing import Dict, Any
 import logging
@@ -49,14 +49,18 @@ class TrainingFlow:
             num_steps += 1
             self.trainer.global_step += 1
 
-            # Update progress bar with current metrics
+            # Update progress bar with current metrics - FIXED: Ensure all required fields
             update_progress_bar(
-                progress, task, {"loss": loss_value}, epoch_loss, num_steps,
-                self.trainer.optimizer, self.trainer.latest_eval_loss
+                progress, task, 
+                step_results={"loss": loss_value},  # Ensure this key exists
+                epoch_loss=epoch_loss, 
+                num_steps=num_steps,
+                optimizer=self.trainer.optimizer, 
+                latest_eval_loss=getattr(self.trainer, 'latest_eval_loss', None)
             )
 
             # Handle logging and evaluation for this step
-            self._handle_step_logging(epoch, {"loss": loss_value})
+            self._handle_step_logging(epoch, step_results)
             
         return epoch_loss, num_steps
     
@@ -69,15 +73,16 @@ class TrainingFlow:
             step_results: Dictionary with step results
         """
         # Log metrics if it's time to log
-        if self.trainer.should_log():
+        if hasattr(self.trainer, 'should_log') and self.trainer.should_log():
             metrics = create_metrics_dict(
                 step_results, epoch, self.trainer.global_step,
-                self.trainer.optimizer, self.trainer.latest_eval_loss
+                self.trainer.optimizer, getattr(self.trainer, 'latest_eval_loss', None)
             )
             self.trainer.log_metrics(metrics)
 
         # Run evaluation if it's time to evaluate
-        if (self.trainer.should_evaluate() and 
+        if (hasattr(self.trainer, 'should_evaluate') and 
+            self.trainer.should_evaluate() and 
             self.trainer.global_step % self.trainer.config.eval_steps == 0):
             self._run_evaluation()
     
@@ -85,6 +90,9 @@ class TrainingFlow:
         """Run evaluation and handle results"""
         eval_results = self.trainer.evaluate()
         if eval_results:
+            # Store latest eval loss for progress bar
+            self.trainer.latest_eval_loss = eval_results.get('eval_loss', 0.0)
+            
             # Convert evaluation results to metrics format
             eval_metrics = handle_evaluation_metrics(
                 eval_results, self.trainer.global_step, self.trainer.optimizer
@@ -95,14 +103,14 @@ class TrainingFlow:
             from rich.console import Console
             console = Console()
             console.print(
-                f"[bold magenta]Step {self.trainer.global_step} Eval Loss: {eval_results['eval_loss']:.4f}, "
-                f"Perplexity: {eval_results.get('perplexity', 0):.2f}[/bold magenta]"
+                f"[bold magenta]Step {self.trainer.global_step} Eval Loss: {eval_results['eval_loss']:.4f}[/bold magenta]"
             )
             
             # Check if this is the best model and save if needed
-            is_best = self.trainer.update_best_metric(eval_results)
-            if is_best:
-                self.trainer.best_checkpoint_path = self.trainer.save_checkpoint(is_best=True)
+            if hasattr(self.trainer, 'update_best_metric'):
+                is_best = self.trainer.update_best_metric(eval_results)
+                if is_best:
+                    self.trainer.best_checkpoint_path = self.trainer.save_checkpoint(is_best=True)
     
     def handle_end_of_epoch(self, epoch: int):
         """
@@ -114,6 +122,9 @@ class TrainingFlow:
         if self.trainer.eval_dataloader is not None:
             eval_results = self.trainer.evaluate()
             if eval_results:
+                # Store latest eval loss for progress bar
+                self.trainer.latest_eval_loss = eval_results.get('eval_loss', 0.0)
+                
                 # Convert evaluation results to metrics format
                 eval_metrics = handle_evaluation_metrics(
                     eval_results, self.trainer.global_step, self.trainer.optimizer
@@ -125,11 +136,11 @@ class TrainingFlow:
                 from rich.console import Console
                 console = Console()
                 console.print(
-                    f"[bold magenta][End of Epoch {epoch + 1}] Eval Loss: {eval_results['eval_loss']:.4f}, "
-                    f"Perplexity: {eval_results.get('perplexity', 0):.2f}[/bold magenta]"
+                    f"[bold magenta][End of Epoch {epoch + 1}] Eval Loss: {eval_results['eval_loss']:.4f}[/bold magenta]"
                 )
                 
                 # Check if this is the best model and save if needed
-                is_best = self.trainer.update_best_metric(eval_results)
-                if is_best:
-                    self.trainer.best_checkpoint_path = self.trainer.save_checkpoint(is_best=True)
+                if hasattr(self.trainer, 'update_best_metric'):
+                    is_best = self.trainer.update_best_metric(eval_results)
+                    if is_best:
+                        self.trainer.best_checkpoint_path = self.trainer.save_checkpoint(is_best=True)

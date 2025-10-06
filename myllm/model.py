@@ -242,7 +242,40 @@ Methods:
         # x: (B, T, C) * (C, V) -> (B, T, V)
         return self.lm_head(x)
 
+    def forward_hidden_states(self, idx: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass that returns hidden states instead of logits
+        For classification tasks where we need representations, not predictions
+        """
+        device = idx.device
+        B, T = idx.size()
+
+        # Check sequence length
+        if T > self.config.block_size:
+            raise ValueError(
+                f"Cannot attend to {T} tokens, block size is only {self.config.block_size}."
+            )
+
+        # Token embeddings
+        token_embeddings = self.wte(idx)
+
+        # Position embeddings if enabled
+        if hasattr(self, 'wpe'):
+            pos = torch.arange(0, T, dtype=torch.long, device=device).unsqueeze(0)
+            position_embeddings = self.wpe(pos)
+            x = token_embeddings + position_embeddings
+        else:
+            x = token_embeddings  # No position encoding (e.g., rotary)
+
+        # Pass through transformer blocks
+        for block in self.transformer.values():
+            x = block(x)
+
+        # Final normalization (return hidden states here, before lm_head)
+        x = self.ln_f(x)
         
+        return x  # Return hidden states instead of projecting to vocab
+
     def reset_cache(self) -> None:
         """Reset the KV cache for all transformer blocks."""
         for block in self.transformer.values():

@@ -1,1 +1,0 @@
-{"eval/eval_loss":10.944181380733367,"eval/learning_rate":0.00013799999999999997,"train/step":2,"_timestamp":1.759168819266866e+09,"_step":2,"eval/epoch":0,"train/loss":10.921185493469238,"_wandb":{"runtime":101},"train/learning_rate":0.00013799999999999997,"_runtime":101.58868928,"train/epoch":0,"eval/perplexity":56623.6171875}

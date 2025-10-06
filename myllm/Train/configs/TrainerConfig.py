@@ -3,6 +3,9 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List, Union
 from enum import Enum
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ----------------------------
 # Enums for common options
@@ -104,10 +107,10 @@ class TrainerConfig:
     # ----------------------------
     resume_from_checkpoint: Optional[str] = None
 
-    # ----------------------------
-    # Validation
-    # ----------------------------
-    def validate(self):
+    def __post_init__(self):
+        """Post-initialization validation and setup"""
+        logger.info("Initializing TrainerConfig...")
+        
         # Handle device conversion if it's a string
         if isinstance(self.device, str):
             try:
@@ -115,6 +118,21 @@ class TrainerConfig:
             except ValueError:
                 raise ValueError(f"Invalid device: {self.device}. Must be one of: {[e.value for e in DeviceType]}")
         
+        # Set default values for optional parameters
+        if self.learning_rate is None:
+            self.learning_rate = 5e-5
+            logger.info(f"Using default learning_rate: {self.learning_rate}")
+            
+        if self.weight_decay is None:
+            self.weight_decay = 0.01
+            logger.info(f"Using default weight_decay: {self.weight_decay}")
+            
+        if self.beta1 is None:
+            self.beta1 = 0.9
+        if self.beta2 is None:
+            self.beta2 = 0.999
+        
+        # Basic validation
         if self.batch_size <= 0:
             raise ValueError("batch_size must be > 0")
         if self.num_epochs <= 0:
@@ -127,6 +145,14 @@ class TrainerConfig:
         # Validate WandB settings
         if "wandb" in self.report_to and not self.wandb_project:
             raise ValueError("wandb_project must be set when using wandb logging")
+        
+        # Create output directory
+        os.makedirs(self.output_dir, exist_ok=True)
+        logger.info(f"Output directory: {self.output_dir}")
+
+    def validate(self):
+        """Legacy validation method - now calls __post_init__ for backward compatibility"""
+        self.__post_init__()
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary, handling enums properly"""

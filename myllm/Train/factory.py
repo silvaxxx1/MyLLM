@@ -1,15 +1,16 @@
-# myllm/Train/factory.py
+# myllm/Train/factory.py (UPDATED)
 from typing import Type
 from .base_trainer import BaseTrainer
 from .trainer import PretrainTrainer
 from .sft_trainer import SFTTrainer
+from .sft_classifer import SFTClassifierTrainer  # ADD THIS IMPORT
 
 def create_trainer(trainer_type: str, config, model_config=None, model=None) -> BaseTrainer:
     """
     Factory function to create appropriate trainer
     
     Args:
-        trainer_type: Type of trainer ("pretrain", "sft")
+        trainer_type: Type of trainer ("pretrain", "sft", "sft_classifier")
         config: Trainer configuration object
         model_config: Model configuration object
         model: Optional pre-initialized model
@@ -20,6 +21,7 @@ def create_trainer(trainer_type: str, config, model_config=None, model=None) -> 
     trainers = {
         "pretrain": PretrainTrainer,
         "sft": SFTTrainer,
+        "sft_classifier": SFTClassifierTrainer,  # ADD THIS LINE
         # Add more trainers here as needed
     }
     
