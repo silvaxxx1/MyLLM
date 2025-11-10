@@ -134,6 +134,13 @@ class ModelConfig:
     beta1: float = 0.9
     beta2: float = 0.999
 
+    load_in_8bit: bool = False
+    load_in_4bit: bool = False
+    torch_dtype: Optional[str] = None  # "float32", "float16", "bfloat16"
+    low_cpu_mem_usage: bool = True
+    device_map: Optional[str] = None  # "auto", "cpu", "cuda"
+
+
     extra_params: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -232,8 +239,7 @@ class ModelConfig:
     @property
     def norm_class(self) -> Type:
         if self.norm_class_name == "RMSNorm":
-            from model import RMSNorm
-            return RMSNorm
+            return torch.nn.RMSNorm
         if self.norm_class_name == "LayerNorm":
             return torch.nn.LayerNorm
         raise ValueError(f"Unsupported normalization class: {self.norm_class_name}")

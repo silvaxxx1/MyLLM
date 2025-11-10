@@ -21,7 +21,7 @@ def create_trainer(trainer_type: str, config, model_config=None, model=None) -> 
     trainers = {
         "pretrain": PretrainTrainer,
         "sft": SFTTrainer,
-        "sft_classifier": SFTClassifierTrainer,  # ADD THIS LINE
+        "sft_classifier": SFTClassifierTrainer,  
         # Add more trainers here as needed
     }
     

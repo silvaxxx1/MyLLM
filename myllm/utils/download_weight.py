@@ -30,6 +30,7 @@ class Spinner:
         self.thread.join()
         print("\r" + " " * (len(self.msg) + 2) + "\r", end="")
 
+
 # Utility to check free disk space (bytes)
 def check_disk_space(dir_path, needed_bytes):
     try:
@@ -42,6 +43,7 @@ def check_disk_space(dir_path, needed_bytes):
         print(f"⚠️ Could not check disk space: {e}")
         return True  # Fail safe, proceed anyway
 
+
 # -----------------------------
 # Download + Verify .safetensors
 # -----------------------------
@@ -51,7 +53,7 @@ def download_safetensors(model_name: str, model_dir: str, url: str, expected_siz
 
     if os.path.exists(filepath):
         try:
-            _ = load_file(filepath)
+            _ = load_file(filepath, device="cpu")
             print(f"✅ File {filepath} already exists and is valid.")
             return filepath
         except Exception:
@@ -78,7 +80,7 @@ def download_safetensors(model_name: str, model_dir: str, url: str, expected_siz
                         f.write(chunk)
                         pbar.update(len(chunk))
 
-            _ = load_file(filepath)  # verify
+            _ = load_file(filepath, device="cpu")  # verify
             print("✅ Download complete and verified.")
             return filepath
         except Exception as e:
@@ -90,28 +92,58 @@ def download_safetensors(model_name: str, model_dir: str, url: str, expected_siz
             print(f"⏳ Retrying in {2 ** attempt} seconds...")
             time.sleep(2 ** attempt)
 
+
 # -----------------------------
-# Load Weights (Safe Version)
+# Load Weights (Safe Version) - 🆕 UPDATED
 # -----------------------------
-def load_safetensors(filepath: str) -> dict:
-    print(f"📦 Loading weights from {filepath} ...")
+def load_safetensors(filepath: str, device: str = "cpu") -> dict:
+    """
+    Load safetensors file to specified device.
+    
+    Args:
+        filepath: Path to .safetensors file
+        device: Target device ("cpu", "cuda", etc.)
+    
+    Returns:
+        Dictionary of tensors
+    """
+    print(f"📦 Loading weights from {filepath} to {device}...")
     try:
-        return load_file(filepath, device="cpu")  # Always CPU first
+        params = load_file(filepath, device=device)
+        print(f"✅ Loaded {len(params)} tensors")
+        return params
     except Exception as e:
         raise RuntimeError(f"Failed to load safetensors: {str(e)}")
 
-# -----------------------------
-# Cleanup Utility
-# -----------------------------
-def cleanup():
-    gc.collect()
-    torch.cuda.empty_cache()
-    time.sleep(1)
 
 # -----------------------------
-# Main Weight Loader
+# Cleanup Utility - 🆕 ENHANCED
+# -----------------------------
+def cleanup(aggressive: bool = False):
+    """
+    Clean up memory.
+    
+    Args:
+        aggressive: If True, performs more thorough cleanup (slower)
+    """
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        if aggressive:
+            torch.cuda.synchronize()
+    if aggressive:
+        time.sleep(0.5)
+
+
+# -----------------------------
+# Main Weight Loader - 🆕 DEPRECATED (use mapper classes instead)
 # -----------------------------
 def load_gpt2_weights_meta(model, config, params, device="cuda"):
+    """
+    DEPRECATED: Use GPT2WeightMapper instead.
+    This is kept for backward compatibility.
+    """
+    print(f"⚠️ Warning: load_gpt2_weights_meta is deprecated. Use GPT2WeightMapper instead.")
     print(f"⚡ Loading GPT-2 weights safely to {device}")
 
     def safe_copy(name, dest):
@@ -124,7 +156,6 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
             with torch.no_grad():
                 dest.copy_(tensor)
 
-
     # Move model to CPU for safe copying
     model.to("cpu")
 
@@ -133,7 +164,7 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
     if hasattr(model, "wpe"):
         safe_copy("wpe.weight", model.wpe.weight)
 
-    # Count number of blocks in checkpoint by checking keys starting with h.{i}.attn.c_attn.weight
+    # Count number of blocks
     num_blocks = len([k for k in params if k.startswith("h.") and ".attn.c_attn.weight" in k])
     print(f"Detected {num_blocks} transformer blocks in weights.")
 
@@ -142,23 +173,22 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
             prefix = f"h.{i}"
             block = model.transformer[f"block_{i}"]
 
-            # Load combined qkv weights and bias (c_attn.*)
+            # Load attention weights
             safe_copy(f"{prefix}.attn.c_attn.weight", block.attn.qkv.weight)
             if f"{prefix}.attn.c_attn.bias" in params:
                 safe_copy(f"{prefix}.attn.c_attn.bias", block.attn.qkv.bias)
 
-            # Load proj weights and bias
             safe_copy(f"{prefix}.attn.c_proj.weight", block.attn.proj.weight)
             if f"{prefix}.attn.c_proj.bias" in params:
                 safe_copy(f"{prefix}.attn.c_proj.bias", block.attn.proj.bias)
 
-            # Load MLP weights and biases
+            # Load MLP weights
             safe_copy(f"{prefix}.mlp.c_fc.weight", block.mlp.fc.weight)
             safe_copy(f"{prefix}.mlp.c_fc.bias", block.mlp.fc.bias)
             safe_copy(f"{prefix}.mlp.c_proj.weight", block.mlp.proj.weight)
             safe_copy(f"{prefix}.mlp.c_proj.bias", block.mlp.proj.bias)
 
-            # Load LayerNorm weights and biases
+            # Load LayerNorm
             safe_copy(f"{prefix}.ln_1.weight", block.norm1.weight)
             safe_copy(f"{prefix}.ln_1.bias", block.norm1.bias)
             safe_copy(f"{prefix}.ln_2.weight", block.norm2.weight)
@@ -166,7 +196,7 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
 
             pbar.update(1)
 
-    # Load final LayerNorm and LM head weights and bias
+    # Load final LayerNorm and LM head
     print("🎯 Loading final LayerNorm and LM head...")
     safe_copy("ln_f.weight", model.ln_f.weight)
     safe_copy("ln_f.bias", model.ln_f.bias)
@@ -175,7 +205,6 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
         if "lm_head.weight" in params:
             safe_copy("lm_head.weight", model.lm_head.weight)
         else:
-            # fallback: tie lm_head to token embeddings
             model.lm_head.weight = model.wte.weight
 
     # Move model to target device
@@ -185,12 +214,73 @@ def load_gpt2_weights_meta(model, config, params, device="cuda"):
         print(f"⚠️ Warning: Failed to move model to {device} due to: {e}")
         print("Model remains on CPU.")
 
-    # Cleanup memory
-    gc.collect()
-    torch.cuda.empty_cache()
-    time.sleep(1)
-
+    cleanup(aggressive=True)
     return model
+
+
+# -----------------------------
+# 🆕 Memory-Efficient Weight Loading Utilities
+# -----------------------------
+def estimate_tensor_memory(params: dict, dtype: torch.dtype = torch.float32) -> dict:
+    """
+    Estimate memory usage of loaded tensors.
+    
+    Args:
+        params: Dictionary of tensors
+        dtype: Data type to estimate for
+    
+    Returns:
+        Dictionary with memory statistics in GB
+    """
+    bytes_per_element = 4 if dtype == torch.float32 else 2  # float32 vs float16
+    
+    total_elements = sum(p.numel() for p in params.values())
+    total_bytes = total_elements * bytes_per_element
+    total_gb = total_bytes / (1024 ** 3)
+    
+    return {
+        "total_tensors": len(params),
+        "total_elements": total_elements,
+        "total_bytes": total_bytes,
+        "total_gb": total_gb
+    }
+
+
+def load_safetensors_chunked(filepath: str, device: str = "cpu", chunk_size: int = 100):
+    """
+    Load safetensors in chunks to reduce memory spikes.
+    Useful for very large models.
+    
+    Args:
+        filepath: Path to .safetensors file
+        device: Target device
+        chunk_size: Number of tensors to load at once
+    
+    Returns:
+        Dictionary of tensors
+    """
+    from safetensors import safe_open
+    
+    print(f"📦 Loading weights in chunks from {filepath}...")
+    params = {}
+    
+    with safe_open(filepath, framework="pt", device="cpu") as f:
+        keys = list(f.keys())
+        total_keys = len(keys)
+        
+        with tqdm(total=total_keys, desc="Loading tensors", ascii=True) as pbar:
+            for i in range(0, total_keys, chunk_size):
+                chunk_keys = keys[i:i + chunk_size]
+                for key in chunk_keys:
+                    params[key] = f.get_tensor(key).to(device)
+                    pbar.update(1)
+                
+                # Clean up memory after each chunk
+                if i % (chunk_size * 5) == 0:
+                    cleanup()
+    
+    print(f"✅ Loaded {len(params)} tensors")
+    return params
 
 
 # -----------------------------
@@ -207,6 +297,3 @@ def get_gpt2_safetensors_url(model_variant: str) -> str:
         raise ValueError(f"Unknown GPT2 variant {model_variant}")
     base_url = "https://huggingface.co/openai-community"
     return f"{base_url}/{URL_DIR[model_variant]}/resolve/main/model.safetensors"
-
-
-
