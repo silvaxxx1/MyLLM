@@ -210,35 +210,55 @@ class LLM(nn.Module):
         return results
 
 ###############################################
-if __name__ == "__main__":
-    from myllm.Tokenizers.factory import get_tokenizer
+from myllm.Tokenizers.factory import get_tokenizer
 
-    # Pick the correct tokenizer
-    tokenizer_name = "gpt2"  # instead of "gpt2"
-    tokenizer = get_tokenizer(tokenizer_name)
 
-    # Pick a model variant that exists
-    model_config = ModelConfig.from_name("gpt2-xl")  # must match model_registry.py
+# 1️⃣ Initialize tokenizer
+tokenizer = get_tokenizer("gpt2")
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+# 2️⃣ Setup model configuration
+model_config = ModelConfig.from_name("gpt2-medium")
 
-    llm = LLM(
-        config=model_config,
-        device=device,
-        torch_dtype=torch.float16,
-        low_cpu_mem_usage=True
-    )
+# 3️⃣ Initialize LLM with memory optimizations 🔥
+device = "cuda" if torch.cuda.is_available() else "cpu"
+llm = LLM(
+    config=model_config,
+    device=device,
+    torch_dtype=torch.float16,  # 🔥 50% memory reduction!
+    low_cpu_mem_usage=True      # 🔥 Load incrementally
+)
 
-    llm.load("gpt2-xl")  # must match model_registry.py
-    torch.cuda.empty_cache()
+# 4️⃣ Load pretrained weights (now memory efficient!)
+llm.load("gpt2-medium")  # Will use ~2GB instead of ~4GB
 
-    prompt = "Once upon a time"
-    generation_config = GenerationConfig(
-        max_length=50,
-        temperature=0.8,
-        use_kv_cache=True,
-        use_mixed_precision=True
-    )
+# 5️⃣ Clear cache before generation
+torch.cuda.empty_cache()
 
-    result = llm.generate_text(prompt, tokenizer, generation_config)
-    print(result["text"]) 
+# 6️⃣ Single prompt generation
+prompt = "Once upon a time in a futuristic world,"
+generation_config = GenerationConfig(
+    max_length=50,
+    temperature=0.8,
+    top_k=50,
+    top_p=0.9,
+    do_sample=True,
+    return_logprobs=True,
+    use_kv_cache=True,
+    use_mixed_precision=True
+)
+
+result = llm.generate_text(prompt, tokenizer, generation_config)
+print("Generated Text:")
+print(result["text"])
+
+# 7️⃣ Batch generation
+prompts = [
+    "In a distant galaxy,",
+    "Artificial Intelligence will",
+    "The secret to happiness is"
+]
+
+batch_results = llm.generate_batch(prompts, tokenizer, generation_config)
+for i, res in enumerate(batch_results):
+    print(f"\nPrompt {i+1}: {prompts[i]}")
+    print(f"Generated: {res['text']}")

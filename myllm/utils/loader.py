@@ -1,14 +1,11 @@
 from .model_registry import MODEL_REGISTRY
 from .weight_mappers import WEIGHT_MAPPERS
 from typing import Dict, List
-import torch
-# ============================================
-# unified_loader.py - Main Loader
-# ============================================
-
 import os
 from typing import Optional
 from myllm.Configs import ModelConfig
+import torch
+import gc
 
 
 class ModelLoader:
@@ -28,21 +25,21 @@ class ModelLoader:
         low_cpu_mem_usage: bool = True  # 🆕
     ):
         """
-        Load any supported model variant.
+        Load any supported model variant with memory optimizations.
         
         Args:
             model_variant: e.g., "gpt2-small", "llama2-7b"
             device: Target device
             model_family: Optional, auto-detected if not provided
-            custom_config: Optional custom config (otherwise uses spec's config_name)
+            custom_config: Optional custom config
+            torch_dtype: Data type for model (float32, float16, bfloat16)
+            low_cpu_mem_usage: Load weights incrementally to save memory
         
         Returns:
             Tuple of (model, config) with loaded weights
         """
-        """Load model with memory optimizations"""
         from myllm.model import GPT
         from .download_weight import download_safetensors, load_safetensors, Spinner
-        import gc
         
         # Auto-detect model family
         if model_family is None:
@@ -75,7 +72,7 @@ class ModelLoader:
         print(f"📊 Estimated memory: {memory_estimate['total_gb']:.2f} GB")
         print(f"   Parameters: {memory_estimate['parameters_gb']:.2f} GB")
         print(f"   Activations: {memory_estimate['activations_gb']:.2f} GB")
-
+        
         # Handle authentication
         headers = None
         if family.requires_auth:
@@ -86,7 +83,7 @@ class ModelLoader:
                 )
             headers = {"Authorization": f"Bearer {token}"}
         
-            # Download weights
+        # Download weights
         filename = f"model-{model_variant}.safetensors"
         print(f"⬇️  Downloading {model_variant}...")
         
@@ -113,7 +110,7 @@ class ModelLoader:
             print(f"🔧 Converting model to {torch_dtype}...")
             model = model.to(dtype=torch_dtype)
         
-        # Get mapper
+        # Get appropriate mapper
         mapper_name = spec.weight_mapper or family.default_mapper
         if mapper_name not in WEIGHT_MAPPERS:
             raise ValueError(f"Unknown weight mapper: {mapper_name}")
@@ -142,16 +139,15 @@ class ModelLoader:
         return model, config
     
     def _detect_family(self, model_variant: str) -> str:
-        v = model_variant.lower()
-        if "gpt2" in v:
-            return "gpt2"
-        elif "llama" in v:
-            return "llama"
-        elif "mistral" in v:
-            return "mistral"
-        elif "phi" in v:
-            return "phi"
-        elif "gemma" in v:
-            return "gemma"
-        else:
-            raise ValueError(f"Cannot detect family for '{model_variant}'")
+        """Auto-detect model family from variant name"""
+        for family_name, family in MODEL_REGISTRY.items():
+            if model_variant in family.variants:
+                return family_name
+        raise ValueError(f"Could not detect model family for variant: {model_variant}")
+    
+    def list_available_models(self) -> Dict[str, List[str]]:
+        """List all available models grouped by family"""
+        return {
+            family_name: list(family.variants.keys())
+            for family_name, family in MODEL_REGISTRY.items()
+        }
