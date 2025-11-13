@@ -14,6 +14,11 @@ class TokenizerWrapper:
         self.pad_token_id = getattr(tokenizer, "pad_token_id", None)
         if self.pad_token_id is None:
             self.pad_token_id = getattr(tokenizer, "eos_token_id", 0)
+        
+        # ✅ Add EOS token attributes
+        self.eos_token = getattr(tokenizer, "eos_token", "<|endoftext|>")
+        self.eos_token_id = getattr(tokenizer, "eos_token_id", 50256)
+
 
     # ------------------------
     # Encoding / Decoding
@@ -105,3 +110,7 @@ class TokenizerWrapper:
     # ------------------------
     def __repr__(self):
         return f"TokenizerWrapper(model={self.model_name}, vocab_size={self.vocab_size}, pad_token={self.pad_token})"
+    
+    # ✅ Add __len__ method for vocab_size check
+    def __len__(self):
+        return self.vocab_size or 50257  # GPT-2 default
