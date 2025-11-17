@@ -10,11 +10,11 @@ import torch
 import torch.nn as nn
 from typing import List, Dict, Any, Optional
 
-from .model import GPT
-from .Configs import ModelConfig, GenerationConfig
-from .utils import OptimizedSampler
-from .utils.loader import ModelLoader
-from .utils import WEIGHT_MAPPERS
+from myllm.model import GPT
+from myllm.Configs import ModelConfig, GenerationConfig
+from myllm.utils import OptimizedSampler
+from myllm.utils.loader import ModelLoader
+from myllm.utils import WEIGHT_MAPPERS
 
 
 class LLM(nn.Module):

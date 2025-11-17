@@ -1,0 +1,108 @@
+_wandb:
+    value:
+        cli_version: 0.21.4
+        e:
+            i5ecp4fee9p0ybztmljkcmo7y3v3xvq9:
+                cpu_count: 4
+                cpu_count_logical: 8
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "982238978048"
+                        used: "370486857728"
+                email: silvapi1994@gmail.com
+                executable: /home/silva/SILVA.AI/Projects/MyLLM/.venv/bin/python
+                git:
+                    commit: cd9d22cdcee10373ee75f6b92572de682740183c
+                    remote: git@github.com:silvaxxx1/MyLLM.git
+                gpu: NVIDIA GeForce GTX 1650
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 1024
+                      memoryTotal: "4294967296"
+                      name: NVIDIA GeForce GTX 1650
+                      uuid: GPU-605b6ad0-c95a-c7a0-f428-928e6885f80f
+                host: SilvaLAB
+                memory:
+                    total: "14521053184"
+                os: Linux-6.14.0-35-generic-x86_64-with-glibc2.39
+                program: -m myllm.Train.tests.sft_classifer_test
+                python: CPython 3.12.3
+                root: /home/silva/SILVA.AI/Projects/MyLLM
+                startedAt: "2025-11-17T16:58:20.493008Z"
+                writerId: i5ecp4fee9p0ybztmljkcmo7y3v3xvq9
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 49
+                - 53
+            "2":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 49
+                - 53
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.12.3
+            "5": 0.21.4
+            "12": 0.21.4
+            "13": linux-x86_64
+        visualize:
+            confusion_matrix:
+                panel_config:
+                    fieldSettings:
+                        Actual: Actual
+                        Predicted: Predicted
+                        nPredictions: nPredictions
+                    panelDefId: wandb/confusion_matrix/v1
+                    stringSettings:
+                        title: Confusion Matrix Curve
+                    transform:
+                        name: tableWithLeafColNames
+                    userQuery:
+                        queryFields:
+                            - args:
+                                - name: runSets
+                                  value: ${runSets}
+                              fields:
+                                - fields: []
+                                  name: id
+                                - fields: []
+                                  name: name
+                                - fields: []
+                                  name: _defaultColorIndex
+                                - args:
+                                    - name: tableKey
+                                      value: confusion_matrix_table
+                                  fields: []
+                                  name: summaryTable
+                              name: runSets
+                panel_type: Vega2
+batch_size:
+    value: 4
+gradient_accumulation_steps:
+    value: 1
+learning_rate:
+    value: 0.0003
+max_grad_norm:
+    value: 1
+model_config_name:
+    value: gpt2-small
+num_epochs:
+    value: 2
+tokenizer_name:
+    value: gpt2
+warmup_steps:
+    value: 10

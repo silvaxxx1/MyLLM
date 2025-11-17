@@ -1,0 +1,1 @@
+{"columns": ["Metric", "Value"], "data": [["Accuracy", 0.675], ["Weighted F1", 0.6665191053122088], ["Macro F1", 0.733457595526561]]}

@@ -84,15 +84,22 @@ class SFTTrainer(BaseTrainer):
 
     def _create_response_mask(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, instruction_text: str) -> torch.Tensor:
         """Create response mask for SFT training - KEEP THIS SFT-SPECIFIC"""
+        # start as the same as input_ids
         labels = input_ids.clone()
         
+        # loop over each input
         for i in range(input_ids.size(0)):
+            # tokenize the full sequence to text
             text = self.tokenizer.decode(input_ids[i], skip_special_tokens=False)
+            # find the position of the response marker
             response_start = text.find(self.response_marker)
-            
+            # if the response marker is found, mask the tokens before it
             if response_start != -1:
+                # get the text before the response marker
                 prefix = text[:response_start + len(self.response_marker)]
+                # encode the prefix
                 prefix_tokens = self.tokenizer.encode(prefix)
+                # mask the tokens before the response marker
                 mask_until = len(prefix_tokens)
                 if mask_until < labels.size(1):
                     labels[i, :mask_until] = -100

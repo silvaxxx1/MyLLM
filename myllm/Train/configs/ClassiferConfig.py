@@ -1,6 +1,6 @@
 # trainer/configs/classifier_config.py
 from dataclasses import dataclass, field
-from typing import Optional, List, Literal, Dict, Any
+from typing import Optional, List, Literal, Dict, Any, Union
 from enum import Enum
 import logging
 from .TrainerConfig import TrainerConfig, OptimizerType, SchedulerType, DeviceType
@@ -24,7 +24,7 @@ class ClassificationMetric(Enum):
 @dataclass
 class ClassifierConfig(TrainerConfig):
     """
-    Extended configuration for classification tasks
+    Enhanced configuration for classification tasks with advanced features
     Built on top of the base TrainerConfig
     """
     
@@ -92,17 +92,47 @@ class ClassifierConfig(TrainerConfig):
                                    metadata={"help": "Whether to gradually unfreeze layers"})
     
     # ----------------------------
+    # Enhanced Features (NEW)
+    # ----------------------------
+    gradient_checkpointing: bool = field(default=False,
+                                       metadata={"help": "Enable gradient checkpointing for memory optimization"})
+    use_mc_dropout: bool = field(default=False,
+                                metadata={"help": "Enable Monte Carlo dropout for uncertainty estimation"})
+    multi_task_config: Optional[Dict[str, int]] = field(default=None,
+                                                      metadata={"help": "Configuration for multi-task learning"})
+    confidence_tracking: bool = field(default=True,
+                                    metadata={"help": "Track prediction confidence during training"})
+    
+    # ----------------------------
+    # Advanced Pooling Configuration
+    # ----------------------------
+    attention_pooling_hidden_size: Optional[int] = field(default=None,
+                                                       metadata={"help": "Hidden size for attention pooling"})
+    
+    # ----------------------------
+    # Uncertainty Estimation
+    # ----------------------------
+    mc_dropout_samples: int = field(default=30,
+                                   metadata={"help": "Number of samples for MC dropout"})
+    confidence_threshold: float = field(default=0.7,
+                                      metadata={"help": "Threshold for low confidence detection"})
+    
+    # ----------------------------
     # WandB Enhanced Logging
     # ----------------------------
     wandb_classification_plots: bool = field(default=True,
                                            metadata={"help": "Whether to log classification plots to WandB"})
+    log_confidence_distribution: bool = field(default=True,
+                                            metadata={"help": "Log confidence distribution to WandB"})
+    log_uncertainty_metrics: bool = field(default=True,
+                                        metadata={"help": "Log uncertainty metrics to WandB"})
     
     def __post_init__(self):
         """Extended validation for classification-specific parameters"""
         # First call parent validation
         super().__post_init__()
         
-        logger.info("Validating ClassifierConfig...")
+        logger.info("Validating Enhanced ClassifierConfig...")
         
         # Convert string pooling strategy to enum if needed
         if isinstance(self.pooling_strategy, str):
@@ -141,6 +171,22 @@ class ClassifierConfig(TrainerConfig):
         if self.class_weights and len(self.class_weights) != self.num_labels:
             raise ValueError(f"class_weights length ({len(self.class_weights)}) must match num_labels ({self.num_labels})")
         
+        # Enhanced feature validation
+        if self.multi_task_config:
+            if not isinstance(self.multi_task_config, dict):
+                raise ValueError("multi_task_config must be a dictionary")
+            for task_name, num_labels in self.multi_task_config.items():
+                if not isinstance(task_name, str):
+                    raise ValueError("multi_task_config keys must be strings")
+                if not isinstance(num_labels, int) or num_labels < 2:
+                    raise ValueError("multi_task_config values must be integers >= 2")
+        
+        if self.mc_dropout_samples < 1:
+            raise ValueError("mc_dropout_samples must be at least 1")
+        
+        if self.confidence_threshold < 0 or self.confidence_threshold > 1:
+            raise ValueError("confidence_threshold must be between 0 and 1")
+        
         # Set default learning rates if not specified
         if self.classifier_learning_rate is None:
             self.classifier_learning_rate = self.learning_rate * 10
@@ -150,6 +196,13 @@ class ClassifierConfig(TrainerConfig):
             self.base_model_learning_rate = self.learning_rate
             logger.info(f"Using base_model_learning_rate: {self.base_model_learning_rate}")
         
+        # Set attention pooling hidden size if using attention pooling
+        if (self.pooling_strategy == PoolingStrategy.ATTENTION and 
+            self.attention_pooling_hidden_size is None):
+            # Default to half of model hidden size (will be set in trainer)
+            self.attention_pooling_hidden_size = 512  # Reasonable default
+            logger.info(f"Using default attention_pooling_hidden_size: {self.attention_pooling_hidden_size}")
+        
         # Ensure metric_for_best_model makes sense for classification
         classification_metrics = ["accuracy", "f1", "precision", "recall", "auc"]
         if not any(metric in self.metric_for_best_model for metric in classification_metrics):
@@ -157,7 +210,21 @@ class ClassifierConfig(TrainerConfig):
         
         # FIXED: Handle both enum and string cases for logging
         pooling_value = self.pooling_strategy.value if hasattr(self.pooling_strategy, 'value') else str(self.pooling_strategy)
-        logger.info(f"ClassifierConfig validation complete: {self.num_labels} classes, pooling={pooling_value}")
+        
+        # Log enhanced features status
+        enhanced_features = []
+        if self.gradient_checkpointing:
+            enhanced_features.append("gradient_checkpointing")
+        if self.use_mc_dropout:
+            enhanced_features.append("MC_dropout")
+        if self.multi_task_config:
+            enhanced_features.append(f"multi_task({len(self.multi_task_config)} tasks)")
+        if self.pooling_strategy == PoolingStrategy.ATTENTION:
+            enhanced_features.append("attention_pooling")
+        
+        logger.info(f"Enhanced ClassifierConfig validation complete: {self.num_labels} classes, pooling={pooling_value}")
+        if enhanced_features:
+            logger.info(f"Enabled enhanced features: {', '.join(enhanced_features)}")
     
     def get_classifier_config_dict(self) -> Dict[str, Any]:
         """Get classifier-specific configuration for logging"""
@@ -173,6 +240,12 @@ class ClassifierConfig(TrainerConfig):
             "classifier_learning_rate": self.classifier_learning_rate,
             "base_model_learning_rate": self.base_model_learning_rate,
             "freeze_base_model": self.freeze_base_model,
+            # Enhanced features
+            "gradient_checkpointing": self.gradient_checkpointing,
+            "use_mc_dropout": self.use_mc_dropout,
+            "multi_task_config": self.multi_task_config,
+            "confidence_tracking": self.confidence_tracking,
+            "attention_pooling_hidden_size": self.attention_pooling_hidden_size,
         }
         
         return {**base_config, **classifier_config}
@@ -197,7 +270,41 @@ class ClassifierConfig(TrainerConfig):
             "name": "classifier"
         })
         
+        # Additional groups for enhanced features
+        if self.pooling_strategy == PoolingStrategy.ATTENTION:
+            groups.append({
+                "params": [],  # Will be filled by trainer
+                "lr": classifier_lr,  # Same as classifier
+                "name": "attention_pooler"
+            })
+        
+        if self.multi_task_config:
+            groups.append({
+                "params": [],  # Will be filled by trainer
+                "lr": classifier_lr,  # Same as classifier
+                "name": "multi_task"
+            })
+        
         return groups
+    
+    def get_enhanced_features_summary(self) -> Dict[str, Any]:
+        """Get summary of enabled enhanced features"""
+        return {
+            "gradient_checkpointing": self.gradient_checkpointing,
+            "mc_dropout": self.use_mc_dropout,
+            "multi_task_learning": bool(self.multi_task_config),
+            "attention_pooling": self.pooling_strategy == PoolingStrategy.ATTENTION,
+            "confidence_tracking": self.confidence_tracking,
+            "class_imbalance_handling": bool(self.class_weights),
+            "num_enhanced_features": sum([
+                self.gradient_checkpointing,
+                self.use_mc_dropout,
+                bool(self.multi_task_config),
+                self.pooling_strategy == PoolingStrategy.ATTENTION,
+                self.confidence_tracking,
+                bool(self.class_weights)
+            ])
+        }
 
 # ----------------------------
 # Pre-configured Configs for Common Use Cases
@@ -239,4 +346,37 @@ class FewShotClassifierConfig(ClassifierConfig):
         self.classifier_learning_rate = 1e-3
         self.num_epochs = 10  # Usually need more epochs for few-shot
         self.batch_size = 4   # Smaller batches for few-shot
+        super().__post_init__()
+
+@dataclass
+class EnhancedClassifierConfig(ClassifierConfig):
+    """Pre-configured with all enhanced features enabled"""
+    def __post_init__(self):
+        # Enable all enhanced features
+        self.gradient_checkpointing = True
+        self.use_mc_dropout = True
+        self.confidence_tracking = True
+        self.pooling_strategy = PoolingStrategy.ATTENTION
+        self.log_confidence_distribution = True
+        self.log_uncertainty_metrics = True
+        
+        # Multi-task configuration (can be overridden)
+        if not self.multi_task_config:
+            self.multi_task_config = {
+                "main": self.num_labels,
+                "auxiliary": 2  # Default auxiliary task
+            }
+        
+        super().__post_init__()
+
+@dataclass
+class ProductionClassifierConfig(ClassifierConfig):
+    """Pre-configured for production deployment with optimal settings"""
+    def __post_init__(self):
+        self.gradient_checkpointing = True  # Memory efficiency
+        self.confidence_tracking = True     # Monitor predictions
+        self.pooling_strategy = PoolingStrategy.MEAN  # Robust pooling
+        self.classifier_dropout = 0.2       # Better regularization
+        self.label_smoothing = 0.1          # Better calibration
+        self.compute_confusion_matrix = True # Detailed evaluation
         super().__post_init__()
