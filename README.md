@@ -1,191 +1,233 @@
-# 🚀 MyLLM: Building *My* Meta\_Bot — From Scratch, For Real
+# 🚀 MyLLM: Building *My* Meta_Bot — From Scratch, For Real
 
-[](https://opensource.org/licenses/MIT)
-[](https://www.python.org/downloads/)
-[](https://pytorch.org/)
+<p align="center">
+  <img src="./myllm.png" width="800" alt="MyLLM Overview">
+</p>
 
-\<p align="center"\>
-\<img src="myllm.png" alt="MyLLM Overview"\>
-\</p\>
+![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red.svg)
+
+---
 
 ## ⚠️ Work In Progress — Hack at Your Own Risk 🚧
 
-MyLLM isn’t just another library; it's a **playground for learning and building LLMs from scratch**.
-This project was born out of a desire to **fully understand every line of a transformer stack**, from tokenization to RLHF.
+**MyLLM** isn’t just another library.  
+It’s a **playground for learning, understanding, and building LLMs from scratch** — end to end.
 
-Here's what's inside right now:
+This project was born out of one goal:
+
+> **Understand every single line of a modern transformer stack.**  
+> From tokenization → attention → training → RLHF → inference.
+
+### Current Status
 
 | Area | Status | Description |
-| :--- | :--- | :--- |
-| **Interactive Notebooks** | ✅ Stable | Step-by-step guided learning path |
-| **Modular Mini-Projects** | ✅ Stable | Self-contained, targeted experiments |
-| **MyLLM Core Framework** | ⚙️ Active Development | Pure PyTorch, lightweight, transparent |
-| **MetaBot** | 🛠 Coming Soon | A chatbot that explains *itself* |
+|----|----|----|
+| **Interactive Notebooks** | ✅ Stable | Guided, from-first-principles learning |
+| **Modular Mini-Projects** | ✅ Stable | Focused, reusable experiments |
+| **MyLLM Core Framework** | ⚙️ Active Development | Pure PyTorch, transparent |
+| **MetaBot** | 🛠 Coming Soon | A chatbot that explains itself |
 
-> **Warning:** Some parts are stable, while others are actively evolving.
->
-> Use this repo to **explore, experiment, and break things safely** — that's how you learn deeply.
+> ⚠️ Some components are stable, others evolve fast.  
+> This repo is meant for **exploration, experimentation, and breaking things safely**.
 
------
+---
 
 ## 🌱 Why MyLLM Exists
 
-There are plenty of libraries out there (Hugging Face, Lightning, etc.), but they hide **too much of the magic**. I wanted something different:
+There are already great libraries (🤗 Hugging Face, Lightning, TRL…).
 
-  * **Minimal** – No unnecessary abstractions, no magic.
-  * **Hackable** – Every part of the stack is visible and editable.
-  * **Research-Friendly** – A place to experiment with cutting-edge techniques like LoRA, QLoRA, PPO, and DPO.
-  * **From Scratch** – So you *truly* understand the internals.
+**But they hide too much.**
 
-This is a framework for **engineers who want to think like researchers** and **researchers who want to ship real systems**.
+MyLLM is intentionally different:
 
------
+- **Minimal** — no unnecessary abstractions
+- **Hackable** — everything is visible and editable
+- **Research-friendly** — LoRA, QLoRA, PPO, DPO, quantization
+- **From scratch** — so you *actually* understand what’s happening
 
-## 🗺 The Three Layers of MyLLM
+This project is for:
 
-MyLLM is structured into three progressive layers, designed to guide you from fundamental understanding to building a complete system.
+> **Engineers who want to think like researchers**  
+> **Researchers who want to ship real systems**
 
-### **1️⃣ Interactive Notebooks — Learn by Doing**
+---
 
-The `notebooks/` directory is where your journey begins. Each notebook is a step-by-step guide with theory and code, building components from first principles.
+## 🗺 Architecture: The Three Layers of MyLLM
+
+MyLLM is structured as a **learning → experimentation → production pipeline**.
+
+---
+
+## 1️⃣ Interactive Notebooks — *Learn by Doing*
+
+The `notebooks/` directory is the entry point.
+
+Each notebook:
+- Explains **theory**
+- Implements **from scratch**
+- Encourages **modification & experimentation**
 
 ```
+
 MyLLM/
- └── notebooks/
-                ├── 0.0.WELCOME.ipynb
-                ├── 1.1.DATA.ipynb
-                ├── 1.2.Tokenizer.ipynb
-                ├── 2.1.ATTENTION.ipynb
-                ├── 2.2.More_ATTENTION.ipynb
-                ├── 2.3.GPT.ipynb
-                ├── 2.4.Llama3.ipynb
-                ├── 3.1.TRAIN.ipynb
-                ├── 3.2.TRAIN_Pro.ipynb
-                ├── 4.1.SFT_Text_Classification.ipynb
-                ├── 4.2..SFT_Instruction_Following.ipynb
-                ├── 4.3.SFT_PEFT.ipynb
-                ├── 5.1.RLHF_PPO.ipynb
-                ├── 5.2.RL_DPO.ipynb
-                ├── 6.1.INFERENCE_Text_Generation.ipynb
-                ├── 6.2.KV_Cache.ipynb
-                ├── 6.3.Quantization_1.ipynb
-                ├── 6.4.Quantization_2.ipynb
-                ├── Appandix_A_GPT_2_Llama2.ipynb
-                ├── Appandix_B_Gradio.ipynb 
-```
-
-💡 *Modify the attention mask in a notebook and see how the output changes — that's hands-on learning at its best.*
-
------
-
-### **2️⃣ Modular Mini-Projects — Targeted Experiments**
-
-The `Modules/` folder is a collection of **self-contained experiments**, each focusing on a specific part of the LLM pipeline. This lets you **experiment on one piece of the puzzle** without touching the whole framework.
+└── notebooks/
+├── 0.0.WELCOME.ipynb
+├── 1.1.DATA.ipynb
+├── 1.2.Tokenizer.ipynb
+├── 2.1.ATTENTION.ipynb
+├── 2.2.More_ATTENTION.ipynb
+├── 2.3.GPT.ipynb
+├── 2.4.Llama3.ipynb
+├── 3.1.TRAIN.ipynb
+├── 3.2.TRAIN_Pro.ipynb
+├── 4.1.SFT_Text_Classification.ipynb
+├── 4.2.SFT_Instruction_Following.ipynb
+├── 4.3.SFT_PEFT.ipynb
+├── 5.1.RLHF_PPO.ipynb
+├── 5.2.RL_DPO.ipynb
+├── 6.1.INFERENCE_Text_Generation.ipynb
+├── 6.2.KV_Cache.ipynb
+├── 6.3.Quantization_1.ipynb
+├── 6.4.Quantization_2.ipynb
+├── Appendix_A_GPT_2_Llama2.ipynb
+└── Appendix_B_Gradio.ipynb
 
 ```
+
+💡 *Change an attention mask and immediately see how generation breaks or improves.*
+
+That’s real learning.
+
+---
+
+## 2️⃣ Modular Mini-Projects — *Targeted Experiments*
+
+The `Modules/` directory isolates **one concept at a time**.
+
+```
+
 MyLLM/
- └── Modules/
-      ├── 1.data/            # Dataset loading and preprocessing utilities
-      ├── 2.models/          # Core model architectures (GPT, Llama)
-      ├── 3.training/        # Training scripts and utilities
-      ├── 4.finetuning/      # Experiments with SFT, DPO, PPO
-      └── 5.inference/       # Inference with quantization and KV caching
-```
+└── Modules/
+├── 1.data/        # Dataset loading & preprocessing
+├── 2.models/      # GPT, LLaMA-style architectures
+├── 3.training/    # Training loops & utilities
+├── 4.finetuning/  # SFT, DPO, PPO experiments
+└── 5.inference/   # KV cache, quantization
 
-Example: Train a small GPT from scratch
+````
+
+### Example: Train a small GPT from scratch
 
 ```bash
 python Modules/3.training/train.py --config configs/basic.yml
-```
+````
 
------
+This lets you experiment **without touching the full framework**.
 
-### **3️⃣ The MyLLM Core Framework — Hugging Face, But From Scratch**
+---
 
-The `myllm/` folder is where all the components from the notebooks and mini-projects converge into a **production-grade framework**. This is the final layer, designed for scaling, research, and deployment.
+## 3️⃣ MyLLM Core Framework — *HF-like, but transparent*
+
+The `myllm/` directory is where everything converges into a **research-grade framework**.
 
 ```
 myllm/
- ├── CLI/             # Command-Line Interface
- ├── Configs/         # Centralized configuration objects
- ├── Train/           # Advanced training engine (SFT, DPO, PPO)
- ├── Tokenizers/      # Production-ready tokenizer implementations
- ├── utils/           # Shared utility functions
- ├── api.py           # RESTful API for model serving
- └── model.py         # The core LLM model definition
+ ├── CLI/             # Command-line tools
+ ├── Configs/         # Centralized configs
+ ├── Train/           # SFT, DPO, PPO engines
+ ├── Tokenizers/      # Production-ready tokenizers
+ ├── utils/           # Shared utilities
+ ├── api.py           # REST API for serving
+ └── model.py         # Core LLM definition
 ```
 
-Example usage:
+### Example Usage
 
 ```python
 from myllm.model import LLMModel
 from myllm.Train.sft_trainer import SFTTrainer
 
-# Instantiate a model from the core framework
 model = LLMModel()
 
-# Fine-tune with a single line of code
-trainer = SFTTrainer(model=model, dataset=my_dataset)
-trainer.train()
+trainer = SFTTrainer(
+    model=model,
+    dataset=my_dataset
+)
 
-# Every line here maps to real, visible code — no magic.
+trainer.train()
 ```
 
------
+> Every line maps to **real code**.
+> No hidden magic. No black boxes.
 
-## 🔮 Coming Soon: *MetaBot*
+---
 
-The final vision is **MetaBot** — an interactive chatbot built entirely with MyLLM.
+## 🔮 Coming Soon: **MetaBot**
 
-> *A chatbot that not only answers your questions but also **shows you exactly how it works under the hood.***
+<p align="center">
+  <img src="./meta_botg.png" width="700" alt="MetaBot Preview">
+</p>
+
+**MetaBot** is the final layer:
+
+> A chatbot that answers questions
+> **and shows how it generated the answer**
 
 Built with:
 
-  * MyLLM core framework
-  * Gradio for UI
-  * Fully open source, located in the `Meta_Bot/` directory.
+* MyLLM core
+* Gradio UI
+* Fully open source (`Meta_Bot/`)
 
------
+---
 
 ## 📍 Roadmap
 
-| Status | Milestone | Details |
-| :--- | :--- | :--- |
-| ✅ | Interactive Notebooks | Learn LLM fundamentals hands-on |
-| ✅ | Modular Mini-Projects | Build reusable, composable components |
-| ⚙️ | MyLLM Core Framework | Fine-tuning, DPO, PPO, quantization, CLI, API |
-| 🛠 | MetaBot + Gradio UI | Interactive chatbot & deployment |
+| Status | Milestone             | Description                    |
+| ------ | --------------------- | ------------------------------ |
+| ✅      | Interactive Notebooks | From-first-principles learning |
+| ✅      | Modular Mini-Projects | Reusable experiments           |
+| ⚙️     | Core Framework        | SFT, DPO, PPO, quantization    |
+| 🛠     | MetaBot               | Interactive chatbot + UI       |
 
------
+---
 
-## ⚡ Quick Challenges to Try
+## ⚡ Quick Challenges
 
-  * Run a notebook → tweak hyperparameters → watch how the model changes.
-  * Build a mini GPT that writes **haiku poems**.
-  * Add a new trainer to the framework (e.g., a TRL variant).
-  * Quantize a model and measure the speedup in inference.
-  * Fork the repo and contribute a new attention mechanism.
+Try these to really learn:
 
------
+* Modify attention masks and observe behavior
+* Train a GPT to write **haiku poems**
+* Add a new trainer (TRL-style)
+* Quantize a model and benchmark speed
+* Implement a new attention variant
+
+---
 
 ## 🙌 Inspiration
 
-This project wouldn’t exist without the incredible work of others:
+This project stands on the shoulders of giants:
 
-  * [Andrej Karpathy](https://github.com/karpathy) — NanoGPT minimalism
-  * [Umar Jamil](https://github.com/umarjamil) — Practical LLM tutorials
-  * [Sebastian Raschka](https://github.com/rasbt) — Deep transformer insights
+* **Andrej Karpathy** — NanoGPT minimalism
+* **Umar Jamil** — Practical transformer intuition
+* **Sebastian Raschka** — Deep theoretical clarity
 
------
+---
 
 ## 🏁 The Vision
 
-The end goal: A **transparent, educational, and production-ready LLM stack** built entirely from scratch, by and for engineers who want to **own every line of their AI system**.
+A **transparent, educational, and production-ready LLM stack**
+built from scratch by people who want to **own every line of their AI system**.
 
-Let's strip away the black boxes and **build the future of LLMs — together.**
+Let’s remove the black boxes
+and **build LLMs the right way**.
 
------
+---
 
-### 📜 License
+## 📜 License
 
-[MIT License](https://www.google.com/search?q=./LICENSE)
+This project is licensed under the **MIT License**.
+See the `LICENSE` file for details.
+
