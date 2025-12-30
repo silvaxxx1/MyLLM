@@ -4,13 +4,9 @@
 [](https://www.python.org/downloads/)
 [](https://pytorch.org/)
 
------
-
 \<p align="center"\>
 \<img src="myllm.png" alt="MyLLM Overview"\>
 \</p\>
-
------
 
 ## ⚠️ Work In Progress — Hack at Your Own Risk 🚧
 
