@@ -235,52 +235,31 @@ class GPT(nn.Module):
         Raises:
             ValueError: If input sequence exceeds configured block size
         """
-        B, T = x.size()
-
-        # DEBUG: Enhanced position tracking
-        if use_cache and not hasattr(self, 'pos_offset_debug_printed'):
-            print(f"🔍 GPT Forward - Generation Mode:")
-            print(f"   pos_offset: {pos_offset}, sequence length: {T}")
-            print(f"   Position range: {pos_offset} to {pos_offset + T - 1}")
-            self.pos_offset_debug_printed = True
+        B, T = x.size()  # x: (B, T)
 
         if T > self.config.block_size:
             raise ValueError(f"Cannot attend to {T} tokens, block size is only {self.config.block_size}.")
 
         # Token embeddings
-        token_embeddings = self.wte(x)
+        token_embeddings = self.wte(x)  # (B, T, C)
 
-        # FIXED: Position embedding logic
+        # Position embedding logic
+        # Always use absolute positions — when using cache, pos_offset is the start position for this chunk
         if self.wpe is not None:
-            # CRITICAL FIX: Always use absolute positions from 0
-            # When using cache, pos_offset should be the start position for this chunk
             positions = torch.arange(pos_offset, pos_offset + T, dtype=torch.long, device=x.device)
-            positions = positions.unsqueeze(0)  # (1, T)
-            
-            # DEBUG: Check positions
-            if use_cache and not hasattr(self, 'pos_emb_debug_printed'):
-                print(f"🔍 Position Embeddings Applied:")
-                print(f"   Position range: {positions.min().item()} to {positions.max().item()}")
-                print(f"   Position embeddings shape: {positions.shape}")
-                self.pos_emb_debug_printed = True
-            
-            position_embeddings = self.wpe(positions)
-            x = token_embeddings + position_embeddings
+            positions = positions.unsqueeze(0)              # (1, T)
+            position_embeddings = self.wpe(positions)      # (1, T, C)
+            x = token_embeddings + position_embeddings     # (B, T, C)
         else:
-            x = token_embeddings
+            x = token_embeddings                           # (B, T, C)
 
-        # Pass through transformer blocks with proper cache handling
-        for block_idx, block in enumerate(self.transformer.values()):
-            # DEBUG: Block processing
-            if use_cache and not hasattr(self, f'block_{block_idx}_debug_printed'):
-                print(f"🔍 Processing Block {block_idx} with cache")
-                setattr(self, f'block_{block_idx}_debug_printed', True)
-                
-            x = block(x, use_cache=use_cache)
+        # Pass through transformer blocks: each preserves (B, T, C)
+        for block in self.transformer.values():
+            x = block(x, use_cache=use_cache)              # (B, T, C)
 
-        # Final normalization
-        x = self.ln_f(x)
-        return self.lm_head(x)
+        # Final normalization and projection to vocabulary
+        x = self.ln_f(x)                                   # (B, T, C)
+        return self.lm_head(x)                             # (B, T, vocab_size)
 
     def forward_hidden_states(self, idx: torch.Tensor) -> torch.Tensor:
         """
@@ -307,7 +286,7 @@ class GPT(nn.Module):
             This method does not use KV caching and is intended for single-pass processing.
         """
         device = idx.device
-        B, T = idx.size()
+        B, T = idx.size()  # idx: (B, T)
 
         # Check sequence length
         if T > self.config.block_size:
@@ -316,24 +295,23 @@ class GPT(nn.Module):
             )
 
         # Token embeddings
-        token_embeddings = self.wte(idx)
+        token_embeddings = self.wte(idx)  # (B, T, C)
 
         # Position embeddings if enabled
         if self.wpe is not None:
-            pos = torch.arange(0, T, dtype=torch.long, device=device).unsqueeze(0)
-            position_embeddings = self.wpe(pos)
-            x = token_embeddings + position_embeddings
+            pos = torch.arange(0, T, dtype=torch.long, device=device).unsqueeze(0)  # (1, T)
+            position_embeddings = self.wpe(pos)                                      # (1, T, C)
+            x = token_embeddings + position_embeddings                               # (B, T, C)
         else:
-            x = token_embeddings  # No position encoding (e.g., rotary)
+            x = token_embeddings  # (B, T, C) — no absolute position encoding (e.g., RoPE)
 
-        # Pass through transformer blocks
+        # Pass through transformer blocks: each preserves (B, T, C)
         for block in self.transformer.values():
-            x = block(x)
+            x = block(x)  # (B, T, C)
 
-        # Final normalization (return hidden states here, before lm_head)
-        x = self.ln_f(x)
-        
-        return x  # Return hidden states instead of projecting to vocab
+        # Final normalization — return hidden states, not vocab logits
+        x = self.ln_f(x)  # (B, T, C)
+        return x
 
     def reset_cache(self) -> None:
         """
@@ -472,29 +450,29 @@ Configuration Options:
 
         if self.config.parallel_residual:
             # Shared norm case: use x_normed, otherwise apply norm2
-            mlp_norm_input = x_normed if self.norm2 is None else self.norm2(x)
-            
+            mlp_norm_input = x_normed if self.norm2 is None else self.norm2(x)  # (B, T, C)
+
             # Apply MLP
-            mlp_out = self.mlp(mlp_norm_input)
-            mlp_out = self.post_mlp_norm(mlp_out)
+            mlp_out = self.mlp(mlp_norm_input)       # (B, T, C)
+            mlp_out = self.post_mlp_norm(mlp_out)    # (B, T, C)
 
             # Sum attention and MLP outputs in parallel
-            x = attn_out + mlp_out + x  
+            x = attn_out + mlp_out + x               # (B, T, C)
         else:
             # Standard residual: add attention output first
-            x = x + attn_out
+            x = x + attn_out                         # (B, T, C)
 
             # Apply second norm if necessary
-            x_normed = self.norm2(x) if self.norm2 is not None else x
+            x_normed = self.norm2(x) if self.norm2 is not None else x  # (B, T, C)
 
             # Apply MLP
-            mlp_out = self.mlp(x_normed)
-            mlp_out = self.post_mlp_norm(mlp_out)
+            mlp_out = self.mlp(x_normed)             # (B, T, C)
+            mlp_out = self.post_mlp_norm(mlp_out)    # (B, T, C)
 
             # Add MLP output to the running sum
-            x = x + mlp_out
+            x = x + mlp_out                          # (B, T, C)
 
-        return x
+        return x  # (B, T, C)
 
 
 class CausalSelfAttention(nn.Module):
@@ -565,32 +543,24 @@ Configuration Options:
         self.kv_cache.to(next(self.parameters()).device)
 
     def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None, use_cache: bool = False) -> torch.Tensor:
-        B, T, C = x.size()
+        B, T, C = x.size()  # x: (B, T, C)
 
-        # DEBUG: Enhanced cache tracking
-        if use_cache and not hasattr(self, 'generation_debug_printed'):
-            print(f"🔍 CausalSelfAttention - Generation Mode (Block {self.block_idx}):")
-            print(f"   Input shape: {x.shape}, use_cache: {use_cache}")
-            print(f"   KV cache available: {self.kv_cache is not None}")
-            if self.kv_cache is not None:
-                print(f"   Cache current size: {self.kv_cache.size}")
-            self.generation_debug_printed = True
-
-        # Compute QKV
-        qkv = self.qkv(x)
+        # Compute QKV projections
+        qkv = self.qkv(x)  # (B, T, n_head*head_size + 2*n_query_groups*head_size)
         q_size = self.config.n_head * self.config.head_size
         k_size = v_size = self.config.n_query_groups * self.config.head_size
         q, k, v = qkv.split([q_size, k_size, v_size], dim=-1)
+        # q: (B, T, n_head*head_size), k/v: (B, T, n_query_groups*head_size)
 
         # Apply normalization if configured
         if self.norm_q is not None:
             q = self.norm_q(q)
             k = self.norm_k(k)
 
-        # Reshape to (B, n_heads, T, head_size)
-        q = q.view(B, T, self.config.n_head, self.config.head_size).transpose(1, 2)
-        k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
-        v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2)
+        # Reshape to (B, n_heads, T, head_size) for attention computation
+        q = q.view(B, T, self.config.n_head, self.config.head_size).transpose(1, 2)         # (B, n_head, T, head_size)
+        k = k.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2) # (B, n_query_groups, T, head_size)
+        v = v.view(B, T, self.config.n_query_groups, self.config.head_size).transpose(1, 2) # (B, n_query_groups, T, head_size)
 
         # Apply RoPE if configured
         if self.config.use_rope:
@@ -607,13 +577,6 @@ Configuration Options:
             # Update cache with new keys/values
             k_cache, v_cache = self.kv_cache.update(k, v)
             cache_size_after = self.kv_cache.size
-            
-            # DEBUG: Track cache updates
-            if not hasattr(self, 'cache_update_debug'):
-                print(f"🔍 CACHE UPDATE (Block {self.block_idx}):")
-                print(f"   Before: {cache_size_before}, After: {cache_size_after}")
-                print(f"   Added {T} new tokens")
-                self.cache_update_debug = True
             
             # Use all cached K/V for attention (including what we just added)
             if T == 1:  # Single token generation
@@ -644,17 +607,6 @@ Configuration Options:
                 mask = q_positions.unsqueeze(1) < k_positions.unsqueeze(0)
                 mask = mask.unsqueeze(0).unsqueeze(0)  # (1, 1, T, cache_size_after)
                 
-                # DEBUG: Print mask shape and a sample
-                if not hasattr(self, 'mask_debug_printed'):
-                    print(f"🔍 CAUSAL MASK (Block {self.block_idx}):")
-                    print(f"   Mask shape: {mask.shape}")
-                    print(f"   Q positions: {cache_size_before} to {cache_size_after-1}")
-                    print(f"   K positions: 0 to {cache_size_after-1}")
-                    if T <= 5 and cache_size_after <= 10:
-                        print(f"   Mask matrix (True=masked):")
-                        print(mask[0, 0].int())
-                    self.mask_debug_printed = True
-                
                 y = self.scaled_dot_product_attention(
                     q, 
                     k_cache[:, :, :cache_size_after], 
@@ -674,9 +626,9 @@ Configuration Options:
             
             y = self.scaled_dot_product_attention(q, k, v, mask)
 
-        # Reshape back
-        y = y.transpose(1, 2).contiguous().view(B, T, -1)
-        return self.proj(y)
+        # Reshape back and project
+        y = y.transpose(1, 2).contiguous().view(B, T, -1)  # (B, T, n_head*head_size)
+        return self.proj(y)  # (B, T, C)
 
     def scaled_dot_product_attention(
                                         self,
@@ -754,72 +706,27 @@ Configuration Options:
             - Converts back to original dtype after softmax
         """
         
-            # Scale factor
         scale = 1.0 / math.sqrt(self.config.head_size)
-        
-        # DEBUG: Check input shapes
-        if not hasattr(self, 'debug_printed'):
-            print(f"🔍 ATTENTION DEBUG - Q: {q.shape}, K: {k.shape}, V: {v.shape}")
-            if mask is not None:
-                print(f"   Mask: {mask.shape}")
-            self.debug_printed = True
-        
-         # DEBUG: Check sequence length
-        if not hasattr(self, 'seq_len_debug_printed'):
-            print(f"🔍 ATTENTION SEQ LEN DEBUG:")
-            print(f"   Q shape: {q.shape}, K shape: {k.shape}")
-            print(f"   Sequence length: {q.shape[2]}")
-            self.seq_len_debug_printed = True
 
         # GQA/MQA: Repeat keys/values to match number of query heads
         if self.config.n_query_groups != self.config.n_head:
             repeat_factor = self.config.n_head // self.config.n_query_groups
-            k = k.repeat_interleave(repeat_factor, dim=1)
-            v = v.repeat_interleave(repeat_factor, dim=1)
+            k = k.repeat_interleave(repeat_factor, dim=1)  # (B, n_head, T, head_size)
+            v = v.repeat_interleave(repeat_factor, dim=1)  # (B, n_head, T, head_size)
 
-        # Compute attention scores: (B, H, T, T)
-        # q: (B, H, T, D), k: (B, H, T, D) -> (B, H, T, T)
-        attn_scores = torch.matmul(q, k.transpose(-2, -1)) * scale
+        # Compute attention scores
+        # q: (B, n_head, T, head_size), k: (B, n_head, S, head_size) -> (B, n_head, T, S)
+        attn_scores = torch.matmul(q, k.transpose(-2, -1)) * scale  # (B, n_head, T, S)
 
-        # DEBUG: Check attention scores before masking
-        if not hasattr(self, 'scores_debug_printed'):
-            print(f"🔍 ATTENTION SCORES - Shape: {attn_scores.shape}")
-            print(f"   Scores range: [{attn_scores.min().item():.4f}, {attn_scores.max().item():.4f}]")
-            print(f"   Scores mean: {attn_scores.mean().item():.4f}")
-            self.scores_debug_printed = True
-
-        # Apply causal mask if provided
+        # Apply causal mask if provided — mask shape (1, 1, T, S), True = mask out
         if mask is not None:
-            # Mask shape should be (1, 1, T, T) where True = mask out
-            attn_scores = attn_scores.masked_fill(mask, float("-inf"))
-            
-            # DEBUG: Check after masking
-            if not hasattr(self, 'mask_debug_printed'):
-                print(f"🔍 AFTER MASKING - Scores range: [{attn_scores.min().item():.4f}, {attn_scores.max().item():.4f}]")
-                self.mask_debug_printed = True
+            attn_scores = attn_scores.masked_fill(mask, float("-inf"))  # (B, n_head, T, S)
 
-        # Apply softmax to get attention weights
-        # Use float32 for stability, then convert back
-        attn_weights = F.softmax(attn_scores, dim=-1, dtype=torch.float32).to(dtype=q.dtype)
+        # Softmax in float32 for numerical stability, then cast back
+        attn_weights = F.softmax(attn_scores, dim=-1, dtype=torch.float32).to(dtype=q.dtype)  # (B, n_head, T, S)
 
-        # DEBUG: Check attention weights
-        if not hasattr(self, 'weights_debug_printed'):
-            print(f"🔍 ATTENTION WEIGHTS - Shape: {attn_weights.shape}")
-            print(f"   Weights range: [{attn_weights.min().item():.4f}, {attn_weights.max().item():.4f}]")
-            print(f"   Weights mean: {attn_weights.mean().item():.4f}")
-            
-            # Check if weights sum to 1
-            weight_sums = attn_weights.sum(dim=-1)
-            print(f"   Weight sums - Min: {weight_sums.min().item():.4f}, Max: {weight_sums.max().item():.4f}")
-            
-            self.weights_debug_printed = True
-
-        # Store for debugging
-        self.attn_weights = attn_weights.detach().clone()
-
-        # Apply to values: (B, H, T, T) x (B, H, T, D) -> (B, H, T, D)
-        output = torch.matmul(attn_weights, v)
-        
+        # Weighted sum over values
+        output = torch.matmul(attn_weights, v)  # (B, n_head, T, head_size)
         return output
 
 def softcapping(x: torch.Tensor, thresh: float) -> torch.Tensor:

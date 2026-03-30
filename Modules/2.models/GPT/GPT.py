@@ -64,39 +64,37 @@ class MultiHeadAttention(nn.Module):
         b, num_tokens, d_in = x.shape
 
         # Compute keys, queries, and values
-        keys = self.W_key(x)      # Shape: (b, num_tokens, d_out)
-        queries = self.W_query(x)
-        values = self.W_value(x)
+        keys    = self.W_key(x)    # (b, num_tokens, d_out)
+        queries = self.W_query(x)  # (b, num_tokens, d_out)
+        values  = self.W_value(x)  # (b, num_tokens, d_out)
 
         # Split into multiple heads
-        keys = keys.view(b, num_tokens, self.num_heads, self.head_dim)
-        values = values.view(b, num_tokens, self.num_heads, self.head_dim)
-        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
+        keys    = keys.view(b, num_tokens, self.num_heads, self.head_dim)    # (b, num_tokens, num_heads, head_dim)
+        values  = values.view(b, num_tokens, self.num_heads, self.head_dim)  # (b, num_tokens, num_heads, head_dim)
+        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim) # (b, num_tokens, num_heads, head_dim)
 
         # Transpose for attention computation
-        keys = keys.transpose(1, 2)        # Shape: (b, num_heads, num_tokens, head_dim)
-        queries = queries.transpose(1, 2)
-        values = values.transpose(1, 2)
+        keys    = keys.transpose(1, 2)    # (b, num_heads, num_tokens, head_dim)
+        queries = queries.transpose(1, 2) # (b, num_heads, num_tokens, head_dim)
+        values  = values.transpose(1, 2)  # (b, num_heads, num_tokens, head_dim)
 
         # Scaled dot-product attention
-        attn_scores = queries @ keys.transpose(2, 3)  # Shape: (b, num_heads, num_tokens, num_tokens)
-        
+        attn_scores = queries @ keys.transpose(2, 3)  # (b, num_heads, num_tokens, num_tokens)
+
         # Apply the causal mask
-        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
-        attn_scores.masked_fill_(mask_bool, -torch.inf)
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]  # (num_tokens, num_tokens)
+        attn_scores.masked_fill_(mask_bool, -torch.inf)         # (b, num_heads, num_tokens, num_tokens)
 
         # Apply softmax and compute attention weights
-        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)
-        attn_weights = self.dropout(attn_weights)
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)  # (b, num_heads, num_tokens, num_tokens)
+        attn_weights = self.dropout(attn_weights)                                 # (b, num_heads, num_tokens, num_tokens)
 
         # Compute the context vector
-        context_vec = (attn_weights @ values).transpose(1, 2)  # Shape: (b, num_tokens, num_heads, head_dim)
-
-        # Combine heads by flattening them
-        context_vec = context_vec.contiguous().view(b, num_tokens, self.d_out)
+        context_vec = (attn_weights @ values).transpose(1, 2)    # (b, num_tokens, num_heads, head_dim)
+        context_vec = context_vec.contiguous().view(b, num_tokens, self.d_out)  # (b, num_tokens, d_out)
 
         # Final linear projection
-        context_vec = self.out_proj(context_vec)
+        context_vec = self.out_proj(context_vec)  # (b, num_tokens, d_out)
 
         return context_vec
 
@@ -271,18 +269,18 @@ class GPTModel(nn.Module):
         assert seq_len <= self.cfg["context_length"], "Sequence length exceeds context length."
 
         # Compute token and position embeddings
-        tok_emb = self.tok_emb(in_idx)  # Token embeddings: (b, seq_len, emb_dim)
-        pos_emb = self.pos_emb(torch.arange(seq_len, device=in_idx.device))  # Position embeddings
+        tok_emb = self.tok_emb(in_idx)                                        # (b, seq_len, emb_dim)
+        pos_emb = self.pos_emb(torch.arange(seq_len, device=in_idx.device))  # (seq_len, emb_dim)
 
         # Combine embeddings and apply dropout
-        emb = self.drop_emb(tok_emb + pos_emb)
+        emb = self.drop_emb(tok_emb + pos_emb)  # (b, seq_len, emb_dim)
 
-        # Pass through the Transformer blocks
-        x = self.trf_blocks(emb)
+        # Pass through the Transformer blocks: each preserves (b, seq_len, emb_dim)
+        x = self.trf_blocks(emb)   # (b, seq_len, emb_dim)
 
         # Apply final layer normalization and compute logits
-        x = self.final_norm(x)
-        logits = self.out_head(x)
+        x      = self.final_norm(x)   # (b, seq_len, emb_dim)
+        logits = self.out_head(x)     # (b, seq_len, vocab_size)
 
         return logits
 

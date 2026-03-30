@@ -35,11 +35,12 @@ class MHAFlashAttention(nn.Module):
 
         context_vec = nn.functional.scaled_dot_product_attention(
             queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True)
+        # context_vec: (b, num_heads, num_tokens, head_dim)
 
-        # Combine heads, where self.d_out = self.num_heads * self.head_dim
+        # (b, num_heads, num_tokens, head_dim) --> (b, num_tokens, d_out)
         context_vec = context_vec.transpose(1, 2).contiguous().view(batch_size, num_tokens, self.d_out)
 
-        context_vec = self.proj(context_vec)
+        context_vec = self.proj(context_vec)  # (b, num_tokens, d_out)
 
         return context_vec
 
@@ -76,9 +77,9 @@ class MHAPyTorchClass(nn.Module):
         # attn_mask broadcasting will handle batch_size dimension implicitly
         attn_output, _ = self.multihead_attn(
             x, x, x, attn_mask=attn_mask, need_weights=self.need_weights
-        )
+        )  # attn_output: (b, num_tokens, d_out)
 
-        output = self.proj(attn_output)
+        output = self.proj(attn_output)  # (b, num_tokens, d_out)
 
         return output
 

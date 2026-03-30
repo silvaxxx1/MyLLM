@@ -43,7 +43,7 @@ class MultiheadAttention(nn.Module):
 
         # Calculate attention weights
         attention_weight = torch.softmax(attention_score / keys.shape[-1] ** 0.5, dim=-1)  # Shape: (batch_size, num_heads, num_tokens, num_tokens)
-        attention_weight = self.dropout(attention_weight)
+        attention_weight = self.dropout(attention_weight)  # Shape: (batch_size, num_heads, num_tokens, num_tokens)
 
         # Calculate context vector
         all_con_vec = (attention_weight @ values)  # Shape: (batch_size, num_heads, num_tokens, head_dim)
@@ -94,8 +94,8 @@ class MHACombinedQKV(nn.Module):
             self.mask.bool()[:num_tokens, :num_tokens], -torch.inf
         )
 
-        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**-0.5, dim=-1)
-        attn_weights = self.dropout(attn_weights)
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**-0.5, dim=-1)  # (b, num_heads, num_tokens, num_tokens)
+        attn_weights = self.dropout(attn_weights)                                  # (b, num_heads, num_tokens, num_tokens)
 
         # (b, num_heads, num_tokens, num_tokens) --> (b, num_heads, num_tokens, head_dim)
         context_vec = attn_weights @ values
@@ -106,7 +106,7 @@ class MHACombinedQKV(nn.Module):
         # (b, num_tokens, num_heads, head_dim) --> (b, num_tokens, embed_dim)
         context_vec = context_vec.contiguous().view(batch_size, num_tokens, embed_dim)
 
-        context_vec = self.proj(context_vec)
+        context_vec = self.proj(context_vec)  # (b, num_tokens, embed_dim)
 
         return context_vec
 

@@ -77,7 +77,7 @@ pip install -e .
 ### Naming
 - Model configs live in `myllm/Configs/` (dataclasses)
 - Trainer configs live in `myllm/Train/configs/`
-- Test files are prefixed `test_` and co-located near their module
+- Test files are prefixed `test_` and live in `myllm/tests/`
 - Checkpoint dirs follow pattern: `output_{experiment_name}/checkpoint-{step}/`
 
 ### Tensor Shape Comments

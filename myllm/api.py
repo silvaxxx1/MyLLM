@@ -8,7 +8,7 @@ with support for various sampling strategies and optimization techniques.
 import os
 import torch
 import torch.nn as nn
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from myllm.model import GPT
 from myllm.Configs import ModelConfig, GenerationConfig
@@ -51,7 +51,7 @@ class LLM(nn.Module):
         if config is not None:
             self.init_from_config(config)
 
-    def init_from_config(self, config: ModelConfig, train_mode: bool = True):
+    def init_from_config(self, config: ModelConfig, train_mode: bool = True) -> None:
         """Initialize GPT model structure without loading weights to GPU."""
         self.config = config
         self.model = GPT(config)
@@ -64,7 +64,7 @@ class LLM(nn.Module):
         if not self.low_cpu_mem_usage:
             self.model.to(self.device, dtype=self.torch_dtype)
 
-    def load(self, model_variant: str, model_family: Optional[str] = None):
+    def load(self, model_variant: str, model_family: Optional[str] = None) -> None:
         """
         Load pretrained model weights.
         
@@ -85,11 +85,11 @@ class LLM(nn.Module):
         torch.cuda.empty_cache()
         print(f"🎯 Model ready on {self.device} for inference!")
 
-    def list_models(self):
+    def list_models(self) -> List[str]:
         """List available cached models."""
         return self.loader.list_available_models()
 
-    def save(self, save_path: str):
+    def save(self, save_path: str) -> None:
         """Save model weights to disk."""
         if self.model is None:
             raise RuntimeError("No model to save.")
@@ -99,7 +99,7 @@ class LLM(nn.Module):
 
     def _setup_generation(
         self, input_ids: torch.Tensor, generation_config: GenerationConfig
-    ):
+    ) -> Tuple[int, int, Optional[torch.Tensor]]:
         """Initialize generation, set up KV cache, and process prompt."""
         B, T = input_ids.shape
         

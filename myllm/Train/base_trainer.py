@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import logging
 import os
 from torch.amp import autocast, GradScaler
@@ -46,7 +46,7 @@ class BaseTrainer(ABC):
         self._setup_seed()
         self._setup_model_config()
     
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         """Setup logging configuration"""
         logging.basicConfig(
             level=logging.INFO,
@@ -54,7 +54,7 @@ class BaseTrainer(ABC):
         )
         os.makedirs(self.config.output_dir, exist_ok=True)
     
-    def _setup_device(self):
+    def _setup_device(self) -> None:
         """Setup training device with multi-GPU readiness"""
         device_str = getattr(self.config.device, 'value', str(self.config.device))
         if device_str == "auto":
@@ -68,14 +68,14 @@ class BaseTrainer(ABC):
         self.world_size = getattr(self.config, 'world_size', 1)
         self.distributed = self.world_size > 1
     
-    def _setup_seed(self):
+    def _setup_seed(self) -> None:
         """Setup random seed for reproducibility"""
         seed = getattr(self.config, 'seed', 42)
         torch.manual_seed(seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
     
-    def _setup_model_config(self):
+    def _setup_model_config(self) -> None:
         """Setup model configuration"""
         if self.model_config is None and hasattr(self.config, 'model_config_name'):
             from myllm.Configs.ModelConfig import ModelConfig
@@ -112,7 +112,7 @@ class BaseTrainer(ABC):
         
         return self.model
     
-    def setup_tokenizer(self):
+    def setup_tokenizer(self) -> None:
         """Setup tokenizer - common for both trainers"""
         from myllm.Tokenizers.factory import get_tokenizer
         from myllm.Tokenizers.wrapper import TokenizerWrapper
@@ -130,7 +130,7 @@ class BaseTrainer(ABC):
         
         logger.info(f"Tokenizer setup: {self.tokenizer}")
     
-    def setup_optimizer(self):
+    def setup_optimizer(self) -> None:
         """Common optimizer setup"""
         if self.model is None:
             raise ValueError("Model must be setup before optimizer")
@@ -166,7 +166,7 @@ class BaseTrainer(ABC):
             ignore_index=-100
         )
     
-    def align_sequence_lengths(self, logits: torch.Tensor, labels: torch.Tensor) -> tuple:
+    def align_sequence_lengths(self, logits: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Align sequence lengths for loss computation"""
         if logits.size(1) != labels.size(1):
             min_len = min(logits.size(1), labels.size(1))
@@ -204,7 +204,7 @@ class BaseTrainer(ABC):
         
         return {"loss": float(loss.item())}
     
-    def setup_wandb(self):
+    def setup_wandb(self) -> None:
         """Setup WandB logging if enabled"""
         if (hasattr(self.config, 'report_to') and 
             "wandb" in self.config.report_to and 
@@ -285,17 +285,17 @@ class BaseTrainer(ABC):
     
     # Abstract methods for subclass implementation
     @abstractmethod
-    def _prepare_batch(self, batch):
+    def _prepare_batch(self, batch) -> Dict[str, Any]:
         """Prepare batch for training/evaluation"""
         pass
-    
+
     @abstractmethod
-    def _get_labels(self, batch):
+    def _get_labels(self, batch) -> torch.Tensor:
         """Get labels from batch (different for pretraining vs SFT)"""
         pass
-    
+
     @abstractmethod
-    def setup_data(self, train_dataloader=None, eval_dataloader=None):
+    def setup_data(self, train_dataloader=None, eval_dataloader=None) -> None:
         """Setup training and validation data"""
         pass
     
@@ -337,7 +337,7 @@ class BaseTrainer(ABC):
         
         return is_best
     
-    def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
         """Log metrics to WandB and console"""
         if step is None:
             step = self.global_step
@@ -355,7 +355,7 @@ class BaseTrainer(ABC):
         elif "train/loss" in metrics:
             logger.info(f"Step {step}: Train Loss: {metrics['train/loss']:.4f}")
     
-    def save_checkpoint(self, checkpoint_dir: Optional[str] = None, is_best: bool = False):
+    def save_checkpoint(self, checkpoint_dir: Optional[str] = None, is_best: bool = False) -> str:
         """Save checkpoint with training state"""
         if checkpoint_dir is None:
             checkpoint_dir = os.path.join(
@@ -389,7 +389,7 @@ class BaseTrainer(ABC):
         
         return checkpoint_dir
     
-    def load_checkpoint(self, checkpoint_dir: str):
+    def load_checkpoint(self, checkpoint_dir: str) -> None:
         """Load checkpoint and restore training state"""
         # Load model
         model_path = os.path.join(checkpoint_dir, "pytorch_model.bin")

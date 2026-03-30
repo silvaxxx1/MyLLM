@@ -55,16 +55,16 @@ class GroupQueryAttention(nn.Module):
         attn_scores = attn_scores.masked_fill(causal_mask, -torch.inf)
 
         # Softmax + dropout
-        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)
-        attn_weights = self.dropout(attn_weights)
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)  # (b, num_heads, num_tokens, num_tokens)
+        attn_weights = self.dropout(attn_weights)                                 # (b, num_heads, num_tokens, num_tokens)
 
         # Compute context vector
-        context_vec = attn_weights @ values  # (b, num_heads, num_tokens, head_dim)
-        context_vec = context_vec.transpose(1, 2)  # (b, num_tokens, num_heads, head_dim)
-        context_vec = context_vec.contiguous().view(batch_size, num_tokens, -1)  # (b, num_tokens, d_out)
+        context_vec = attn_weights @ values                                     # (b, num_heads, num_tokens, head_dim)
+        context_vec = context_vec.transpose(1, 2)                               # (b, num_tokens, num_heads, head_dim)
+        context_vec = context_vec.contiguous().view(batch_size, num_tokens, -1) # (b, num_tokens, d_out)
 
         # Final projection
-        context_vec = self.proj(context_vec)
+        context_vec = self.proj(context_vec)  # (b, num_tokens, d_out)
         return context_vec
 
 

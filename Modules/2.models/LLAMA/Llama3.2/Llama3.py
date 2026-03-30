@@ -25,14 +25,12 @@ class FeedForward(nn.Module):
         self.fc3 = nn.Linear(config['hidden_dim'], config['emb_dim'], bias=False)
 
     def forward(self, x):
-        # Compute first projection
-        x1 = self.fc1(x)
-        # Compute second projection for gating
-        x2 = self.fc2(x)
-        # Element-wise multiplication after SiLU activation introduces non-linear interactions
-        x = F.silu(x1) * x2 
-        # Project back to the original embedding space
-        x = self.fc3(x)
+        # x: (b, num_tokens, emb_dim)
+        x1 = self.fc1(x)           # (b, num_tokens, hidden_dim)
+        x2 = self.fc2(x)           # (b, num_tokens, hidden_dim)
+        # SiLU gate: element-wise activation then multiply
+        x = F.silu(x1) * x2        # (b, num_tokens, hidden_dim)
+        x = self.fc3(x)            # (b, num_tokens, emb_dim)
         return x
 
 
@@ -73,43 +71,43 @@ class GroupedQueryAttention(nn.Module):
         self.register_buffer("freqs_complex", freqs_complex)
 
     def forward(self, x):
-        b, num_tokens, d_in = x.shape
+        b, num_tokens, d_in = x.shape  # x: (b, num_tokens, d_in)
 
         # Compute queries, keys, and values
-        queries = self.W_query(x)
-        keys = self.W_key(x)
-        values = self.W_value(x)
+        queries = self.W_query(x)  # (b, num_tokens, d_out)
+        keys    = self.W_key(x)    # (b, num_tokens, num_kv_groups * head_dim)
+        values  = self.W_value(x)  # (b, num_tokens, num_kv_groups * head_dim)
 
         # Reshape to support multi-head processing
-        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
-        keys = keys.view(b, num_tokens, self.num_kv_groups, self.head_dim)
-        values = values.view(b, num_tokens, self.num_kv_groups, self.head_dim)
+        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)     # (b, num_tokens, num_heads, head_dim)
+        keys    = keys.view(b, num_tokens, self.num_kv_groups, self.head_dim)    # (b, num_tokens, num_kv_groups, head_dim)
+        values  = values.view(b, num_tokens, self.num_kv_groups, self.head_dim)  # (b, num_tokens, num_kv_groups, head_dim)
 
-        # Transpose for compatibility with attention computation
-        keys = keys.transpose(1, 2)
-        values = values.transpose(1, 2)
-        queries = queries.transpose(1, 2)
+        # Transpose for attention computation
+        keys    = keys.transpose(1, 2)    # (b, num_kv_groups, num_tokens, head_dim)
+        values  = values.transpose(1, 2)  # (b, num_kv_groups, num_tokens, head_dim)
+        queries = queries.transpose(1, 2) # (b, num_heads, num_tokens, head_dim)
 
         # Apply rotary embeddings for positional information
-        keys = apply_rotary_embeddings(keys, self.freqs_complex, self.device)
-        queries = apply_rotary_embeddings(queries, self.freqs_complex, self.device)
+        keys    = apply_rotary_embeddings(keys, self.freqs_complex, self.device)    # (b, num_kv_groups, num_tokens, head_dim)
+        queries = apply_rotary_embeddings(queries, self.freqs_complex, self.device) # (b, num_heads, num_tokens, head_dim)
 
-        # Expand keys and values to align with query groups
-        keys = keys.repeat_interleave(self.group_size, dim=1)
-        values = values.repeat_interleave(self.group_size, dim=1)
+        # Expand keys and values from num_kv_groups to num_heads (GQA broadcast)
+        keys   = keys.repeat_interleave(self.group_size, dim=1)    # (b, num_heads, num_tokens, head_dim)
+        values = values.repeat_interleave(self.group_size, dim=1)  # (b, num_heads, num_tokens, head_dim)
 
         # Compute attention scores and apply causal mask
-        attn_scores = queries @ keys.transpose(2, 3)
-        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
-        attn_scores.masked_fill_(mask_bool, -torch.inf)
+        attn_scores = queries @ keys.transpose(2, 3)                 # (b, num_heads, num_tokens, num_tokens)
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]       # (num_tokens, num_tokens)
+        attn_scores.masked_fill_(mask_bool, -torch.inf)              # (b, num_heads, num_tokens, num_tokens)
 
         # Normalize attention scores and compute weighted sum of values
-        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)
-        context_vec = (attn_weights @ values).transpose(1, 2)
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)  # (b, num_heads, num_tokens, num_tokens)
+        context_vec = (attn_weights @ values).transpose(1, 2)                    # (b, num_tokens, num_heads, head_dim)
 
         # Combine heads and apply final projection
-        context_vec = context_vec.reshape(b, num_tokens, self.d_out)
-        context_vec = self.out_proj(context_vec)
+        context_vec = context_vec.reshape(b, num_tokens, self.d_out)  # (b, num_tokens, d_out)
+        context_vec = self.out_proj(context_vec)                       # (b, num_tokens, d_out)
         return context_vec
 
 
@@ -139,17 +137,16 @@ class TransformerBlock(nn.Module):
         self.norm2 = nn.RMSNorm(config['emb_dim'])
 
     def forward(self, x):
-        # Apply attention with residual connection
-        shortcut = x
-        x = self.norm1(x)
-        x = self.att(x.to(torch.bfloat16))
-        x = x + shortcut
-        
-        # Apply feedforward network with residual connection
-        shortcut = x
-        x = self.norm2(x)
-        x = self.ff(x.to(torch.bfloat16))
-        x = x + shortcut
+        # x: (b, num_tokens, emb_dim)
+        shortcut = x                               # (b, num_tokens, emb_dim)
+        x = self.norm1(x)                          # (b, num_tokens, emb_dim)
+        x = self.att(x.to(torch.bfloat16))        # (b, num_tokens, emb_dim)
+        x = x + shortcut                           # (b, num_tokens, emb_dim)
+
+        shortcut = x                               # (b, num_tokens, emb_dim)
+        x = self.norm2(x)                          # (b, num_tokens, emb_dim)
+        x = self.ff(x.to(torch.bfloat16))         # (b, num_tokens, emb_dim)
+        x = x + shortcut                           # (b, num_tokens, emb_dim)
         return x
 
 
@@ -178,14 +175,12 @@ class Llama3(nn.Module):
         )
 
     def forward(self, x):
-        # Convert token indices to embeddings
-        tok_emb = self.token_embedding(x)
-        x = tok_emb
-        
-        # Pass through transformer layers
-        x = self.trf_blocks(tok_emb)
-        
-        # Normalize and project to logits
-        x = self.final_norm(x)
-        logits = self.out_head(x.to(torch.bfloat16))
+        # x: (b, num_tokens)
+        tok_emb = self.token_embedding(x)   # (b, num_tokens, emb_dim)
+
+        # Pass through transformer blocks: each preserves (b, num_tokens, emb_dim)
+        x = self.trf_blocks(tok_emb)        # (b, num_tokens, emb_dim)
+
+        x      = self.final_norm(x)                  # (b, num_tokens, emb_dim)
+        logits = self.out_head(x.to(torch.bfloat16)) # (b, num_tokens, vocab_size)
         return logits
