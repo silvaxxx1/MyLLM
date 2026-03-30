@@ -56,4 +56,4 @@ datasets/
 *.parquet
 
 # HuggingFace cache
-huggingface_hub/
+huggingface_hub/.env

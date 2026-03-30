@@ -22,3 +22,10 @@ dependencies = [
     "transformers>=4.55.1",
     "wandb>=0.21.4",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["myllm/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

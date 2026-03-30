@@ -2,7 +2,6 @@ from .base_trainer import BaseTrainer
 from typing import Dict, Any 
 import torch.nn as nn
 
-
 import logging 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +23,7 @@ class PPOTrainer(BaseTrainer):
     
     def setup_data(self):
         """Setup PPO datasets"""
+        
         logger.info("PPO data setup - to be implemented")
         pass
     
@@ -44,4 +44,4 @@ class PPOTrainer(BaseTrainer):
         """PPO training loop"""
         logger.info("PPO training loop - to be implemented")
         pass
-
+        

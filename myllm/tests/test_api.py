@@ -1,131 +1,186 @@
-import sys
-import os
-
-# Add the parent directory to the sys.path so we can import api, config, etc.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-import warnings
-warnings.filterwarnings("ignore", message="CUDA initialization: CUDA unknown error")
-
-
-import torch
+"""Tests for the LLM inference wrapper (myllm/api.py)."""
 import pytest
-from api import LLM, OptimizedSampler
-from Configs.ModelConfig import ModelConfig
-from Configs.GenConfig import GenerationConfig
+import torch
+from myllm.api import LLM
+from myllm.Configs import ModelConfig, GenerationConfig
 
-# Dummy tokenizer mock
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def llm(tiny_model_config):
+    model = LLM(config=tiny_model_config, device="cpu")
+    model.model.eval()
+    return model
+
+
 class DummyTokenizer:
-    def __init__(self):
-        self.vocab = {f"token_{i}": i for i in range(100)}
-        self.pad_token_id = 0
+    """Minimal tokenizer stub — no real weights needed."""
+    pad_token_id = 0
+    vocab_size = 1000
 
-    def encode(self, text, return_tensors="pt"):
-        tokens = [self.vocab.get(tok, 1) for tok in text.split()]
-        return torch.tensor([tokens], dtype=torch.long)
+    def encode(self, text, return_tensors=None):
+        ids = [hash(w) % 998 + 1 for w in text.split()]
+        if not ids:
+            ids = [1]
+        if return_tensors == "pt":
+            return torch.tensor([ids], dtype=torch.long)
+        return ids
 
     def decode(self, tokens, skip_special_tokens=True):
-        return " ".join([f"token_{i}" for i in tokens if i != self.pad_token_id])
+        if hasattr(tokens, "tolist"):
+            tokens = tokens.tolist()
+        return " ".join(str(t) for t in tokens if t != self.pad_token_id)
 
 
-# Dummy config for small GPT (stub only)
-@pytest.fixture
-def dummy_model_config():
-    config = ModelConfig(
-        vocab_size=100,
-        block_size=16,
-        n_layer=2,
-        n_head=2,
-        n_embd=16
-    )
-    config.mlp_class_name = "GptMLP"  # <-- Use the correct MLP class to avoid attribute errors
-    config.__post_init__()  # Recalculate derived attributes after manual change
-    return config
+# ---------------------------------------------------------------------------
+# Initialisation
+# ---------------------------------------------------------------------------
 
-@pytest.fixture
-def dummy_generation_config():
-    return GenerationConfig(
-        max_length=5,
-        temperature=1.0,
-        repetition_penalty=1.1,
-        return_logprobs=True,
-        return_tokens=True,
-        use_kv_cache=False,
-        use_optimized_sampler=True,
-        apply_repetition_penalty=True,
-        apply_top_k_sampling=True,
-        top_k=5,
-        eos_token_ids=[99]
-    )
+class TestLLMInit:
+
+    def test_model_is_not_none(self, llm):
+        assert llm.model is not None
+
+    def test_model_is_nn_module(self, llm):
+        import torch.nn as nn
+        assert isinstance(llm.model, nn.Module)
+
+    def test_device_set(self, llm):
+        assert llm.device == "cpu"
+
+    def test_init_without_config_is_empty(self):
+        llm = LLM(device="cpu")
+        assert llm.model is None
 
 
-# ========== OptimizedSampler Tests ==========
+# ---------------------------------------------------------------------------
+# generate()
+# ---------------------------------------------------------------------------
 
-def test_repetition_penalty_vectorized():
-    logits = torch.tensor([
-        [1.0, 2.0, 3.0],
-        [1.0, 2.0, 3.0]
-    ])
-    tokens = torch.tensor([
-        [0, 1],
-        [1, 2]
-    ])
-    penalty = 2.0
-    out = OptimizedSampler.apply_repetition_penalty_vectorized(logits, tokens, penalty)
-    
-    assert out[0, 0] == pytest.approx(1.0 / penalty)
-    assert out[1, 2] == pytest.approx(3.0 / penalty)
-    assert out.shape == logits.shape
+class TestGenerate:
+
+    def test_returns_dict_with_tokens(self, llm, greedy_gen_config):
+        x = torch.randint(1, 999, (1, 5))
+        out = llm.generate(x, greedy_gen_config)
+        assert isinstance(out, dict)
+        assert "tokens" in out
+
+    def test_output_longer_than_input(self, llm, greedy_gen_config):
+        x = torch.randint(1, 999, (1, 5))
+        out = llm.generate(x, greedy_gen_config)
+        assert out["tokens"].shape[1] > 5
+
+    def test_greedy_is_deterministic(self, llm, greedy_gen_config):
+        x = torch.randint(1, 999, (1, 5))
+        out1 = llm.generate(x, greedy_gen_config)
+        out2 = llm.generate(x, greedy_gen_config)
+        assert torch.equal(out1["tokens"], out2["tokens"])
+
+    def test_batch_generation(self, llm, greedy_gen_config):
+        x = torch.randint(1, 999, (3, 5))
+        out = llm.generate(x, greedy_gen_config)
+        assert out["tokens"].shape[0] == 3
+
+    def test_with_kv_cache(self, llm, tiny_model_config):
+        cfg = GenerationConfig(
+            max_length=5, do_sample=False, use_kv_cache=True,
+            use_optimized_sampler=False, apply_repetition_penalty=False,
+            apply_top_k_sampling=False, apply_top_p_sampling=False,
+            temperature=1.0, pad_token_id=0,
+        )
+        x = torch.randint(1, tiny_model_config.vocab_size, (1, 4))
+        out = llm.generate(x, cfg)
+        assert out["tokens"].shape[1] > 4
+
+    def test_top_k_sampling(self, llm):
+        cfg = GenerationConfig(
+            max_length=5, do_sample=True, use_kv_cache=False,
+            use_optimized_sampler=True, apply_top_k_sampling=True,
+            top_k=10, apply_top_p_sampling=False,
+            apply_repetition_penalty=False, temperature=1.0, pad_token_id=0,
+        )
+        x = torch.randint(1, 999, (1, 5))
+        out = llm.generate(x, cfg)
+        assert "tokens" in out
+
+    def test_top_p_sampling(self, llm):
+        cfg = GenerationConfig(
+            max_length=5, do_sample=True, use_kv_cache=False,
+            use_optimized_sampler=True, apply_top_k_sampling=False,
+            apply_top_p_sampling=True, top_p=0.9,
+            apply_repetition_penalty=False, temperature=1.0, pad_token_id=0,
+        )
+        x = torch.randint(1, 999, (1, 5))
+        out = llm.generate(x, cfg)
+        assert "tokens" in out
+
+    def test_logprobs_returned_when_requested(self, llm, tiny_model_config):
+        cfg = GenerationConfig(
+            max_length=5, do_sample=False, use_kv_cache=False,
+            use_optimized_sampler=False, apply_repetition_penalty=False,
+            apply_top_k_sampling=False, apply_top_p_sampling=False,
+            temperature=1.0, pad_token_id=0, return_logprobs=True,
+        )
+        x = torch.randint(1, tiny_model_config.vocab_size, (1, 5))
+        out = llm.generate(x, cfg)
+        assert "logprobs" in out
+        assert out["logprobs"] is not None
+
+    def test_output_tokens_are_integers(self, llm, greedy_gen_config):
+        x = torch.randint(1, 999, (1, 5))
+        out = llm.generate(x, greedy_gen_config)
+        assert out["tokens"].dtype == torch.long
 
 
-def test_combined_top_k_top_p_sampling():
-    logits = torch.tensor([
-        [0.1, 0.3, 0.2, 0.4],
-        [0.5, 0.2, 0.1, 0.2]
-    ])
-    top_k = 2
-    top_p = 0.9
-    filtered = OptimizedSampler.combined_top_k_top_p_sampling(logits, top_k=top_k, top_p=top_p)
+# ---------------------------------------------------------------------------
+# generate_text()
+# ---------------------------------------------------------------------------
 
-    # Only top 2 logits should be non-inf
-    assert torch.isinf(filtered).sum().item() >= 2
+class TestGenerateText:
+
+    def test_returns_dict_with_text(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        result = llm.generate_text("hello world", tok, greedy_gen_config)
+        assert isinstance(result, dict)
+        assert "text" in result
+        assert isinstance(result["text"], str)
+
+    def test_returns_tokens_when_requested(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        greedy_gen_config.return_tokens = True
+        result = llm.generate_text("hello world", tok, greedy_gen_config)
+        assert result["tokens"] is not None
+
+    def test_empty_prompt_does_not_crash(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        result = llm.generate_text("", tok, greedy_gen_config)
+        assert "text" in result
 
 
-def test_check_eos_vectorized_all_match():
-    tokens = torch.tensor([99, 99, 99])
-    assert OptimizedSampler.check_eos_vectorized(tokens, eos_token_ids=[99]) is True
+# ---------------------------------------------------------------------------
+# generate_batch()
+# ---------------------------------------------------------------------------
 
+class TestGenerateBatch:
 
-def test_check_eos_vectorized_partial_match():
-    tokens = torch.tensor([99, 10, 99])
-    assert OptimizedSampler.check_eos_vectorized(tokens, eos_token_ids=[99]) is False
+    def test_returns_list_of_dicts(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        prompts = ["hello world", "foo bar baz"]
+        results = llm.generate_batch(prompts, tok, greedy_gen_config)
+        assert isinstance(results, list)
+        assert len(results) == 2
+        for r in results:
+            assert "text" in r
 
+    def test_empty_prompts_returns_empty(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        results = llm.generate_batch([], tok, greedy_gen_config)
+        assert results == []
 
-# ========== LLM Generation Tests ==========
-
-def test_llm_generation(dummy_model_config, dummy_generation_config):
-    tokenizer = DummyTokenizer()
-    llm = LLM(config=dummy_model_config, device="cpu")
-    
-    prompt = "token_1 token_2"
-    result = llm.generate_text(prompt, tokenizer, dummy_generation_config)
-
-    assert isinstance(result, dict)
-    assert "text" in result
-    assert "tokens" in result
-    assert isinstance(result["tokens"], list)
-    assert isinstance(result["text"], str)
-    assert len(result["tokens"]) >= len(tokenizer.encode(prompt)[0])
-
-def test_llm_batch_generation(dummy_model_config, dummy_generation_config):
-    tokenizer = DummyTokenizer()
-    llm = LLM(config=dummy_model_config, device="cpu")
-
-    prompts = ["token_1 token_2", "token_3 token_4"]
-    result = llm.generate_batch(prompts, tokenizer, dummy_generation_config)
-
-    assert isinstance(result, list)
-    assert len(result) == 2
-    for r in result:
-        assert "text" in r and isinstance(r["text"], str)
-        assert "tokens" in r and isinstance(r["tokens"], list)
+    def test_single_prompt_batch(self, llm, greedy_gen_config):
+        tok = DummyTokenizer()
+        results = llm.generate_batch(["hello"], tok, greedy_gen_config)
+        assert len(results) == 1

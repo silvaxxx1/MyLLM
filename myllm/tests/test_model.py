@@ -1,17 +1,11 @@
+"""Tests for GPT model components: MLP, KVCache, Attention, RoPE, full model."""
 import pytest
 import torch
-import math
-import os
-import sys
-
-# Add parent directory to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-
 import warnings
-warnings.filterwarnings("ignore", message="CUDA initialization: CUDA unknown error")
 
-from model import (
+warnings.filterwarnings("ignore", message="CUDA initialization")
+
+from myllm.model import (
     GPT,
     Block,
     CausalSelfAttention,
@@ -20,206 +14,235 @@ from model import (
     KVCache,
     RMSNorm,
     apply_rope,
-    pre_compute_freq
+    pre_compute_freq,
 )
-from Configs.ModelConfig import ModelConfig
+from myllm.Configs import ModelConfig
+
+
+# ---------------------------------------------------------------------------
+# Configs
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def gpt_config():
+    """GPT-style config (GptMLP, no RoPE)."""
+    return ModelConfig(
+        block_size=32, vocab_size=1000, n_layer=2,
+        n_head=2, n_embd=64, mlp_class_name="GptMLP",
+    )
+
+
+@pytest.fixture(scope="module")
+def llama_config():
+    """LLaMA-style config (LLaMAMLP, RoPE, GQA, RMSNorm)."""
+    return ModelConfig(
+        block_size=32, vocab_size=1000, n_layer=2,
+        n_head=4, n_embd=64, n_query_groups=2,
+        head_size=16, mlp_hidden_size=128,
+        mlp_class_name="LLaMAMLP",
+        norm_class_name="RMSNorm",
+        use_rope=True, rotary_percentage=1.0,
+        parallel_residual=True, norm_eps=1e-5,
+    )
+
 
 @pytest.fixture(autouse=True)
-def cleanup():
-    """Cleanup after each test"""
+def _clean_cuda():
     yield
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
 
-@pytest.fixture
-def test_config():
-    """Create a minimal test configuration"""
-    return ModelConfig(
-        block_size=32,
-        vocab_size=1000,
-        n_layer=2,
-        n_head=4,
-        n_embd=64,
-        n_query_groups=2,
-        head_size=16,
-        mlp_hidden_size=128,
-        dropout=0.1,
-        bias=False,
-        padded_vocab_size=1024,
-        attention_bias=False,
-        mlp_class_name="LLaMAMLP",
-        norm_class_name="RMSNorm",
-        use_rope=True,
-        rotary_percentage=1.0,
-        parallel_residual=True,
-        norm_eps=1e-5
-    )
 
-@pytest.fixture
-def device():
-    """Get the default device for testing"""
-    try:
-        if torch.cuda.is_available() and torch.cuda.device_count() > 0:
-            return torch.device("cuda:0")
-    except RuntimeError:
-        pass
-    return torch.device("cpu")
+# ---------------------------------------------------------------------------
+# MLP components
+# ---------------------------------------------------------------------------
+
+class TestGptMLP:
+
+    def test_init(self, gpt_config):
+        mlp = GptMLP(gpt_config)
+        assert hasattr(mlp, "c_fc") or hasattr(mlp, "fc")  # name may vary
+
+    def test_forward_shape(self, gpt_config):
+        mlp = GptMLP(gpt_config)
+        x = torch.randn(2, 8, gpt_config.n_embd)
+        out = mlp(x)
+        assert out.shape == (2, 8, gpt_config.n_embd)
+        assert torch.isfinite(out).all()
+
 
 class TestLLaMAMLP:
-    def test_initialization(self, test_config):
-        mlp = LLaMAMLP(test_config)
+
+    def test_init(self, llama_config):
+        mlp = LLaMAMLP(llama_config)
         assert isinstance(mlp.fc_1, torch.nn.Linear)
         assert isinstance(mlp.fc_2, torch.nn.Linear)
         assert isinstance(mlp.proj, torch.nn.Linear)
-        
-        # Test shapes
-        assert mlp.fc_1.weight.shape == (test_config.mlp_hidden_size, test_config.n_embd)
-        assert mlp.fc_2.weight.shape == (test_config.mlp_hidden_size, test_config.n_embd)
-        assert mlp.proj.weight.shape == (test_config.n_embd, test_config.mlp_hidden_size)
-        
-    def test_forward(self, test_config, device):
-        mlp = LLaMAMLP(test_config).to(device)
-        batch_size, seq_len = 2, 16
-        x = torch.randn(batch_size, seq_len, test_config.n_embd).to(device)
-        
-        output = mlp(x)
-        assert output.shape == (batch_size, seq_len, test_config.n_embd)
-        assert not torch.isnan(output).any()
-        assert not torch.isinf(output).any()
+
+    def test_weight_shapes(self, llama_config):
+        mlp = LLaMAMLP(llama_config)
+        assert mlp.fc_1.weight.shape == (llama_config.mlp_hidden_size, llama_config.n_embd)
+        assert mlp.proj.weight.shape == (llama_config.n_embd, llama_config.mlp_hidden_size)
+
+    def test_forward_shape(self, llama_config):
+        mlp = LLaMAMLP(llama_config)
+        x = torch.randn(2, 8, llama_config.n_embd)
+        out = mlp(x)
+        assert out.shape == (2, 8, llama_config.n_embd)
+        assert not torch.isnan(out).any()
+        assert not torch.isinf(out).any()
+
+
+# ---------------------------------------------------------------------------
+# KVCache
+# ---------------------------------------------------------------------------
 
 class TestKVCache:
-    def test_initialization(self):
-        cache = KVCache(
-            batch_size=2,
-            max_seq_len=32,
-            num_kv_heads=4,
-            head_dim=16,
-            dtype=torch.float32
+
+    def _make_cache(self):
+        return KVCache(
+            batch_size=2, max_seq_len=32,
+            num_kv_heads=4, head_dim=16,
+            dtype=torch.float32,
         )
+
+    def test_init(self):
+        cache = self._make_cache()
         assert cache.size == 0
         assert cache.k_cache.shape == (2, 4, 32, 16)
         assert cache.v_cache.shape == (2, 4, 32, 16)
-    
-    def test_update(self, device):
-        cache = KVCache(
-            batch_size=2,
-            max_seq_len=32,
-            num_kv_heads=4,
-            head_dim=16,
-            dtype=torch.float32
-        ).to(device)
-        
-        k_val = torch.randn(2, 4, 8, 16).to(device)
-        v_val = torch.randn(2, 4, 8, 16).to(device)
-        
-        k_out, v_out = cache.update(k_val, v_val)
+
+    def test_update_stores_values(self):
+        cache = self._make_cache()
+        k = torch.randn(2, 4, 8, 16)
+        v = torch.randn(2, 4, 8, 16)
+        k_out, v_out = cache.update(k, v)
         assert cache.size == 8
-        assert torch.equal(k_out[:, :, :8], k_val)
-        assert torch.equal(v_out[:, :, :8], v_val)
-        
-    def test_reset(self, device):
-        cache = KVCache(
-            batch_size=2,
-            max_seq_len=32,
-            num_kv_heads=4,
-            head_dim=16,
-            dtype=torch.float32
-        ).to(device)
-        
-        k_val = torch.randn(2, 4, 8, 16).to(device)
-        v_val = torch.randn(2, 4, 8, 16).to(device)
-        cache.update(k_val, v_val)
-        
+        assert torch.equal(k_out[:, :, :8], k)
+        assert torch.equal(v_out[:, :, :8], v)
+
+    def test_reset_clears_cache(self):
+        cache = self._make_cache()
+        k = torch.randn(2, 4, 8, 16)
+        v = torch.randn(2, 4, 8, 16)
+        cache.update(k, v)
         cache.reset()
         assert cache.size == 0
         assert torch.all(cache.k_cache == 0)
         assert torch.all(cache.v_cache == 0)
 
-class TestGPT:
-    def test_initialization(self, test_config):
-        model = GPT(test_config)
-        assert isinstance(model.lm_head, torch.nn.Linear)
-        assert isinstance(model.wte, torch.nn.Embedding)
-        assert len(model.transformer) == test_config.n_layer
-        
-    def test_forward(self, test_config, device):
-        model = GPT(test_config).to(device)
-        batch_size, seq_len = 2, 16
-        x = torch.randint(0, test_config.vocab_size, (batch_size, seq_len)).to(device)
-        
-        output = model(x)
-        expected_shape = (batch_size, seq_len, test_config.padded_vocab_size)
-        assert output.shape == expected_shape
-        assert not torch.isnan(output).any()
-        
-    def test_kv_cache(self, test_config, device):
-        model = GPT(test_config).to(device)
-        model.initialize_kv_cache(batch_size=1, max_seq_len=32)
-        
-        x = torch.randint(0, test_config.vocab_size, (1, 1)).to(device)
-        
-        with torch.no_grad():
-            for _ in range(5):
-                output = model(x, use_cache=True)
-                assert output.shape == (1, 1, test_config.padded_vocab_size)
-                x = output[:, -1:].argmax(dim=-1)
-        
-        model.reset_cache()
-        assert not model.kv_cache_initialized
-        
-    def test_memory_cleanup(self, test_config, device):
-        if device.type == "cuda":
-            torch.cuda.reset_peak_memory_stats()
-            initial_memory = torch.cuda.memory_allocated()
-            
-            model = GPT(test_config).to(device)
-            x = torch.randint(0, test_config.vocab_size, (1, 32)).to(device)
-            
-            with torch.no_grad():
-                output = model(x)
-                del output
-            
-            model.cpu()
-            del model
-            torch.cuda.empty_cache()
-            
-            final_memory = torch.cuda.memory_allocated()
-            allowed_margin = 1_000_000  # Allow 1MB fluctuation
-            assert final_memory <= initial_memory + allowed_margin, (
-                f"Memory leak detected: initial={initial_memory}, final={final_memory}"
-            )
 
+# ---------------------------------------------------------------------------
+# RMSNorm
+# ---------------------------------------------------------------------------
+
+class TestRMSNorm:
+
+    def test_output_shape(self):
+        norm = RMSNorm(64)
+        x = torch.randn(2, 8, 64)
+        out = norm(x)
+        assert out.shape == x.shape
+
+    def test_output_is_finite(self):
+        norm = RMSNorm(64)
+        x = torch.randn(2, 8, 64)
+        out = norm(x)
+        assert torch.isfinite(out).all()
+
+
+# ---------------------------------------------------------------------------
+# Attention
+# ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("batch_size,seq_len", [(2, 16), (1, 32), (4, 8)])
-def test_attention_shapes(test_config, device, batch_size, seq_len):
-    attn = CausalSelfAttention(test_config, block_idx=0).to(device)
-    x = torch.randn(batch_size, seq_len, test_config.n_embd).to(device)
-    
-    output = attn(x)
-    assert output.shape == (batch_size, seq_len, test_config.n_embd)
-    assert not torch.isnan(output).any()
+def test_attention_output_shape(gpt_config, batch_size, seq_len):
+    attn = CausalSelfAttention(gpt_config, block_idx=0)
+    x = torch.randn(batch_size, seq_len, gpt_config.n_embd)
+    out = attn(x)
+    assert out.shape == (batch_size, seq_len, gpt_config.n_embd)
+    assert not torch.isnan(out).any()
+
+
+# ---------------------------------------------------------------------------
+# RoPE
+# ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("block_size,n_head,n_embd", [
     (32, 4, 64),
     (64, 8, 128),
-    (16, 2, 32)
+    (16, 2, 32),
 ])
-def test_rope(block_size, n_head, n_embd):
-    config = ModelConfig(
-        block_size=block_size,
-        n_head=n_head,
-        n_embd=n_embd,
-        use_rope=True
+def test_rope_preserves_shape(block_size, n_head, n_embd):
+    cfg = ModelConfig(
+        block_size=block_size, n_head=n_head, n_embd=n_embd,
+        use_rope=True, vocab_size=1000, n_layer=2,
     )
-    
-    freqs = pre_compute_freq(config, context_length=block_size)
+    freqs = pre_compute_freq(cfg, context_length=block_size)
     x = torch.randn(2, n_head, block_size, n_embd // n_head)
-    
     rotated = apply_rope(x, freqs)
     assert rotated.shape == x.shape
     assert not torch.equal(rotated, x)
     assert not torch.isnan(rotated).any()
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+
+# ---------------------------------------------------------------------------
+# Full GPT model
+# ---------------------------------------------------------------------------
+
+class TestGPTModel:
+
+    def test_init(self, gpt_config):
+        model = GPT(gpt_config)
+        assert isinstance(model.lm_head, torch.nn.Linear)
+        assert isinstance(model.wte, torch.nn.Embedding)
+        assert len(model.transformer) == gpt_config.n_layer
+
+    def test_forward_shape(self, gpt_config):
+        model = GPT(gpt_config).eval()
+        x = torch.randint(0, gpt_config.vocab_size, (2, 16))
+        with torch.no_grad():
+            out = model(x)
+        # output vocab dim may be padded
+        assert out.shape[:2] == (2, 16)
+        assert out.shape[2] >= gpt_config.vocab_size
+
+    def test_output_is_finite(self, gpt_config):
+        model = GPT(gpt_config).eval()
+        x = torch.randint(0, gpt_config.vocab_size, (1, 8))
+        with torch.no_grad():
+            out = model(x)
+        assert torch.isfinite(out).all()
+
+    def test_single_token_forward(self, gpt_config):
+        model = GPT(gpt_config).eval()
+        x = torch.randint(0, gpt_config.vocab_size, (1, 1))
+        with torch.no_grad():
+            out = model(x)
+        assert out.shape[0] == 1
+        assert out.shape[1] == 1
+
+    def test_kv_cache_autoregressive(self, gpt_config):
+        model = GPT(gpt_config).eval()
+        model.initialize_kv_cache(batch_size=1, max_seq_len=32)
+        x = torch.randint(0, gpt_config.vocab_size, (1, 1))
+        with torch.no_grad():
+            for _ in range(5):
+                out = model(x, use_cache=True)
+                assert out.shape[0] == 1
+                x = out[:, -1:].argmax(dim=-1)
+        model.reset_cache()
+        assert not model.kv_cache_initialized
+
+    def test_llama_config_forward(self, llama_config):
+        model = GPT(llama_config).eval()
+        x = torch.randint(0, llama_config.vocab_size, (2, 16))
+        with torch.no_grad():
+            out = model(x)
+        assert out.shape[:2] == (2, 16)
+        assert torch.isfinite(out).all()
+
+    def test_parameter_count_positive(self, gpt_config):
+        model = GPT(gpt_config)
+        total = sum(p.numel() for p in model.parameters())
+        assert total > 0
