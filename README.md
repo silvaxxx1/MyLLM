@@ -75,6 +75,38 @@ pip install -e .
 
 # From GitHub
 pip install git+https://github.com/silvaxxx1/MyLLM.git
+
+# With optional dependency groups
+pip install "myllm[train]"      # + wandb, accelerate, deepspeed
+pip install "myllm[inference]"  # + matplotlib, pandas, seaborn
+pip install "myllm[all]"        # everything
+```
+
+### Import styles — three ways, all equivalent
+
+```python
+# Flat top-level (most convenient)
+from myllm import LLM, ModelConfig, GenerationConfig
+from myllm import SFTTrainer, SFTTrainerConfig
+from myllm import get_tokenizer
+
+# Submodule style (HuggingFace-like)
+from myllm.train import SFTTrainer, SFTTrainerConfig
+from myllm.tokenizers import GPT2Tokenizer, get_tokenizer
+from myllm.configs import ModelConfig, GenerationConfig
+
+# Attribute access
+import myllm
+myllm.train.SFTTrainer
+myllm.tokenizers.GPT2Tokenizer
+```
+
+### CLI
+
+```bash
+python -m myllm version              # print version
+python -m myllm models               # list all available model configs
+python -m myllm info gpt2-medium     # show params + memory estimate
 ```
 
 ### Load a model and generate
