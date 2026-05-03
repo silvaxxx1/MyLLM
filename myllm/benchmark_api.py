@@ -42,7 +42,7 @@ class Benchmark:
 
     def _load_model(self):
         print(f"Loading {self.model_name}...")
-        config = ModelConfig.from_name("gpt2-small")
+        config = ModelConfig.from_name(self.model_name)
         self.llm = LLM(config=config, device=self.device)
         self.llm.load(self.model_name, self.tokenizer_name)
 
