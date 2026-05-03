@@ -42,7 +42,8 @@ MyLLM is structured as a **learning → experimentation → framework** pipeline
 MyLLM/
 ├── notebooks/        # 21 guided notebooks — learn by doing
 ├── Modules/          # Isolated experiments — one concept at a time
-└── myllm/            # ⭐ Core framework — the main focus
+├── demos/            # 5 Colab-ready notebooks (install → quickstart → SFT)
+└── myllm/            # ⭐ Core framework — installable package
 ```
 
 ---
@@ -54,16 +55,16 @@ This is the heart of the project. A **HuggingFace-like framework, but fully tran
 ```
 myllm/
 ├── model.py          # Core LLM definition (GPT / LLaMA-style)
-├── api.py            # REST API for serving models (FastAPI)
-├── Configs/          # Centralized model & generation configs
+├── api.py            # LLM class — load, generate, generate_text, generate_batch
+├── Configs/          # ModelConfig, GenerationConfig (dataclasses)
 ├── Tokenizers/       # GPT2, LLaMA2, LLaMA3, trainable tokenizer
 ├── Train/            # Training engines
-│   ├── sft_trainer.py        # Supervised Fine-Tuning
-│   ├── dpo_trainer.py        # Direct Preference Optimization
-│   ├── ppo_trainer.py        # PPO / RLHF
+│   ├── sft_trainer.py        # Supervised Fine-Tuning ✅
+│   ├── dpo_trainer.py        # Direct Preference Optimization (stub)
+│   ├── ppo_trainer.py        # PPO / RLHF (stub)
 │   └── Engine/               # Training loop, accelerators, callbacks
 │       └── accelerator/      # Single GPU, DDP, DeepSpeed, FSDP
-└── utils/            # Loaders, samplers, weight mappers
+└── utils/            # Loaders, samplers, weight mappers, model registry
 ```
 
 ### Install
@@ -110,12 +111,6 @@ trainer.setup_model()
 trainer.setup_data(train_dataloader=my_dataloader)
 trainer.setup_optimizer()
 trainer.train()
-```
-
-### Serve via REST API
-
-```bash
-python myllm/api.py
 ```
 
 ### Run Tests
@@ -263,11 +258,19 @@ Weights are **auto-downloaded from HuggingFace** on first `llm.load()` call and 
 
 ## 📍 Roadmap
 
-| Status | Milestone | Description |
-|--------|-----------|-------------|
-| ✅ | Interactive Notebooks | From-first-principles learning |
-| ✅ | Modular Mini-Projects | Reusable experiments |
-| ⚙️ | **`myllm` Core Framework** | **SFT, DPO, PPO, quantization — active development** |
+| Status | Item |
+|--------|------|
+| ✅ | 21 learning notebooks (tokenization → RLHF → inference) |
+| ✅ | Modular experiments (GPT, LLaMA, attention variants, SFT, DPO, PPO, quantization) |
+| ✅ | Installable `myllm` package with public API |
+| ✅ | GPT-2 / LLaMA 2 / LLaMA 3 loading + generation |
+| ✅ | SFT Trainer (AMP, gradient accumulation, WandB, checkpointing) |
+| ✅ | 5 Colab-ready demo notebooks |
+| 🔧 | DPO Trainer — in progress |
+| ⬜ | PPO Trainer |
+| ⬜ | FastAPI inference server |
+| ⬜ | 8-bit / 4-bit quantization in core |
+| ⬜ | ModelConfig for Mistral, Phi-2, Gemma |
 
 ---
 
