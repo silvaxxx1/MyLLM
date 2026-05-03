@@ -25,14 +25,20 @@ MyLLM/
 │   ├── 3.training/     # Training loops, distributed training
 │   ├── 4.finetuning/   # SFT (spam, instruction), DPO, PPO, QLoRA
 │   └── 5.inference/    # GPT2 inference app, quantization
-├── myllm/              # Core framework
+├── demos/              # 5 Colab-ready notebooks (install → quickstart → SFT)
+├── myllm/              # Core framework (installable package)
+│   ├── __init__.py     # Full public API — LLM, ModelConfig, trainers, tokenizers
+│   ├── __main__.py     # CLI: python -m myllm version / models / info
 │   ├── model.py        # Core LLM definition
-│   ├── api.py          # REST API (FastAPI)
-│   ├── Configs/        # ModelConfig, GenConfig
+│   ├── api.py          # LLM class (load, generate, generate_text, generate_batch)
+│   ├── Configs/        # ModelConfig, GenerationConfig (dataclasses)
+│   ├── configs/        # Lowercase alias → from myllm.configs import ModelConfig
 │   ├── Tokenizers/     # GPT2, LLaMA2, LLaMA3, trainable tokenizer
+│   ├── tokenizers/     # Lowercase alias → from myllm.tokenizers import GPT2Tokenizer
 │   ├── Train/          # SFT, DPO, PPO trainers + Engine
-│   └── utils/          # Loaders, samplers, weight mappers
-├── models/             # Pre-downloaded weights (GPT2 small/medium/large/xl)
+│   ├── train/          # Lowercase alias → from myllm.train import SFTTrainer
+│   └── utils/          # Loaders, samplers, weight mappers, model registry
+├── models/             # Auto-downloaded weights cache (GPT2 small/medium/large/xl)
 └── main.py
 ```
 
@@ -96,18 +102,31 @@ x = self.attn(x)  # (batch, seq_len, d_model)
 python Modules/3.training/train.py --config configs/basic.yml
 ```
 
+### Load a model and generate
+```python
+from myllm import LLM, ModelConfig, GenerationConfig
+
+llm = LLM(config=ModelConfig.from_name("gpt2-small"), device="cuda")
+llm.load("gpt2-small")
+
+from transformers import GPT2Tokenizer
+tok = GPT2Tokenizer.from_pretrained("gpt2")
+result = llm.generate_text("Hello world", tok, GenerationConfig(max_length=50))
+print(result["text"])
+```
+
 ### Run the core framework SFT trainer
 ```python
-from myllm import LLM, ModelConfig
-from myllm.Train.sft_trainer import SFTTrainer
-from myllm.Train.configs.SFTConfig import SFTTrainerConfig
+from myllm import ModelConfig
+from myllm.train import SFTTrainer, SFTTrainerConfig
 
-model_config = ModelConfig.from_name("gpt2-small")
-trainer_config = SFTTrainerConfig(output_dir="./output", report_to=[])
-
-trainer = SFTTrainer(trainer_config, model_config=model_config)
+trainer = SFTTrainer(
+    SFTTrainerConfig(output_dir="./output", report_to=[]),
+    model_config=ModelConfig.from_name("gpt2-small"),
+)
 trainer.setup_model()
 trainer.setup_data(train_dataloader=my_dataloader)
+trainer.setup_optimizer()
 trainer.train()
 ```
 
@@ -196,6 +215,8 @@ Load via `myllm/utils/loader.py` or `myllm/utils/download_weight.py`.
 4. **WandB runs** in `Modules/4.finetuning/GPT2_RLHF_PPO/wandb/` — experiment logs only.
 5. **Typo in notebooks:** `Appandix_A` and `Appandix_B` (double 'a') — don't rename, notebooks reference these paths.
 6. **Duplicate model weights** exist in both `models/` (root) and `myllm/models/` — use `myllm/models/` for framework code.
+7. **`myllm/train/`, `myllm/tokenizers/`, `myllm/configs/`** are lowercase alias packages (thin re-exports) — they enable `from myllm.train import SFTTrainer` style but the real code lives in `Train/`, `Tokenizers/`, `Configs/`.
+8. **DPO and PPO trainers** (`dpo_trainer.py`, `ppo_trainer.py`) are scaffold stubs — they satisfy the ABC interface but do no real training.
 
 ---
 
@@ -204,11 +225,16 @@ Load via `myllm/utils/loader.py` or `myllm/utils/download_weight.py`.
 The **`myllm/` core framework is the main focus** — all work should be evaluated by how it improves the core.
 
 1. **`myllm/model.py`** — core LLM definition, keep it clean and extensible
-2. **`myllm/Train/`** — SFT, DPO, PPO trainers + Engine (accelerators, callbacks, checkpointing)
+2. **`myllm/Train/`** — SFT trainer is complete; DPO and PPO trainers are stubs (scaffold only, no real training logic yet)
 3. **`myllm/Tokenizers/`** — unified tokenizer interface across GPT2/LLaMA2/LLaMA3
-4. **`myllm/api.py`** — REST API for serving
-5. **`myllm/Configs/`** — centralized config management
-6. **Notebooks & Modules** — stable reference material, update only when core changes require it
+4. **`myllm/api.py`** — `LLM` class: load, generate, generate_text, generate_batch
+5. **`myllm/Configs/`** — centralized config management (ModelConfig + GenerationConfig)
+6. **`demos/`** — Colab-ready notebooks; keep aligned with any API changes
+7. **Notebooks & Modules** — stable reference material, update only when core changes require it
+
+### Next up
+- Add `ModelConfig` entries for Mistral, Phi-2, Gemma (weight mappers already written)
+- Implement real DPO trainer (reference model + DPO loss)
 
 ---
 

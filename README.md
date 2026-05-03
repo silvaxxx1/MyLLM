@@ -66,19 +66,49 @@ myllm/
 └── utils/            # Loaders, samplers, weight mappers
 ```
 
-### Quick Start
+### Install
+
+```bash
+# Local (editable)
+pip install -e .
+
+# From GitHub
+pip install git+https://github.com/silvaxxx1/MyLLM.git
+```
+
+### Load a model and generate
 
 ```python
-from myllm.model import LLMModel
-from myllm.Train.sft_trainer import SFTTrainer
+from myllm import LLM, ModelConfig, GenerationConfig
 
-model = LLMModel()
+cfg = ModelConfig.from_name("gpt2-small")   # or llama3-1b, llama2-7b, …
+llm = LLM(config=cfg, device="cuda")
+llm.load("gpt2-small")                      # downloads & caches weights automatically
+
+from transformers import GPT2Tokenizer
+tok = GPT2Tokenizer.from_pretrained("gpt2")
+
+result = llm.generate_text(
+    "The future of AI is",
+    tokenizer=tok,
+    generation_config=GenerationConfig(max_length=60, temperature=0.8, top_k=50),
+)
+print(result["text"])
+```
+
+### Fine-tune with SFT
+
+```python
+from myllm import ModelConfig
+from myllm.train import SFTTrainer, SFTTrainerConfig
 
 trainer = SFTTrainer(
-    model=model,
-    dataset=my_dataset
+    SFTTrainerConfig(output_dir="./output", num_epochs=3, report_to=[]),
+    model_config=ModelConfig.from_name("gpt2-small"),
 )
-
+trainer.setup_model()
+trainer.setup_data(train_dataloader=my_dataloader)
+trainer.setup_optimizer()
 trainer.train()
 ```
 
@@ -184,26 +214,50 @@ python Modules/3.training/train.py --config configs/basic.yml
 
 ---
 
+## 🧪 Try it on Colab
+
+Five ready-to-run notebooks in `demos/` — open any one directly in Google Colab:
+
+| Notebook | What it covers |
+|----------|---------------|
+| `00_install_and_setup.ipynb` | Install, all import styles, CLI |
+| `01_quickstart.ipynb` | Load model → generate text |
+| `02_generation_configs.ipynb` | All sampling strategies compared |
+| `03_tokenizers_and_configs.ipynb` | Tokenizers, ModelConfig, memory estimation |
+| `04_sft_training.ipynb` | Fine-tune GPT-2 on an instruction dataset |
+
+Each notebook installs `myllm` automatically on first run.
+
+---
+
 ## ⚙️ Setup
 
 ```bash
+# Using uv (recommended)
 uv sync
+
+# Or pip
+pip install -e .
 ```
 
 **Requirements:** Python 3.10+, PyTorch 2.x, CUDA recommended.
 
 ---
 
-## 📦 Pre-trained Weights
+## 📦 Supported Models
 
-GPT-2 weights are included for experimentation:
+Weights are **auto-downloaded from HuggingFace** on first `llm.load()` call and cached in `./models/`.
 
-| Model | Parameters | File |
-|-------|-----------|------|
-| GPT-2 Small | 124M | `models/model-gpt2-small.safetensors` |
-| GPT-2 Medium | 335M | `models/model-gpt2-medium.safetensors` |
-| GPT-2 Large | 774M | `models/model-gpt2-large.safetensors` |
-| GPT-2 XL | 1.5B | `models/model-gpt2-xl.safetensors` |
+| Model | Params | Auth | Min VRAM (fp16) |
+|-------|--------|------|-----------------|
+| `gpt2-small` | 124M | — | < 1 GB |
+| `gpt2-medium` | 335M | — | 1 GB |
+| `gpt2-large` | 774M | — | 2 GB |
+| `gpt2-xl` | 1.5B | — | 4 GB |
+| `llama3-1b` | 1.9B | HF token | 3 GB |
+| `llama3-8b` | 8B | HF token | 17 GB |
+| `llama2-7b` | 7B | HF token + license | 16 GB |
+| `llama2-13b` | 13B | HF token + license | 32 GB |
 
 ---
 
