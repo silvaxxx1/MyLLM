@@ -1,4 +1,4 @@
-# 🚀 MyLLM — A Transparent LLM Framework, Built From Scratch
+# MyLLM — A Transparent LLM Framework, Built From Scratch
 
 <p align="center">
   <img src="./myllm.png" width="800" alt="MyLLM Overview">
@@ -7,6 +7,7 @@
 ![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red.svg)
+![Tests](https://img.shields.io/badge/tests-128%20passed-brightgreen.svg)
 
 ---
 
@@ -18,23 +19,18 @@ It covers the full pipeline:
 
 > **Tokenization → Attention → Training → RLHF → Inference**
 
-The core goal is simple:
-
-> **Understand every single line of a modern transformer stack —**  
-> **then build a clean, research-grade framework around it.**
-
-There are already great libraries (🤗 Hugging Face, Lightning, TRL…). But they hide too much.
+There are already great libraries (HuggingFace, Lightning, TRL). But they hide too much.
 
 MyLLM is intentionally different:
 
-- **Minimal** — no unnecessary abstractions
-- **Hackable** — everything is visible and editable
-- **Research-friendly** — LoRA, QLoRA, PPO, DPO, quantization
+- **Pure PyTorch** — no HuggingFace model abstractions in the core
+- **Every line visible** — no hidden magic, no black boxes
+- **Research-friendly** — SFT, DPO, PPO, quantization
 - **From scratch** — so you *actually* understand what's happening
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 MyLLM is structured as a **learning → experimentation → framework** pipeline.
 
@@ -43,43 +39,46 @@ MyLLM/
 ├── notebooks/        # 21 guided notebooks — learn by doing
 ├── Modules/          # Isolated experiments — one concept at a time
 ├── demos/            # 5 Colab-ready notebooks (install → quickstart → SFT)
+├── docs/             # Component-by-component reference documentation
 └── myllm/            # ⭐ Core framework — installable package
 ```
 
 ---
 
-## ⭐ `myllm/` — The Core Framework
+## `myllm/` — The Core Framework
 
-This is the heart of the project. A **HuggingFace-like framework, but fully transparent** — pure PyTorch, no black boxes.
+A clean, installable LLM framework — pure PyTorch, fully transparent.
 
 ```
 myllm/
-├── model.py          # Core LLM definition (GPT / LLaMA-style)
-├── api.py            # LLM class — load, generate, generate_text, generate_batch
-├── Configs/          # ModelConfig, GenerationConfig (dataclasses)
-├── Tokenizers/       # GPT2, LLaMA2, LLaMA3, trainable tokenizer
-├── Train/            # Training engines
+├── model.py          # GPT / LLaMA-style transformer
+├── api.py            # LLM — from_pretrained, generate, generate_text, generate_batch
+├── Configs/          # ModelConfig, GenerationConfig
+├── Tokenizers/       # GPT2 (tiktoken), LLaMA2 (SentencePiece), LLaMA3, trainable
+├── Train/
 │   ├── sft_trainer.py        # Supervised Fine-Tuning ✅
-│   ├── dpo_trainer.py        # Direct Preference Optimization (stub)
-│   ├── ppo_trainer.py        # PPO / RLHF (stub)
+│   ├── dpo_trainer.py        # Direct Preference Optimization (in progress)
+│   ├── ppo_trainer.py        # PPO / RLHF (in progress)
 │   └── Engine/               # Training loop, accelerators, callbacks
 │       └── accelerator/      # Single GPU, DDP, DeepSpeed, FSDP
-└── utils/            # Loaders, samplers, weight mappers, model registry
+└── utils/            # ModelLoader, weight mappers, sampler, model registry
 ```
 
 ### Install
 
 ```bash
-# Local (editable)
-pip install -e .
-
-# From GitHub
+# From GitHub (always latest)
 pip install git+https://github.com/silvaxxx1/MyLLM.git
 
-# With optional dependency groups
-pip install "myllm[train]"      # + wandb, accelerate, deepspeed
-pip install "myllm[inference]"  # + matplotlib, pandas, seaborn
-pip install "myllm[all]"        # everything
+# Local editable install
+git clone https://github.com/silvaxxx1/MyLLM.git
+cd MyLLM
+pip install -e .          # or: uv pip install -e .
+
+# With optional groups
+pip install "myllm[train] @ git+https://github.com/silvaxxx1/MyLLM.git"    # + wandb, accelerate, deepspeed
+pip install "myllm[inference] @ git+https://github.com/silvaxxx1/MyLLM.git" # + matplotlib, pandas, seaborn
+pip install "myllm[all] @ git+https://github.com/silvaxxx1/MyLLM.git"       # everything
 ```
 
 ### Import styles — three ways, all equivalent
@@ -90,7 +89,7 @@ from myllm import LLM, ModelConfig, GenerationConfig
 from myllm import SFTTrainer, SFTTrainerConfig
 from myllm import get_tokenizer
 
-# Submodule style (HuggingFace-like)
+# Submodule style
 from myllm.train import SFTTrainer, SFTTrainerConfig
 from myllm.tokenizers import GPT2Tokenizer, get_tokenizer
 from myllm.configs import ModelConfig, GenerationConfig
@@ -104,9 +103,9 @@ myllm.tokenizers.GPT2Tokenizer
 ### CLI
 
 ```bash
-python -m myllm version              # print version
-python -m myllm models               # list all available model configs
-python -m myllm info gpt2-medium     # show params + memory estimate
+python -m myllm version          # myllm 0.1.0
+python -m myllm models           # list all available model configs
+python -m myllm info gpt2-medium # layers, heads, params, memory estimate
 ```
 
 ### Load a model and generate
@@ -114,9 +113,10 @@ python -m myllm info gpt2-medium     # show params + memory estimate
 ```python
 from myllm import LLM, GenerationConfig
 
-# One line: config + weights + tokenizer
-llm = LLM.from_pretrained("gpt2-small")    # or llama3-1b, llama2-7b, …
-print(llm)  # LLM(model='gpt2-small', params=124.4M, device='cuda', dtype=torch.float32)
+# Config + weights + tokenizer — one call
+llm = LLM.from_pretrained("gpt2-small")
+print(llm)
+# LLM(model='gpt2-small', params=124.4M, device='cuda', dtype=torch.float32)
 
 result = llm.generate_text(
     "The future of AI is",
@@ -142,138 +142,129 @@ trainer.setup_optimizer()
 trainer.train()
 ```
 
-### Run Tests
+### Run tests
 
 ```bash
-uv run pytest
+uv run pytest       # 128 tests, ~15s on CPU, no GPU or weights required
 ```
-
-> Every line maps to **real code**. No hidden magic. No black boxes.
 
 ---
 
-## 🧪 Test Suite
+## Test Suite
 
-All tests live in `myllm/tests/` and run against a tiny randomly-initialised model (2-layer / 64-dim) — no pretrained weights required, CPU-only.
+All tests run against a tiny randomly-initialised model (2 layers / 64 dim) — no pretrained weights, CPU-only.
 
 ```
 myllm/tests/
-├── conftest.py          # Shared fixtures and batch utilities
-├── test_config.py       # ModelConfig & GenerationConfig
-├── test_model.py        # GPT components: MLP, KVCache, Attention, RoPE, forward pass
-├── test_tokenizers.py   # Tokenizer factory, GPT-2 encode/decode
-├── test_api.py          # LLM wrapper: generate, generate_text, generate_batch
-├── test_sampler.py      # Repetition penalty, top-k, top-p, EOS detection
-├── test_training.py     # Trainers (Pretrain / SFT / Classifier), configs, factory, datasets
-└── test_e2e.py          # Full pipeline: init → train → checkpoint → generate
+├── conftest.py          # shared fixtures and batch utilities
+├── test_config.py       # ModelConfig, GenerationConfig
+├── test_model.py        # GPT: MLP variants, KV cache, attention, RoPE, forward pass
+├── test_tokenizers.py   # tokenizer factory, GPT-2 encode/decode, wrapper
+├── test_api.py          # LLM: generate, generate_text, generate_batch, all sampling modes
+├── test_sampler.py      # repetition penalty, top-k, top-p, EOS detection
+├── test_training.py     # SFT / Pretrain / Classifier trainers, configs, checkpoints
+└── test_e2e.py          # full pipeline: init → train → checkpoint → generate
 ```
 
-**Results (128 tests, 48s on CPU + GPU):**
+**128 passed — ~15s on CPU:**
 
-```
-======================== 128 passed in 48.24s ==========================
-```
-
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| Config | 14 | ModelConfig presets, validation, save/load, memory estimation |
-| Model | 20 | MLP variants, KVCache, RMSNorm, Attention shapes, RoPE, full forward |
-| Tokenizers | 16 | Factory caching, GPT-2 encode/decode, special tokens, Unicode |
-| API | 19 | generate(), generate_text(), generate_batch(), all sampling modes |
+| Module | Tests | What's covered |
+|--------|-------|----------------|
+| Config | 14 | Presets, validation, save/load, memory estimation |
+| Model | 20 | MLP variants, KV cache, RMSNorm, attention shapes, RoPE |
+| Tokenizers | 16 | Factory caching, encode/decode, special tokens, padding |
+| API | 19 | generate(), generate_text(), generate_batch(), sampling modes |
 | Sampler | 15 | Repetition penalty, top-k, top-p, EOS detection |
-| Training | 36 | All 3 trainers, configs, datasets, factory, checkpoint save/load |
-| E2E | 8 | Init → train steps → checkpoint → inference → full pipeline |
+| Training | 36 | All trainers, configs, datasets, checkpoint save/load |
+| E2E | 8 | Init → train → checkpoint → inference |
 
 ---
 
-## 1️⃣ `notebooks/` — Learn by Doing
+## `notebooks/` — Learn by Doing
 
-The entry point for understanding. Each notebook explains theory, implements from scratch, and encourages experimentation.
+21 notebooks. Theory → implementation → experimentation, in order.
 
 ```
-notebooks/
-├── 0.0.WELCOME.ipynb
-├── 1.1.DATA.ipynb
-├── 1.2.Tokenizer.ipynb
-├── 2.1.ATTENTION.ipynb
-├── 2.2.More_ATTENTION.ipynb
-├── 2.3.GPT.ipynb
-├── 2.4.Llama3.ipynb
-├── 3.1.TRAIN.ipynb
-├── 3.2.TRAIN_Pro.ipynb
-├── 4.1.SFT_Text_Classification.ipynb
-├── 4.2.SFT_Instruction_Following.ipynb
-├── 4.3.SFT_PEFT.ipynb
-├── 5.1.RLHF_PPO.ipynb
-├── 5.2.RL_DPO.ipynb
-├── 6.1.INFERENCE_Text_Generation.ipynb
-├── 6.2.KV_Cache.ipynb
-├── 6.3.Quantization_1.ipynb
-├── 6.4.Quantization_2.ipynb
-└── Appendices (GPT-2/LLaMA2, Gradio UI)
+0.0  Welcome & orientation
+1.1  Data & tokenization
+1.2  Byte-pair encoding from scratch
+2.1  Attention from scratch
+2.2  Multi-head, grouped-query, flash attention
+2.3  GPT architecture
+2.4  LLaMA 3 architecture
+3.1  Training loop
+3.2  Advanced training (AMP, grad accumulation, distributed)
+4.1  SFT — text classification
+4.2  SFT — instruction following
+4.3  PEFT / LoRA
+5.1  RLHF with PPO
+5.2  DPO
+6.1  Inference & text generation
+6.2  KV cache
+6.3  Quantization (INT8)
+6.4  Quantization (INT4 / GPTQ)
+A/B  Appendices: GPT-2 vs LLaMA2, Gradio UI
 ```
-
-💡 *Change an attention mask and immediately see how generation breaks or improves. That's real learning.*
 
 ---
 
-## 2️⃣ `Modules/` — Targeted Experiments
+## `Modules/` — Targeted Experiments
 
-Isolates one concept at a time. A proving ground before ideas graduate into the core framework.
+One concept per module. Proving ground before ideas graduate into the core framework.
 
 ```
 Modules/
 ├── 1.data/        # Dataset loading & preprocessing
-├── 2.models/      # GPT, LLaMA-style architectures, attention variants
-├── 3.training/    # Training loops & utilities
-├── 4.finetuning/  # SFT, DPO, PPO experiments
+├── 2.models/      # GPT, LLaMA architectures, attention variants (MHA/MQA/GQA/Flash)
+├── 3.training/    # Training loops and utilities
+├── 4.finetuning/  # SFT, DPO, PPO, QLoRA experiments
 └── 5.inference/   # KV cache, quantization
 ```
 
-### Example: Train a small GPT from scratch
-
-```bash
-python Modules/3.training/train.py --config configs/basic.yml
-```
-
 ---
 
-## 🧪 Try it on Colab
+## `demos/` — Try it on Colab
 
-Five ready-to-run notebooks in `demos/` — open any one directly in Google Colab:
+Five Colab-ready notebooks. Each installs `myllm` automatically.
 
 | Notebook | What it covers |
 |----------|---------------|
-| `00_install_and_setup.ipynb` | Install, all import styles, CLI |
-| `01_quickstart.ipynb` | Load model → generate text |
+| `00_install_and_setup.ipynb` | Install, import styles, CLI, memory estimates |
+| `01_quickstart.ipynb` | `from_pretrained` → generate → `skip_prompt` |
 | `02_generation_configs.ipynb` | All sampling strategies compared |
-| `03_tokenizers_and_configs.ipynb` | Tokenizers, ModelConfig, memory estimation |
-| `04_sft_training.ipynb` | Fine-tune GPT-2 on an instruction dataset |
-
-Each notebook installs `myllm` automatically on first run.
+| `03_tokenizers_and_configs.ipynb` | Tokenizers, ModelConfig, save/load |
+| `04_sft_training.ipynb` | Fine-tune GPT-2 on an instruction dataset end-to-end |
 
 ---
 
-## ⚙️ Setup
+## `docs/` — Reference Documentation
 
-```bash
-# Using uv (recommended)
-uv sync
+34-page component-by-component documentation covering every public class and method.
 
-# Or pip
-pip install -e .
+```
+docs/
+├── getting-started/   # installation, quickstart
+├── core/              # ModelConfig, GenerationConfig, LLM, GPT model
+├── tokenizers/        # overview, factory, wrapper, GPT2, LLaMA2, LLaMA3, trainable
+├── training/          # overview, BaseTrainer, SFTTrainer, PretrainTrainer, DPO, PPO
+├── training-configs/  # TrainerConfig, SFTConfig, DPOConfig
+├── engine/            # TrainerEngine, accelerators, callbacks, checkpointing
+├── utils/             # ModelLoader, ModelRegistry, WeightMappers, OptimizedSampler
+├── cli.md
+├── testing.md
+└── extension-guide.md
 ```
 
-**Requirements:** Python 3.10+, PyTorch 2.x, CUDA recommended.
+Start at [`docs/index.md`](docs/index.md).
 
 ---
 
-## 📦 Supported Models
+## Supported Models
 
-Weights are **auto-downloaded from HuggingFace** on first `llm.load()` call and cached in `./models/`.
+Weights are auto-downloaded from HuggingFace on first `LLM.from_pretrained()` call and cached in `./models/`.
 
-| Model | Params | Auth | Min VRAM (fp16) |
-|-------|--------|------|-----------------|
+| Model | Params | Auth required | Min VRAM (fp16) |
+|-------|--------|---------------|-----------------|
 | `gpt2-small` | 124M | — | < 1 GB |
 | `gpt2-medium` | 335M | — | 1 GB |
 | `gpt2-large` | 774M | — | 2 GB |
@@ -285,35 +276,42 @@ Weights are **auto-downloaded from HuggingFace** on first `llm.load()` call and 
 
 ---
 
-## 📍 Roadmap
+## Roadmap
 
 | Status | Item |
 |--------|------|
 | ✅ | 21 learning notebooks (tokenization → RLHF → inference) |
 | ✅ | Modular experiments (GPT, LLaMA, attention variants, SFT, DPO, PPO, quantization) |
 | ✅ | Installable `myllm` package with public API |
-| ✅ | GPT-2 / LLaMA 2 / LLaMA 3 loading + generation |
+| ✅ | GPT-2 / LLaMA-2 / LLaMA-3 loading + generation |
+| ✅ | `LLM.from_pretrained()` — one-line model + tokenizer loader |
 | ✅ | SFT Trainer (AMP, gradient accumulation, WandB, checkpointing) |
 | ✅ | 5 Colab-ready demo notebooks |
-| 🔧 | DPO Trainer — in progress |
-| ⬜ | PPO Trainer |
-| ⬜ | FastAPI inference server |
-| ⬜ | 8-bit / 4-bit quantization in core |
-| ⬜ | ModelConfig for Mistral, Phi-2, Gemma |
+| ✅ | 34-page component-level documentation |
+| ✅ | 128-test suite (CPU-only, no weights needed) |
+| 🔧 | DPO Trainer — implementation in progress |
+| 🔧 | PPO Trainer — implementation in progress |
+| ⬜ | Streaming generation (`generate_stream()`) |
+| ⬜ | ModelConfig entries for Mistral, Phi-2, Gemma |
+| ⬜ | 8-bit / 4-bit quantization in core `myllm/` |
 
 ---
 
-## ⚡ Quick Challenges
+## Setup
 
-- Modify attention masks and observe behavior
-- Train a GPT on a custom dataset
-- Add a new trainer (TRL-style) to `myllm/Train/`
-- Quantize a model and benchmark speed
-- Implement a new attention variant and benchmark it in `Modules/2.models/atten/`
+```bash
+# Recommended
+uv sync
+
+# Or pip
+pip install -e .
+```
+
+Requirements: Python 3.10+, PyTorch 2.x
 
 ---
 
-## 🙌 Inspiration
+## Inspiration
 
 - **Andrej Karpathy** — NanoGPT minimalism
 - **Umar Jamil** — Practical transformer intuition
@@ -321,15 +319,6 @@ Weights are **auto-downloaded from HuggingFace** on first `llm.load()` call and 
 
 ---
 
-## 🏁 The Vision
+## License
 
-A **transparent, educational, and production-ready LLM framework**  
-built from scratch by people who want to **own every line of their AI system**.
-
-Let's remove the black boxes and **build LLMs the right way**.
-
----
-
-## 📜 License
-
-MIT License — see `LICENSE` for details.
+MIT — see `LICENSE` for details.
