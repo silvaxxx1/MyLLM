@@ -24,9 +24,7 @@ TINY = ModelConfig(
 
 GREEDY = GenerationConfig(
     max_length=8, do_sample=False, use_kv_cache=False,
-    use_optimized_sampler=False, apply_repetition_penalty=False,
-    apply_top_k_sampling=False, apply_top_p_sampling=False,
-    temperature=1.0, pad_token_id=0,
+    use_optimized_sampler=False, temperature=1.0, pad_token_id=0,
 )
 
 
@@ -139,9 +137,7 @@ def test_generate_with_kv_cache():
 
     cached_cfg = GenerationConfig(
         max_length=8, do_sample=False, use_kv_cache=True,
-        use_optimized_sampler=False, apply_repetition_penalty=False,
-        apply_top_k_sampling=False, apply_top_p_sampling=False,
-        temperature=1.0, pad_token_id=0,
+        use_optimized_sampler=False, temperature=1.0, pad_token_id=0,
     )
     x = torch.randint(1, 999, (1, 5))
     out_cached = llm.generate(x, cached_cfg)

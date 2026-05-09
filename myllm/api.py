@@ -44,6 +44,7 @@ class LLM(nn.Module):
         self.loader = ModelLoader(cache_dir="./models")
         self.torch_dtype = torch_dtype or torch.float32
         self.low_cpu_mem_usage = low_cpu_mem_usage
+        self.tokenizer = None
         self.sampler = OptimizedSampler()
         self.use_amp = torch.cuda.is_available() and device != "cpu"
         self.scaler = torch.amp.GradScaler('cuda') if self.use_amp else None
@@ -198,14 +199,13 @@ class LLM(nn.Module):
 
             # Apply sampling strategies
             if generation_config.use_optimized_sampler:
-                if (generation_config.apply_repetition_penalty and 
-                    generation_config.repetition_penalty != 1.0):
+                if generation_config.repetition_penalty != 1.0:
                     next_token_logits = self.sampler.apply_repetition_penalty_vectorized(
                         next_token_logits, generated, generation_config.repetition_penalty
                     )
 
-                top_k = generation_config.top_k if generation_config.apply_top_k_sampling else None
-                top_p = generation_config.top_p if generation_config.apply_top_p_sampling else None
+                top_k = generation_config.top_k
+                top_p = generation_config.top_p
 
                 next_token_logits = self.sampler.combined_top_k_top_p_sampling(
                     next_token_logits, top_k, top_p
@@ -248,27 +248,96 @@ class LLM(nn.Module):
             output["logprobs"] = torch.cat(logprobs, dim=1)
         return output
 
+    def __repr__(self) -> str:
+        if self.model is None:
+            return f"LLM(no model loaded, device='{self.device}')"
+        name = getattr(self.config, 'name', 'unknown')
+        n_params = sum(p.numel() for p in self.model.parameters())
+        dtype = next(self.model.parameters()).dtype
+        return f"LLM(model='{name}', params={n_params/1e6:.1f}M, device='{self.device}', dtype={dtype})"
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        model_name: str,
+        device: Optional[str] = None,
+        torch_dtype: Optional[torch.dtype] = None,
+        low_cpu_mem_usage: bool = True,
+    ) -> 'LLM':
+        """
+        One-line model + tokenizer loader.
+
+        Args:
+            model_name: e.g. 'gpt2-small', 'gpt2-medium'
+            device: 'cuda' or 'cpu' (auto-detected if None)
+            torch_dtype: optional dtype override (e.g. torch.float16)
+            low_cpu_mem_usage: load weights incrementally to save memory
+
+        Returns:
+            Ready-to-use LLM with .tokenizer set.
+
+        Example:
+            llm = LLM.from_pretrained('gpt2-small')
+            print(llm.generate_text('Hello world', GenerationConfig(max_length=50)))
+        """
+        from myllm.Tokenizers.factory import get_tokenizer
+
+        if device is None:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        config = ModelConfig.from_name(model_name)
+        llm = cls(config=config, device=device, torch_dtype=torch_dtype,
+                  low_cpu_mem_usage=low_cpu_mem_usage)
+        llm.load(model_name)
+
+        family = model_name.split('-')[0]  # 'gpt2', 'llama2', 'llama3'
+        try:
+            llm.tokenizer = get_tokenizer(family)
+        except Exception:
+            print(f"Note: could not auto-load tokenizer for '{family}'. Pass one to generate_text().")
+
+        return llm
+
     def generate_text(
-        self, prompt: str, tokenizer, generation_config: GenerationConfig
+        self,
+        prompt: str,
+        tokenizer=None,
+        generation_config: GenerationConfig = None,
+        skip_prompt: bool = False,
     ) -> Dict[str, Any]:
         """
         Generate text from string prompt.
-        
+
         Args:
             prompt: Input text string
-            tokenizer: Tokenizer instance
-            generation_config: Generation parameters
-            
+            tokenizer: Tokenizer instance (uses self.tokenizer if None)
+            generation_config: Generation parameters (uses defaults if None)
+            skip_prompt: If True, return only the newly generated tokens, not the prompt
+
         Returns:
             Dictionary containing generated text, tokens, and logprobs
         """
-        input_ids = tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+        tok = tokenizer if tokenizer is not None else self.tokenizer
+        if tok is None:
+            raise ValueError(
+                "No tokenizer available. Pass one as the second argument "
+                "or use LLM.from_pretrained() which auto-loads one."
+            )
+        if generation_config is None:
+            generation_config = GenerationConfig()
+
+        input_ids = tok.encode(prompt, return_tensors="pt").to(self.device)
         output = self.generate(input_ids, generation_config)
-        text = tokenizer.decode(output["tokens"][0], skip_special_tokens=True)
-        
+
+        tokens = output["tokens"][0]
+        if skip_prompt:
+            tokens = tokens[input_ids.shape[1]:]
+
+        text = tok.decode(tokens, skip_special_tokens=True)
+
         return {
             "text": text,
-            "tokens": (output["tokens"][0].tolist() 
+            "tokens": (output["tokens"][0].tolist()
                       if generation_config.return_tokens else None),
             "logprobs": output.get("logprobs", None)
         }

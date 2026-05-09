@@ -20,10 +20,7 @@ class GenerationConfig:
     typical_p: Optional[float] = None  # Typical sampling (not used here)
     do_sample: bool = True  # Whether to sample or do greedy decoding
     use_kv_cache: bool = True  # Whether to use KV caching
-    repetition_penalty: float = 1.0  # Penalize repeated tokens
-    apply_repetition_penalty: bool = True  # Toggle repetition penalty on/off
-    apply_top_k_sampling: bool = True  # Toggle top-k sampling on/off
-    apply_top_p_sampling: bool = True  # Toggle top-p sampling on/off
+    repetition_penalty: float = 1.0  # Penalize repeated tokens (1.0 = off)
     no_repeat_ngram_size: Optional[int] = None  # Prevent n-gram repetitions (not used)
     early_stopping: bool = True  # Stop generation on EOS
     eos_token_ids: Optional[List[int]] = None  # End-of-sequence token(s)

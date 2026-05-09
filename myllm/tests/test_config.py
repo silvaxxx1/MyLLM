@@ -87,8 +87,6 @@ class TestGenerationConfig:
         assert cfg.temperature == 1.0
         assert cfg.do_sample is True
         assert cfg.use_kv_cache is True
-        assert cfg.apply_repetition_penalty is True
-        assert cfg.apply_top_k_sampling is True
         assert cfg.return_tokens is True
         assert cfg.use_optimized_sampler is True
 

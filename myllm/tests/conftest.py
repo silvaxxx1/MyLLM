@@ -43,9 +43,6 @@ def greedy_gen_config() -> GenerationConfig:
         do_sample=False,
         use_kv_cache=False,
         use_optimized_sampler=False,
-        apply_repetition_penalty=False,
-        apply_top_k_sampling=False,
-        apply_top_p_sampling=False,
         temperature=1.0,
         pad_token_id=0,
     )
@@ -139,3 +136,4 @@ def make_trainer_config(config_cls, tmp_path, **overrides):
     )
     defaults.update(overrides)
     return config_cls(**defaults)
+ 

@@ -112,19 +112,16 @@ python -m myllm info gpt2-medium     # show params + memory estimate
 ### Load a model and generate
 
 ```python
-from myllm import LLM, ModelConfig, GenerationConfig
+from myllm import LLM, GenerationConfig
 
-cfg = ModelConfig.from_name("gpt2-small")   # or llama3-1b, llama2-7b, …
-llm = LLM(config=cfg, device="cuda")
-llm.load("gpt2-small")                      # downloads & caches weights automatically
-
-from transformers import GPT2Tokenizer
-tok = GPT2Tokenizer.from_pretrained("gpt2")
+# One line: config + weights + tokenizer
+llm = LLM.from_pretrained("gpt2-small")    # or llama3-1b, llama2-7b, …
+print(llm)  # LLM(model='gpt2-small', params=124.4M, device='cuda', dtype=torch.float32)
 
 result = llm.generate_text(
     "The future of AI is",
-    tokenizer=tok,
     generation_config=GenerationConfig(max_length=60, temperature=0.8, top_k=50),
+    skip_prompt=True,   # return only the generated text, not the input prompt
 )
 print(result["text"])
 ```

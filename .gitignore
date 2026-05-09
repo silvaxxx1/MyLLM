@@ -57,3 +57,12 @@ datasets/
 
 # HuggingFace cache
 huggingface_hub/.env
+
+# =====================
+# Training outputs & experiment logs
+# =====================
+wandb/
+output_*/
+test_*checkpoint*/
+demo_sft_output/
+runs/

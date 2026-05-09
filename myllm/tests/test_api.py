@@ -87,9 +87,7 @@ class TestGenerate:
     def test_with_kv_cache(self, llm, tiny_model_config):
         cfg = GenerationConfig(
             max_length=5, do_sample=False, use_kv_cache=True,
-            use_optimized_sampler=False, apply_repetition_penalty=False,
-            apply_top_k_sampling=False, apply_top_p_sampling=False,
-            temperature=1.0, pad_token_id=0,
+            use_optimized_sampler=False, temperature=1.0, pad_token_id=0,
         )
         x = torch.randint(1, tiny_model_config.vocab_size, (1, 4))
         out = llm.generate(x, cfg)
@@ -98,9 +96,8 @@ class TestGenerate:
     def test_top_k_sampling(self, llm):
         cfg = GenerationConfig(
             max_length=5, do_sample=True, use_kv_cache=False,
-            use_optimized_sampler=True, apply_top_k_sampling=True,
-            top_k=10, apply_top_p_sampling=False,
-            apply_repetition_penalty=False, temperature=1.0, pad_token_id=0,
+            use_optimized_sampler=True, top_k=10,
+            temperature=1.0, pad_token_id=0,
         )
         x = torch.randint(1, 999, (1, 5))
         out = llm.generate(x, cfg)
@@ -109,9 +106,8 @@ class TestGenerate:
     def test_top_p_sampling(self, llm):
         cfg = GenerationConfig(
             max_length=5, do_sample=True, use_kv_cache=False,
-            use_optimized_sampler=True, apply_top_k_sampling=False,
-            apply_top_p_sampling=True, top_p=0.9,
-            apply_repetition_penalty=False, temperature=1.0, pad_token_id=0,
+            use_optimized_sampler=True, top_p=0.9,
+            temperature=1.0, pad_token_id=0,
         )
         x = torch.randint(1, 999, (1, 5))
         out = llm.generate(x, cfg)
@@ -120,9 +116,8 @@ class TestGenerate:
     def test_logprobs_returned_when_requested(self, llm, tiny_model_config):
         cfg = GenerationConfig(
             max_length=5, do_sample=False, use_kv_cache=False,
-            use_optimized_sampler=False, apply_repetition_penalty=False,
-            apply_top_k_sampling=False, apply_top_p_sampling=False,
-            temperature=1.0, pad_token_id=0, return_logprobs=True,
+            use_optimized_sampler=False, temperature=1.0,
+            pad_token_id=0, return_logprobs=True,
         )
         x = torch.randint(1, tiny_model_config.vocab_size, (1, 5))
         out = llm.generate(x, cfg)

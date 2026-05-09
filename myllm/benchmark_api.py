@@ -44,7 +44,7 @@ class Benchmark:
         print(f"Loading {self.model_name}...")
         config = ModelConfig.from_name(self.model_name)
         self.llm = LLM(config=config, device=self.device)
-        self.llm.load(self.model_name, self.tokenizer_name)
+        self.llm.load(self.model_name)
 
         # Use HF tokenizer for encoding/decoding benchmark prompts
         from transformers import GPT2Tokenizer
@@ -111,29 +111,24 @@ class Benchmark:
             ),
             "Top-K (k=50)": GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=False,
+                use_optimized_sampler=True, top_k=50,
             ),
             "Top-P (p=0.95)": GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=False,
-                apply_top_p_sampling=True, top_p=0.95,
+                use_optimized_sampler=True, top_p=0.95,
             ),
             "Top-K + Top-P": GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=True, top_p=0.95,
+                use_optimized_sampler=True, top_k=50, top_p=0.95,
             ),
             "All opts + rep penalty": GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=True, top_p=0.95,
-                apply_repetition_penalty=True, repetition_penalty=1.2,
+                use_optimized_sampler=True, top_k=50, top_p=0.95,
+                repetition_penalty=1.2,
             ),
             "No KV cache": GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=False,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=True, top_p=0.95,
+                use_optimized_sampler=True, top_k=50, top_p=0.95,
             ),
         }
         for name, cfg in configs.items():
@@ -144,8 +139,7 @@ class Benchmark:
         for length in [10, 20, 50, 100]:
             cfg = GenerationConfig(
                 max_length=length, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=True, top_p=0.95,
+                use_optimized_sampler=True, top_k=50, top_p=0.95,
             )
             self.run_config(f"Length={length}", cfg, prompt=prompt, batch_size=1)
 
@@ -154,8 +148,7 @@ class Benchmark:
         for bs in [1, 2, 4, 8]:
             cfg = GenerationConfig(
                 max_length=20, do_sample=True, use_kv_cache=True,
-                use_optimized_sampler=True, apply_top_k_sampling=True,
-                top_k=50, apply_top_p_sampling=True, top_p=0.95,
+                use_optimized_sampler=True, top_k=50, top_p=0.95,
             )
             self.run_config(f"Batch={bs}", cfg, prompt=prompt, batch_size=bs)
 

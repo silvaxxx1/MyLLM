@@ -104,14 +104,10 @@ python Modules/3.training/train.py --config configs/basic.yml
 
 ### Load a model and generate
 ```python
-from myllm import LLM, ModelConfig, GenerationConfig
+from myllm import LLM, GenerationConfig
 
-llm = LLM(config=ModelConfig.from_name("gpt2-small"), device="cuda")
-llm.load("gpt2-small")
-
-from transformers import GPT2Tokenizer
-tok = GPT2Tokenizer.from_pretrained("gpt2")
-result = llm.generate_text("Hello world", tok, GenerationConfig(max_length=50))
+llm = LLM.from_pretrained("gpt2-small")   # config + weights + tokenizer in one call
+result = llm.generate_text("Hello world", GenerationConfig(max_length=50), skip_prompt=True)
 print(result["text"])
 ```
 
