@@ -17,6 +17,7 @@ from .base import BaseTokenizer
 from .gpt2_tokenizer import GPT2Tokenizer
 from .llama2_tokenizer import LLaMA2Tokenizer
 from .llama3_tokenizer import LLaMA3Tokenizer
+from .gemma_tokenizer import GemmaTokenizer
 from .trainable_tok import TrainableTokenizer
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     "GPT2Tokenizer",
     "LLaMA2Tokenizer",
     "LLaMA3Tokenizer",
+    "GemmaTokenizer",
     "TrainableTokenizer",
 ]

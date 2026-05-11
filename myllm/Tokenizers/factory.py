@@ -12,6 +12,7 @@ from myllm.Tokenizers.base import BaseTokenizer
 from myllm.Tokenizers.gpt2_tokenizer import GPT2Tokenizer
 from myllm.Tokenizers.llama2_tokenizer import LLaMA2Tokenizer
 from myllm.Tokenizers.llama3_tokenizer import LLaMA3Tokenizer
+from myllm.Tokenizers.gemma_tokenizer import GemmaTokenizer
 from myllm.Tokenizers.trainable_tok import TrainableTokenizer
 from myllm.Tokenizers.wrapper import TokenizerWrapper
 
@@ -72,6 +73,10 @@ def get_tokenizer(model_name: str, **kwargs) -> TokenizerWrapper:
         return wrapper
 
     # Built-in models (dict-driven lookup)
+    # Mistral and Gemma share LLaMA2's SentencePiece format
+    SENTENCEPIECE_MODELS = {"llama2", "llama-2", "llama2-7b", "llama2-13b", "llama2-70b",
+                            "mistral", "gemma"}
+
     BUILTIN_MODELS = {
         "gpt2": GPT2Tokenizer,
         "gpt-2": GPT2Tokenizer,
@@ -90,13 +95,22 @@ def get_tokenizer(model_name: str, **kwargs) -> TokenizerWrapper:
         "llama3-8b": LLaMA3Tokenizer,
         "llama3-70b": LLaMA3Tokenizer,
 
+        # Mistral uses the same SentencePiece format as LLaMA 2
+        "mistral": LLaMA2Tokenizer,
+
+        # Gemma uses SentencePiece with its own special tokens
+        "gemma": GemmaTokenizer,
+
         "trainable": TrainableTokenizer,
     }
 
     if model_key in BUILTIN_MODELS:
-        if model_key.startswith("llama2"):
+        if model_key in SENTENCEPIECE_MODELS:
             if "model_path" not in kwargs:
-                raise TypeError("LLaMA2 tokenizer requires 'model_path' argument")
+                raise TypeError(
+                    f"'{model_key}' tokenizer requires 'model_path' pointing to a "
+                    f"tokenizer.model file. Use LLM.from_pretrained() to auto-download it."
+                )
             if not os.path.exists(kwargs["model_path"]):
                 raise FileNotFoundError(f"SentencePiece model file not found: {kwargs['model_path']}")
 

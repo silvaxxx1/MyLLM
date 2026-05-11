@@ -1,16 +1,18 @@
 # ============================================
 # model_registry.py - Unified Model Configuration
 # ============================================
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 @dataclass
 class ModelSpec:
     """Specification for a model variant"""
-    url: str
-    config_name: str  # Name in your ModelConfig registry
+    url: str                                    # single-file URL (or ignored if shard_urls set)
+    config_name: str                            # name in ModelConfig registry
     expected_size: Optional[int] = None
-    weight_mapper: Optional[str] = None  # Override default mapper if needed
+    weight_mapper: Optional[str] = None         # override default mapper if needed
+    shard_urls: Optional[List[str]] = None      # ordered shard URLs for sharded models
+    tokenizer_url: Optional[str] = None         # tokenizer file URL for auto-download
 
 @dataclass
 class ModelFamily:
@@ -95,9 +97,14 @@ MODEL_REGISTRY = {
         default_mapper="mistral_mapper",
         variants={
             "mistral-7b-v0.1": ModelSpec(
-                url="https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/model.safetensors",
+                url="",  # unused — sharded model
                 config_name="mistral-7b-v0.1",
                 expected_size=14_000_000_000,
+                shard_urls=[
+                    "https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/model-00001-of-00002.safetensors",
+                    "https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/model-00002-of-00002.safetensors",
+                ],
+                tokenizer_url="https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/tokenizer.model",
             ),
         }
     ),
@@ -110,6 +117,8 @@ MODEL_REGISTRY = {
                 url="https://huggingface.co/microsoft/phi-2/resolve/main/model.safetensors",
                 config_name="phi-2",
                 expected_size=5_500_000_000,
+                # phi-2 uses a custom CodeGen-style tokenizer; no auto-load supported
+                tokenizer_url=None,
             ),
         }
     ),
@@ -124,11 +133,17 @@ MODEL_REGISTRY = {
                 url="https://huggingface.co/google/gemma-2b/resolve/main/model.safetensors",
                 config_name="gemma-2b",
                 expected_size=5_000_000_000,
+                tokenizer_url="https://huggingface.co/google/gemma-2b/resolve/main/tokenizer.model",
             ),
             "gemma-7b": ModelSpec(
-                url="https://huggingface.co/google/gemma-7b/resolve/main/model.safetensors",
+                url="",  # unused — sharded model
                 config_name="gemma-7b",
-                expected_size=14_000_000_000,
+                expected_size=17_000_000_000,
+                shard_urls=[
+                    "https://huggingface.co/google/gemma-7b/resolve/main/model-00001-of-00002.safetensors",
+                    "https://huggingface.co/google/gemma-7b/resolve/main/model-00002-of-00002.safetensors",
+                ],
+                tokenizer_url="https://huggingface.co/google/gemma-7b/resolve/main/tokenizer.model",
             ),
         }
     ),

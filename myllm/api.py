@@ -290,11 +290,30 @@ class LLM(nn.Module):
                   low_cpu_mem_usage=low_cpu_mem_usage)
         llm.load(model_name)
 
-        family = model_name.split('-')[0]  # 'gpt2', 'llama2', 'llama3'
-        try:
-            llm.tokenizer = get_tokenizer(family)
-        except Exception:
-            print(f"Note: could not auto-load tokenizer for '{family}'. Pass one to generate_text().")
+        # Map variant name → tokenizer family key
+        FAMILY_MAP = {
+            "gpt2": "gpt2", "gpt2-medium": "gpt2", "gpt2-large": "gpt2", "gpt2-xl": "gpt2",
+            "llama2": "llama2", "llama3": "llama3",
+            "mistral": "mistral",
+            "gemma": "gemma",
+            "phi": None,   # Phi-2 uses a custom CodeGen tokenizer; not auto-loaded
+        }
+        prefix = model_name.split('-')[0]
+        family = FAMILY_MAP.get(prefix, prefix)
+
+        if family is None:
+            print(f"Note: '{model_name}' tokenizer is not auto-loadable. Pass one to generate_text().")
+        else:
+            try:
+                # SentencePiece tokenizers need the .model file path
+                SENTENCEPIECE_FAMILIES = {"llama2", "mistral", "gemma"}
+                if family in SENTENCEPIECE_FAMILIES:
+                    tok_path = llm.loader.download_tokenizer(model_name)
+                    llm.tokenizer = get_tokenizer(family, model_path=tok_path)
+                else:
+                    llm.tokenizer = get_tokenizer(family)
+            except Exception as e:
+                print(f"Note: could not auto-load tokenizer for '{family}': {e}. Pass one to generate_text().")
 
         return llm
 

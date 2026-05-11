@@ -82,24 +82,28 @@ class ModelLoader:
                     f"Model requires authentication. Set {family.token_env_var} environment variable."
                 )
             headers = {"Authorization": f"Bearer {token}"}
-        
-        # Download weights
-        filename = f"model-{model_variant}.safetensors"
+
+        # Download weights (sharded or single file)
         print(f"⬇️  Downloading {model_variant}...")
-        
-        filepath = download_safetensors(
-            filename,
-            self.cache_dir,
-            spec.url,
-            expected_size=spec.expected_size
-        )
-        
-        # 🆕 Load weights to CPU first if low_cpu_mem_usage
-        print(f"📂 Loading weights from disk...")
-        if low_cpu_mem_usage:
-            params = load_safetensors(filepath, device="cpu")
+        if spec.shard_urls:
+            from .download_weight import download_and_merge_shards
+            params = download_and_merge_shards(
+                model_name=model_variant,
+                model_dir=self.cache_dir,
+                shard_urls=spec.shard_urls,
+                headers=headers,
+            )
         else:
-            params = load_safetensors(filepath)
+            filename = f"model-{model_variant}.safetensors"
+            filepath = download_safetensors(
+                filename,
+                self.cache_dir,
+                spec.url,
+                expected_size=spec.expected_size,
+                headers=headers,
+            )
+            print(f"📂 Loading weights from disk...")
+            params = load_safetensors(filepath, device="cpu" if low_cpu_mem_usage else device)
         
         # 🆕 Initialize model on CPU first
         print(f"🏗️  Initializing model architecture...")
@@ -145,6 +149,29 @@ class ModelLoader:
                 return family_name
         raise ValueError(f"Could not detect model family for variant: {model_variant}")
     
+    def download_tokenizer(self, model_variant: str) -> Optional[str]:
+        """
+        Download the tokenizer file for a model variant and return its local path.
+        Returns None if no tokenizer_url is registered for the variant.
+        """
+        from .download_weight import download_file
+
+        family_name = self._detect_family(model_variant)
+        family = MODEL_REGISTRY[family_name]
+        spec = family.variants[model_variant]
+
+        if not spec.tokenizer_url:
+            return None
+
+        headers = None
+        if family.requires_auth:
+            token = os.getenv(family.token_env_var)
+            if token:
+                headers = {"Authorization": f"Bearer {token}"}
+
+        filename = f"tokenizer-{model_variant}.model"
+        return download_file(filename, self.cache_dir, spec.tokenizer_url, headers=headers)
+
     def list_available_models(self) -> Dict[str, List[str]]:
         """List all available models grouped by family"""
         return {

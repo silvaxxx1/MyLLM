@@ -7,6 +7,7 @@ import time
 import gc
 import requests
 from threading import Thread
+from typing import Dict, List, Optional
 
 
 # Spinner for UI feedback
@@ -47,7 +48,13 @@ def check_disk_space(dir_path, needed_bytes):
 # -----------------------------
 # Download + Verify .safetensors
 # -----------------------------
-def download_safetensors(model_name: str, model_dir: str, url: str, expected_size=None) -> str:
+def download_safetensors(
+    model_name: str,
+    model_dir: str,
+    url: str,
+    expected_size=None,
+    headers: Optional[Dict[str, str]] = None,
+) -> str:
     os.makedirs(model_dir, exist_ok=True)
     filepath = os.path.join(model_dir, model_name)
 
@@ -69,7 +76,7 @@ def download_safetensors(model_name: str, model_dir: str, url: str, expected_siz
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, stream=True, timeout=30)
+            response = requests.get(url, stream=True, timeout=30, headers=headers)
             response.raise_for_status()
             total_size = int(response.headers.get('content-length', 0))
 
@@ -91,6 +98,54 @@ def download_safetensors(model_name: str, model_dir: str, url: str, expected_siz
                 raise RuntimeError("❌ Failed to download after retries.")
             print(f"⏳ Retrying in {2 ** attempt} seconds...")
             time.sleep(2 ** attempt)
+
+
+def download_file(
+    filename: str,
+    model_dir: str,
+    url: str,
+    headers: Optional[Dict[str, str]] = None,
+) -> str:
+    """Download any file (tokenizer model, config, etc.) to cache dir."""
+    os.makedirs(model_dir, exist_ok=True)
+    filepath = os.path.join(model_dir, filename)
+
+    if os.path.exists(filepath):
+        return filepath
+
+    print(f"⬇️ Downloading {filename}...")
+    response = requests.get(url, stream=True, timeout=30, headers=headers)
+    response.raise_for_status()
+
+    with open(filepath, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+
+    return filepath
+
+
+def download_and_merge_shards(
+    model_name: str,
+    model_dir: str,
+    shard_urls: List[str],
+    headers: Optional[Dict[str, str]] = None,
+) -> dict:
+    """Download multiple shard files and merge into a single params dict."""
+    n = len(shard_urls)
+    all_params = {}
+
+    for i, url in enumerate(shard_urls):
+        shard_filename = f"{model_name}-shard{i+1:02d}-of-{n:02d}.safetensors"
+        print(f"📦 Shard {i+1}/{n}...")
+        filepath = download_safetensors(shard_filename, model_dir, url, headers=headers)
+        shard_params = load_safetensors(filepath, device="cpu")
+        all_params.update(shard_params)
+        del shard_params
+        gc.collect()
+
+    print(f"✅ Merged {n} shards — {len(all_params)} tensors total.")
+    return all_params
 
 
 # -----------------------------
