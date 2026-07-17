@@ -28,6 +28,55 @@ MyLLM is intentionally different:
 - **Research-friendly** — SFT, DPO, PPO, quantization
 - **From scratch** — so you *actually* understand what's happening
 
+**Why not just use HuggingFace?** HF's `modeling_*.py` files route through generic base classes, mixins, and config indirection — reading how attention actually works can mean tracing through several files. In MyLLM, the entire attention forward pass is one readable function in `model.py`, no inheritance chain to follow.
+
+---
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Architecture](#architecture)
+- [`myllm/` — The Core Framework](#myllm--the-core-framework)
+- [Test Suite](#test-suite)
+- [`notebooks/` — Learn by Doing](#notebooks--learn-by-doing)
+- [`Modules/` — Targeted Experiments](#modules--targeted-experiments)
+- [`demos/` — Try it on Colab](#demos--try-it-on-colab)
+- [`docs/` — Reference Documentation](#docs--reference-documentation)
+- [Supported Models](#supported-models)
+- [Roadmap](#roadmap)
+- [Setup](#setup)
+- [Contributing](#contributing)
+- [Citation](#citation)
+- [Inspiration](#inspiration)
+- [License](#license)
+
+---
+
+## Quickstart
+
+```bash
+pip install git+https://github.com/silvaxxx1/MyLLM.git
+```
+
+```python
+from myllm import LLM, GenerationConfig
+
+llm = LLM.from_pretrained("gpt2-small")
+result = llm.generate_text(
+    "The future of AI is",
+    generation_config=GenerationConfig(max_length=60, temperature=0.8, top_k=50),
+    skip_prompt=True,
+)
+print(result["text"])
+```
+
+```
+The future of AI is not just about bigger models, but about systems that can
+reason, plan, and adapt to new situations without extensive retraining...
+```
+
+That's a full config + weights + tokenizer load and generation in 6 lines. See below for training, install variants, and the full API.
+
 ---
 
 ## Architecture
@@ -53,7 +102,7 @@ A clean, installable LLM framework — pure PyTorch, fully transparent.
 myllm/
 ├── model.py          # GPT / LLaMA-style transformer
 ├── api.py            # LLM — from_pretrained, generate, generate_text, generate_batch
-├── Configs/          # ModelConfig, GenerationConfig
+├── Configs/           # ModelConfig, GenerationConfig
 ├── Tokenizers/       # GPT2 (tiktoken), LLaMA2 (SentencePiece), LLaMA3, trainable
 ├── Train/
 │   ├── sft_trainer.py        # Supervised Fine-Tuning ✅
@@ -106,24 +155,6 @@ myllm.tokenizers.GPT2Tokenizer
 python -m myllm version          # myllm 0.1.0
 python -m myllm models           # list all available model configs
 python -m myllm info gpt2-medium # layers, heads, params, memory estimate
-```
-
-### Load a model and generate
-
-```python
-from myllm import LLM, GenerationConfig
-
-# Config + weights + tokenizer — one call
-llm = LLM.from_pretrained("gpt2-small")
-print(llm)
-# LLM(model='gpt2-small', params=124.4M, device='cuda', dtype=torch.float32)
-
-result = llm.generate_text(
-    "The future of AI is",
-    generation_config=GenerationConfig(max_length=60, temperature=0.8, top_k=50),
-    skip_prompt=True,   # return only the generated text, not the input prompt
-)
-print(result["text"])
 ```
 
 ### Fine-tune with SFT
@@ -311,6 +342,27 @@ Requirements: Python 3.10+, PyTorch 2.x
 
 ---
 
+## Contributing
+
+Contributions are welcome — bug fixes, new model configs, notebook improvements, or trainer implementations (DPO/PPO help especially appreciated). Open an issue to discuss larger changes before submitting a PR, and make sure `uv run pytest` passes locally first.
+
+---
+
+## Citation
+
+If you use MyLLM in your research or writing, please cite it as:
+
+```bibtex
+@software{myllm2025,
+  author = {Silva},
+  title  = {MyLLM: A Transparent LLM Framework, Built From Scratch},
+  year   = {2025},
+  url    = {https://github.com/silvaxxx1/MyLLM}
+}
+```
+
+---
+
 ## Inspiration
 
 - **Andrej Karpathy** — NanoGPT minimalism
@@ -321,4 +373,6 @@ Requirements: Python 3.10+, PyTorch 2.x
 
 ## License
 
-MIT — see `LICENSE` for details.
+MIT — see [`LICENSE`](LICENSE) for details.
+
+Copyright © 2025 Silva
