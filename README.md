@@ -1,4 +1,4 @@
-# MyLLM — A Transparent LLM Framework, Built From Scratch
+# MyLLM — A Transparent Framework for Small Language Models, Built From Scratch
 
 <p align="center">
   <img src="./myllm.png" width="800" alt="MyLLM Overview">
@@ -13,20 +13,88 @@
 
 ## What is MyLLM?
 
-**MyLLM** is a from-scratch LLM framework built for deep understanding and real research.
+**MyLLM** is a from-scratch framework for building, training, and running
+**small language models (SLMs)** — models small enough to fine-tune and run
+on a single consumer GPU, fully transparent from tokenizer to RLHF.
 
 It covers the full pipeline:
 
 > **Tokenization → Attention → Training → RLHF → Inference**
 
-There are already great libraries (HuggingFace, Lightning, TRL). But they hide too much.
+Most "build an LLM from scratch" projects stop at a toy transformer and a
+training loop on a tutorial dataset. Most "small language model" repos are
+single-notebook demos. MyLLM is neither — it's a real, installable package
+with a full trainer suite (SFT, DPO, PPO), multi-accelerator support, a
+128-test suite, and 34 pages of documentation, aimed squarely at models you
+can actually own end-to-end: train, fine-tune, quantize, and run locally.
 
-MyLLM is intentionally different:
+**Why small, on purpose?**
+Small language models are increasingly where the interesting engineering
+work is — running on-device, fine-tuning on a single GPU, deploying without
+a cluster. SLMs are projected to overtake LLMs at the edge as demand grows
+for task-specific, efficient models. MyLLM is built for that world: every
+model in the default lineup runs and trains on hardware a single researcher
+or hobbyist actually has.
 
-- **Pure PyTorch** — no HuggingFace model abstractions in the core
-- **Every line visible** — no hidden magic, no black boxes
-- **Research-friendly** — SFT, DPO, PPO, quantization
-- **From scratch** — so you *actually* understand what's happening
+**Why not just use HuggingFace?** HF's `modeling_*.py` files route through
+generic base classes, mixins, and config indirection — reading how attention
+actually works can mean tracing through several files. In MyLLM, the entire
+attention forward pass is one readable function in `model.py`, no
+inheritance chain to follow.
+
+**Why not just use a "build your own LLM" tutorial repo?** Most stop at
+inference on a toy dataset. MyLLM keeps going through fine-tuning (SFT/DPO/
+PPO), quantization, and multi-accelerator training — the parts that make a
+small model actually deployable, not just a learning exercise.
+
+---
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Architecture](#architecture)
+- [`myllm/` — The Core Framework](#myllm--the-core-framework)
+- [Test Suite](#test-suite)
+- [`notebooks/` — Learn by Doing](#notebooks--learn-by-doing)
+- [`Modules/` — Targeted Experiments](#modules--targeted-experiments)
+- [`demos/` — Try it on Colab](#demos--try-it-on-colab)
+- [`docs/` — Reference Documentation](#docs--reference-documentation)
+- [Supported Models](#supported-models)
+- [Roadmap](#roadmap)
+- [Setup](#setup)
+- [Contributing](#contributing)
+- [Citation](#citation)
+- [Inspiration](#inspiration)
+- [License](#license)
+
+---
+
+## Quickstart
+
+```bash
+pip install git+https://github.com/silvaxxx1/MyLLM.git
+```
+
+```python
+from myllm import LLM, GenerationConfig
+
+llm = LLM.from_pretrained("gpt2-small")
+result = llm.generate_text(
+    "The future of AI is",
+    generation_config=GenerationConfig(max_length=60, temperature=0.8, top_k=50),
+    skip_prompt=True,
+)
+print(result["text"])
+```
+
+```
+The future of AI is not just about bigger models, but about systems that can
+reason, plan, and adapt to new situations without extensive retraining...
+```
+
+That's a full config + weights + tokenizer load and generation in 6 lines,
+running comfortably on a single consumer GPU. See below for training,
+install variants, and the full API.
 
 **Why not just use HuggingFace?** HF's `modeling_*.py` files route through generic base classes, mixins, and config indirection — reading how attention actually works can mean tracing through several files. In MyLLM, the entire attention forward pass is one readable function in `model.py`, no inheritance chain to follow.
 
@@ -96,7 +164,7 @@ MyLLM/
 
 ## `myllm/` — The Core Framework
 
-A clean, installable LLM framework — pure PyTorch, fully transparent.
+A clean, installable framework for small language models — pure PyTorch, fully transparent.
 
 ```
 myllm/
@@ -292,7 +360,11 @@ Start at [`docs/index.md`](docs/index.md).
 
 ## Supported Models
 
-Weights are auto-downloaded from HuggingFace on first `LLM.from_pretrained()` call and cached in `./models/`.
+MyLLM's primary focus is models you can fine-tune and run **locally on a
+single consumer GPU** — that's the tier every notebook, demo, and default
+config is built around.
+
+### Core lineup (single-GPU friendly)
 
 | Model | Params | Auth required | Min VRAM (fp16) |
 |-------|--------|---------------|-----------------|
@@ -301,30 +373,52 @@ Weights are auto-downloaded from HuggingFace on first `LLM.from_pretrained()` ca
 | `gpt2-large` | 774M | — | 2 GB |
 | `gpt2-xl` | 1.5B | — | 4 GB |
 | `llama3-1b` | 1.9B | HF token | 3 GB |
+
+### Also supported (larger, needs more hardware)
+
+These load and run through the same API, but sit outside the project's
+core "runs on one GPU" focus — treat them as opt-in, not the default path.
+
+| Model | Params | Auth required | Min VRAM (fp16) |
+|-------|--------|---------------|-----------------|
 | `llama3-8b` | 8B | HF token | 17 GB |
 | `llama2-7b` | 7B | HF token + license | 16 GB |
 | `llama2-13b` | 13B | HF token + license | 32 GB |
+
+Weights are auto-downloaded from HuggingFace on first
+`LLM.from_pretrained()` call and cached in `./models/`.
 
 ---
 
 ## Roadmap
 
+### Core SLM pipeline
+| Status | Item |
+|--------|------|
+| ✅ | `LLM.from_pretrained()` — one-line model + tokenizer loader |
+| ✅ | GPT-2 / LLaMA-3-1B loading + generation, single-GPU by default |
+| ✅ | SFT Trainer (AMP, gradient accumulation, WandB, checkpointing) |
+| 🔧 | DPO Trainer — implementation in progress |
+| 🔧 | PPO Trainer — implementation in progress |
+| ⬜ | 8-bit / 4-bit quantization in core `myllm/` (currently notebook-only) |
+| ⬜ | Streaming generation (`generate_stream()`) |
+| ⬜ | ModelConfig entries for Phi, Gemma, Qwen-small (<3B) |
+
+### Learning & reference
 | Status | Item |
 |--------|------|
 | ✅ | 21 learning notebooks (tokenization → RLHF → inference) |
 | ✅ | Modular experiments (GPT, LLaMA, attention variants, SFT, DPO, PPO, quantization) |
-| ✅ | Installable `myllm` package with public API |
-| ✅ | GPT-2 / LLaMA-2 / LLaMA-3 loading + generation |
-| ✅ | `LLM.from_pretrained()` — one-line model + tokenizer loader |
-| ✅ | SFT Trainer (AMP, gradient accumulation, WandB, checkpointing) |
 | ✅ | 5 Colab-ready demo notebooks |
 | ✅ | 34-page component-level documentation |
 | ✅ | 128-test suite (CPU-only, no weights needed) |
-| 🔧 | DPO Trainer — implementation in progress |
-| 🔧 | PPO Trainer — implementation in progress |
-| ⬜ | Streaming generation (`generate_stream()`) |
-| ⬜ | ModelConfig entries for Mistral, Phi-2, Gemma |
-| ⬜ | 8-bit / 4-bit quantization in core `myllm/` |
+
+### Beyond one GPU (secondary track)
+| Status | Item |
+|--------|------|
+| ✅ | Multi-accelerator training support (DDP, DeepSpeed, FSDP) |
+| ✅ | 7B–13B model loading + generation via the same API |
+| ⬜ | Multi-node training guide / benchmarks |
 
 ---
 
@@ -344,7 +438,15 @@ Requirements: Python 3.10+, PyTorch 2.x
 
 ## Contributing
 
+<<<<<<< HEAD
 Contributions are welcome — bug fixes, new model configs, notebook improvements, or trainer implementations (DPO/PPO help especially appreciated). Open an issue to discuss larger changes before submitting a PR, and make sure `uv run pytest` passes locally first.
+=======
+Contributions are welcome — bug fixes, new small-model configs (Phi, Gemma,
+Qwen-small especially appreciated), notebook improvements, or trainer
+implementations (DPO/PPO help especially appreciated). Open an issue to
+discuss larger changes before submitting a PR, and make sure `uv run pytest`
+passes locally first.
+>>>>>>> c1160cd (new README)
 
 ---
 
@@ -355,7 +457,11 @@ If you use MyLLM in your research or writing, please cite it as:
 ```bibtex
 @software{myllm2025,
   author = {Silva},
+<<<<<<< HEAD
   title  = {MyLLM: A Transparent LLM Framework, Built From Scratch},
+=======
+  title  = {MyLLM: A Transparent Framework for Small Language Models, Built From Scratch},
+>>>>>>> c1160cd (new README)
   year   = {2025},
   url    = {https://github.com/silvaxxx1/MyLLM}
 }
@@ -375,4 +481,8 @@ If you use MyLLM in your research or writing, please cite it as:
 
 MIT — see [`LICENSE`](LICENSE) for details.
 
+<<<<<<< HEAD
 Copyright © 2025 Silva
+=======
+Copyright © 2025 Silva
+>>>>>>> c1160cd (new README)
