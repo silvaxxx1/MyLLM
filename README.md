@@ -438,15 +438,8 @@ Requirements: Python 3.10+, PyTorch 2.x
 
 ## Contributing
 
-<<<<<<< HEAD
 Contributions are welcome — bug fixes, new model configs, notebook improvements, or trainer implementations (DPO/PPO help especially appreciated). Open an issue to discuss larger changes before submitting a PR, and make sure `uv run pytest` passes locally first.
 =======
-Contributions are welcome — bug fixes, new small-model configs (Phi, Gemma,
-Qwen-small especially appreciated), notebook improvements, or trainer
-implementations (DPO/PPO help especially appreciated). Open an issue to
-discuss larger changes before submitting a PR, and make sure `uv run pytest`
-passes locally first.
->>>>>>> c1160cd (new README)
 
 ---
 
@@ -457,11 +450,7 @@ If you use MyLLM in your research or writing, please cite it as:
 ```bibtex
 @software{myllm2025,
   author = {Silva},
-<<<<<<< HEAD
-  title  = {MyLLM: A Transparent LLM Framework, Built From Scratch},
-=======
   title  = {MyLLM: A Transparent Framework for Small Language Models, Built From Scratch},
->>>>>>> c1160cd (new README)
   year   = {2025},
   url    = {https://github.com/silvaxxx1/MyLLM}
 }
@@ -481,8 +470,5 @@ If you use MyLLM in your research or writing, please cite it as:
 
 MIT — see [`LICENSE`](LICENSE) for details.
 
-<<<<<<< HEAD
 Copyright © 2025 Silva
-=======
-Copyright © 2025 Silva
->>>>>>> c1160cd (new README)
+
