@@ -1,5 +1,3 @@
-Below is a cleaned-up, substantially stronger version. I removed the duplication, fixed the DPO/PPO positioning, added project status, clarified what “from scratch” means, and made the README more focused on **transparency, systems, and end-to-end LLM engineering**.
-
 # MyLLM — A Transparent Framework for Small Language Models
 
 <p align="center">
